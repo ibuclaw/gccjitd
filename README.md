@@ -1,4 +1,4 @@
 gccjitd
 =======
 
-D bindings for libgccjit.so
+D bindings for [libgccjit.so](http://gcc.gnu.org/wiki/JIT)
