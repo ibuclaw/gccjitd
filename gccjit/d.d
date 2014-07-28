@@ -87,7 +87,15 @@ class JITLocation : JITObject
     }
 }
 
-/// Class wrapper for gcc_jit_context
+/// The top-level of the API is the JITContext class.
+
+/// A JITContext instance encapsulates the state of a compilation.
+/// It goes through two states.
+/// Initial:
+///     During which you can set up options on it, and add types,
+///     functions and code, using the API below. Invoking compile
+///     on it transitions it to the "after compilation" state.
+/// PostCompilation:
 final class JITContext
 {
     ///
@@ -127,19 +135,31 @@ final class JITContext
         this.m_inner_ctxt = null;
     }
 
-    ///
+    /// Set a string option of the context; see JITStrOption for notes
+    /// on the options and their meanings.
+    /// Params:
+    ///     opt   = Which option to set.
+    ///     value = The new value.
     void setOption(JITStrOption opt, string value)
     {
         gcc_jit_context_set_str_option(this.m_inner_ctxt, opt, value.toStringz());
     }
 
-    ///
+    /// Set an integer option of the context; see JITIntOption for notes
+    /// on the options and their meanings.
+    /// Params:
+    ///     opt   = Which option to set.
+    ///     value = The new value.
     void setOption(JITIntOption opt, int value)
     {
         gcc_jit_context_set_int_option(this.m_inner_ctxt, opt, value);
     }
 
-    ///
+    /// Set a boolean option of the context; see JITBoolOption for notes
+    /// on the options and their meanings.
+    /// Params:
+    ///     opt   = Which option to set.
+    ///     value = The new value.
     void setOption(JITBoolOption opt, bool value)
     {
         gcc_jit_context_set_bool_option(this.m_inner_ctxt, opt, value);
@@ -217,7 +237,11 @@ final class JITContext
         return new JITContext(result);
     }
 
-    ///
+    /// Make a JITLocation representing a source location,
+    /// for use by the debugger.
+    /// Note:
+    ///     You need to enable JITBoolOption.DEBUGINFO on the context
+    ///     for these locations to actually be usable by the debugger.
     JITLocation newLocation(string filename, int line, int column)
     {
         auto result = gcc_jit_context_new_location(this.m_inner_ctxt,
@@ -383,7 +407,8 @@ final class JITContext
         return this.newGlobal(null, type, name);
     }
 
-    ///
+    /// Given a JITType, which must be a numeric type, get an
+    /// integer constant as a JITRValue of that type.
     JITRValue newRValue(JITType type, int value)
     {
         auto result = gcc_jit_context_new_rvalue_from_int(this.m_inner_ctxt,
@@ -391,7 +416,8 @@ final class JITContext
         return new JITRValue(result);
     }
 
-    ///
+    /// Given a JITType, which must be a numeric type, get an
+    /// floating point constant as a JITRValue of that type.
     JITRValue newRValue(JITType type, double value)
     {
         auto result = gcc_jit_context_new_rvalue_from_double(this.m_inner_ctxt,
@@ -399,7 +425,9 @@ final class JITContext
         return new JITRValue(result);
     }
 
-    ///
+    /// Given a JITType, which must be a pointer type, and an
+    /// address, get a JITRValue representing that address as a
+    /// pointer of that type.
     JITRValue newRValue(JITType type, void *value)
     {
         auto result = gcc_jit_context_new_rvalue_from_ptr(this.m_inner_ctxt,
@@ -407,7 +435,9 @@ final class JITContext
         return new JITRValue(result);
     }
 
-    ///
+    /// Make a JITRValue for the given string literal value.
+    /// Params:
+    ///     value = The string literal.
     JITRValue newRValue(string value)
     {
         auto result = gcc_jit_context_new_string_literal(this.m_inner_ctxt,
@@ -415,21 +445,24 @@ final class JITContext
         return new JITRValue(result);
     }
 
-    ///
+    /// Given a JITType, which must be a numeric type, get the
+    /// constant 0 as a JITRValue of that type.
     final JITRValue zero(JITType type)
     {
         auto result = gcc_jit_context_zero(this.m_inner_ctxt, type.getType());
         return new JITRValue(result);
     }
 
-    ///
+    /// Given a JITType, which must be a numeric type, get the
+    /// constant 1 as a JITRValue of that type.
     final JITRValue one(JITType type)
     {
         auto result = gcc_jit_context_one(this.m_inner_ctxt, type.getType());
         return new JITRValue(result);
     }
 
-    ///
+    /// Given a JITType, which must be a pointer type, get a
+    /// JITRValue representing the NULL pointer of that type.
     final JITRValue nil(JITType type)
     {
         auto result = gcc_jit_context_null(this.m_inner_ctxt, type.getType());
@@ -437,6 +470,13 @@ final class JITContext
     }
 
     /// Generic unary operations.
+
+    /// Make a JITRValue for the given unary operation.
+    /// Params:
+    ///     loc  = The source location, if any.
+    ///     op   = Which unary operation.
+    ///     type = The type of the result.
+    ///     a    = The input expression.
     JITRValue newUnaryOp(JITLocation loc, JITUnaryOp op, JITType type, JITRValue a)
     {
         auto result = gcc_jit_context_new_unary_op(this.m_inner_ctxt,
@@ -453,6 +493,14 @@ final class JITContext
     }
 
     /// Generic binary operations.
+
+    /// Make a JITRValue for the given binary operation.
+    /// Params:
+    ///     loc  = The source location, if any.
+    ///     op   = Which binary operation.
+    ///     type = The type of the result.
+    ///     a    = The first input expression.
+    ///     b    = The second input expression.
     JITRValue newBinaryOp(JITLocation loc, JITBinaryOp op,
                           JITType type, JITRValue a, JITRValue b)
     {
@@ -471,6 +519,13 @@ final class JITContext
     }
 
     /// Generic comparisons.
+
+    /// Make a JITRValue of boolean type for the given comparison.
+    /// Params:
+    ///     loc  = The source location, if any.
+    ///     op   = Which comparison.
+    ///     a    = The first input expression.
+    ///     b    = The second input expression.
     JITRValue newComparison(JITLocation loc, JITComparison op,
                             JITRValue a, JITRValue b)
     {
@@ -526,7 +581,10 @@ final class JITContext
         return this.newCast(null, expr, type);
     }
 
-    ///
+    /// Params:
+    ///     loc   = The source location, if any.
+    ///     ptr   = The pointer or array.
+    ///     index = The index within the array.
     JITLValue newArrayAccess(JITLocation loc, JITRValue ptr, JITRValue index)
     {
         auto result = gcc_jit_context_new_array_access(this.m_inner_ctxt,
@@ -568,7 +626,13 @@ class JITField : JITObject
     }
 }
 
-/// Class wrapper for gcc_jit_type
+/// Types can be created in several ways:
+/// $(UL
+///     $(LI Fundamental types can be accessed using JITContext.getType())
+///     $(LI Derived types can be accessed by calling methods on an existing type.)
+///     $(LI By creating structures via JITStruct.)
+/// )
+
 class JITType : JITObject
 {
     ///
@@ -590,21 +654,21 @@ class JITType : JITObject
         return cast(gcc_jit_type *)(this.getObject());
     }
 
-    ///
+    /// Given type T, get type T*.
     final JITType pointerOf()
     {
         auto result = gcc_jit_type_get_pointer(this.getType());
         return new JITType(result);
     }
 
-    ///
+    /// Given type T, get type const T.
     final JITType constOf()
     {
         auto result = gcc_jit_type_get_const(this.getType());
         return new JITType(result);
     }
 
-    ///
+    /// Given type T, get type volatile T.
     final JITType volatileOf()
     {
         auto result = gcc_jit_type_get_volatile(this.getType());
@@ -612,7 +676,13 @@ class JITType : JITObject
     }
 }
 
-/// Class wrapper for gcc_jit_struct
+/// You can model C struct types by creating JITStruct and JITField
+/// instances, in either order:
+/// $(UL
+///     $(LI By creating the fields, then the structure.)
+///     $(LI By creating the structure, then populating it with fields,
+///          typically to allow modelling self-referential structs.)
+/// )
 class JITStruct : JITType
 {
     ///
@@ -632,6 +702,27 @@ class JITStruct : JITType
     {
         // Manual downcast.
         return cast(gcc_jit_struct *)(this.getObject());
+    }
+
+    /// Populate the fields of a formerly-opaque struct type.
+    /// This can only be called once on a given struct type.
+    final void setFields(JITLocation loc, JITField[] fields...)
+    {
+        // Convert to an array of inner pointers.
+        gcc_jit_field*[] field_p = new gcc_jit_field*[fields.length];
+        foreach(i, field; fields)
+            field_p[i] = field.getField();
+
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        gcc_jit_struct_set_fields(this.getStruct(), loc ? loc.getLocation() : null,
+                                  cast(int)fields.length, field_p.ptr);
+    }
+
+    /// Ditto
+    final void setFields(JITField[] fields...)
+    {
+        this.setFields(null, fields);
     }
 }
 
@@ -1066,48 +1157,67 @@ enum JITFunctionKind : gcc_jit_function_kind
     ALWAYS_INLINE = GCC_JIT_FUNCTION_ALWAYS_INLINE,
 }
 
-///
+/// Standard types
 enum JITTypeKind : gcc_jit_types
 {
-    ///
+    /// C's void type.
     VOID = GCC_JIT_TYPE_VOID,
-    ///
+
+    /// C's void* type.
     VOID_PTR = GCC_JIT_TYPE_VOID_PTR,
-    ///
+
+    /// C++'s bool type.
     BOOL = GCC_JIT_TYPE_BOOL,
-    ///
+
+    /// C's char type.
     CHAR = GCC_JIT_TYPE_CHAR,
-    ///
+
+    /// C's signed char type.
     SIGNED_CHAR = GCC_JIT_TYPE_SIGNED_CHAR,
-    ///
+
+    /// C's unsigned char type.
     UNSIGNED_CHAR = GCC_JIT_TYPE_UNSIGNED_CHAR,
-    ///
+
+    /// C's short type.
     SHORT = GCC_JIT_TYPE_SHORT,
-    ///
+
+    /// C's unsigned short type.
     UNSIGNED_SHORT = GCC_JIT_TYPE_UNSIGNED_SHORT,
-    ///
+
+    /// C's int type.
     INT = GCC_JIT_TYPE_INT,
-    ///
+
+    /// C's unsigned int type.
     UNSIGNED_INT = GCC_JIT_TYPE_UNSIGNED_INT,
-    ///
+
+    /// C's long type.
     LONG = GCC_JIT_TYPE_LONG,
-    ///
+
+    /// C's unsigned long type.
     UNSIGNED_LONG = GCC_JIT_TYPE_UNSIGNED_LONG,
-    ///
+
+    /// C99's long long type.
     LONG_LONG = GCC_JIT_TYPE_LONG_LONG,
-    ///
+
+    /// C99's unsigned long long type.
     UNSIGNED_LONG_LONG = GCC_JIT_TYPE_UNSIGNED_LONG_LONG,
-    ///
+
+    /// Single precision floating point type.
     FLOAT = GCC_JIT_TYPE_FLOAT,
-    ///
+
+    /// Double precision floating point type.
     DOUBLE = GCC_JIT_TYPE_DOUBLE,
-    ///
+
+    /// Largest supported floating point type.
     LONG_DOUBLE = GCC_JIT_TYPE_LONG_DOUBLE,
-    ///
+
+    /// C's const char* type.
     CONST_CHAR_PTR = GCC_JIT_TYPE_CONST_CHAR_PTR,
-    ///
+
+    /// C's size_t type.
     SIZE_T = GCC_JIT_TYPE_SIZE_T,
-    ///
+
+    /// C's FILE* type.
     FILE_PTR = GCC_JIT_TYPE_FILE_PTR,
 }
 
@@ -1164,38 +1274,71 @@ enum JITComparison : gcc_jit_comparison
     GE = GCC_JIT_COMPARISON_GE,
 }
 
-///
+/// String options
 enum JITStrOption : gcc_jit_str_option
 {
-    ///
+    /// The name of the program, for use as a prefix when printing error
+    /// messages to stderr. If None, or default, "libgccjit.so" is used.
     PROGNAME = GCC_JIT_STR_OPTION_PROGNAME,
 }
 
-///
+/// Integer options
 enum JITIntOption : gcc_jit_int_option
 {
-    ///
+    /// How much to optimize the code.
+
+    /// Valid values are 0-3, corresponding to GCC's command-line options
+    /// -O0 through -O3.
+
+    /// The default value is 0 (unoptimized).
     OPTIMIZATION_LEVEL = GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL,
 }
 
-///
+/// Boolean options
 enum JITBoolOption : gcc_jit_bool_option
 {
-    ///
+    /// If true, JITContext.compile() will attempt to do the right thing
+    /// so that if you attach a debugger to the process, it will be able
+    /// to inspect variables and step through your code.
+
+    /// Note that you can’t step through code unless you set up source
+    /// location information for the code (by creating and passing in
+    /// JITLocation instances).
     DEBUGINFO = GCC_JIT_BOOL_OPTION_DEBUGINFO,
-    ///
+
+    /// If true, JITContext.compile() will dump its initial "tree"
+    /// representation of your code to stderr, before any optimizations.
     DUMP_INITIAL_TREE = GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE,
-    ///
+
+    /// If true, JITContext.compile() will dump its initial "gimple"
+    /// representation of your code to stderr, before any optimizations
+    /// are performed. The dump resembles C code.
     DUMP_INITIAL_GIMPLE = GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE,
-    ///
+
+    /// If true, JITContext.compile() will dump the final generated code
+    /// to stderr, in the form of assembly language.
     DUMP_GENERATED_CODE = GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE,
-    ///
+
+    /// If true, JITContext.compile() will print information to stderr
+    /// on the actions it is performing, followed by a profile showing
+    /// the time taken and memory usage of each phase.
     DUMP_SUMMARY = GCC_JIT_BOOL_OPTION_DUMP_SUMMARY,
-    ///
+
+    /// If true, JITContext.compile() will dump copious amounts of
+    /// information on what it’s doing to various files within a
+    /// temporary directory. Use JITBoolOption.KEEP_INTERMEDIATES
+    /// to see the results. The files are intended to be human-readable,
+    /// but the exact files and their formats are subject to change.
     DUMP_EVERYTHING = GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING,
-    ///
+
+    /// If true, libgccjit will aggressively run its garbage collector,
+    /// to shake out bugs (greatly slowing down the compile). This is
+    /// likely to only be of interest to developers of the library.
     SELFCHECK_GC = GCC_JIT_BOOL_OPTION_SELFCHECK_GC,
-    ///
+
+    /// If true, the JITContext will not clean up intermediate files
+    /// written to the filesystem, and will display their location on
+    /// stderr.
     KEEP_INTERMEDIATES = GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES,
 }
 
