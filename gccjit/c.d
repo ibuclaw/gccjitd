@@ -105,11 +105,7 @@ struct gcc_jit_lvalue;
    rvalue); use gcc_jit_param_as_lvalue to convert.  */
 struct gcc_jit_param;
 
-/*
-   Acquire a JIT-compilation context.
-
-   FIXME: error-handling?
-*/
+/* Acquire a JIT-compilation context.  */
 gcc_jit_context *gcc_jit_context_acquire();
 
 /* Release the context.  After this call, it's no longer valid to use
@@ -357,7 +353,12 @@ enum : gcc_jit_types
     GCC_JIT_TYPE_SIZE_T,
 
     /* C type: (FILE *)  */
-    GCC_JIT_TYPE_FILE_PTR
+    GCC_JIT_TYPE_FILE_PTR,
+
+    /* Complex numbers.  */
+    GCC_JIT_TYPE_COMPLEX_FLOAT,
+    GCC_JIT_TYPE_COMPLEX_DOUBLE,
+    GCC_JIT_TYPE_COMPLEX_LONG_DOUBLE
 }
 
 gcc_jit_type *gcc_jit_context_get_type(gcc_jit_context *ctxt,
@@ -392,16 +393,20 @@ gcc_jit_field *gcc_jit_context_new_field(gcc_jit_context *ctxt,
 /* Upcasting from field to object.  */
 gcc_jit_object *gcc_jit_field_as_object(gcc_jit_field *field);
 
+/* Create a struct type from an array of fields.  */
 gcc_jit_struct *gcc_jit_context_new_struct_type(gcc_jit_context *ctxt,
                                                 gcc_jit_location *loc,
                                                 in char *name,
                                                 int num_fields,
                                                 gcc_jit_field **fields);
 
+
+/* Create an opaque struct type.  */
 gcc_jit_struct *gcc_jit_context_new_opaque_struct(gcc_jit_context *ctxt,
                                                   gcc_jit_location *loc,
                                                   in char *name);
 
+/* Upcast a struct to a type.  */
 gcc_jit_type *gcc_jit_struct_as_type(gcc_jit_struct *struct_type);
 
 /* Populating the fields of a formerly-opaque struct type.
@@ -411,9 +416,26 @@ void gcc_jit_struct_set_fields(gcc_jit_struct *struct_type,
                                int num_fields,
                                gcc_jit_field **fields);
 
+/* Unions work similarly to structs.  */
+gcc_jit_type *gcc_jit_context_new_union_type(gcc_jit_context *ctxt,
+                                             gcc_jit_location *loc,
+                                             in char *name,
+                                             int num_fields,
+                                             gcc_jit_field **fields);
+
+/* Function pointers. */
+gcc_jit_type *gcc_jit_context_new_function_ptr_type(gcc_jit_context *ctxt,
+                                                    gcc_jit_location *loc,
+                                                    gcc_jit_type *return_type,
+                                                    int num_params,
+                                                    gcc_jit_type **param_types,
+                                                    int is_variadic);
+
+
 /**********************************************************************
  Constructing functions.
  **********************************************************************/
+/* Create a function param.  */
 gcc_jit_param *gcc_jit_context_new_param(gcc_jit_context *ctxt,
                                          gcc_jit_location *loc,
                                          gcc_jit_type *type,
@@ -422,10 +444,13 @@ gcc_jit_param *gcc_jit_context_new_param(gcc_jit_context *ctxt,
 /* Upcasting from param to object.  */
 gcc_jit_object *gcc_jit_param_as_object(gcc_jit_param *param);
 
+/* Upcasting from param to lvalue.  */
 gcc_jit_lvalue *gcc_jit_param_as_lvalue(gcc_jit_param *param);
 
+/* Upcasting from param to rvalue.  */
 gcc_jit_rvalue *gcc_jit_param_as_rvalue(gcc_jit_param *param);
 
+/* Kinds of function.  */
 alias gcc_jit_function_kind = uint;
 enum : gcc_jit_function_kind
 {
@@ -454,7 +479,7 @@ enum : gcc_jit_function_kind
     GCC_JIT_FUNCTION_ALWAYS_INLINE
 }
 
-
+/* Create a function.  */
 gcc_jit_function *gcc_jit_context_new_function(gcc_jit_context *ctxt,
                                                gcc_jit_location *loc,
                                                gcc_jit_function_kind kind,
@@ -464,12 +489,14 @@ gcc_jit_function *gcc_jit_context_new_function(gcc_jit_context *ctxt,
                                                gcc_jit_param **params,
                                                int is_variadic);
 
+/* Create a reference to a builtin function (sometimes called intrinsic functions).  */
 gcc_jit_function *gcc_jit_context_get_builtin_function(gcc_jit_context *ctxt,
                                                        in char *name);
 
 /* Upcasting from function to object.  */
 gcc_jit_object *gcc_jit_function_as_object(gcc_jit_function *func);
 
+/* Get a specific param of a function by index.  */
 gcc_jit_param *gcc_jit_function_get_param(gcc_jit_function *func, int index);
 
 /* Emit the function in graphviz format.  */
@@ -617,7 +644,17 @@ enum : gcc_jit_binary_op
     /* Logical OR; analogous to:
          (EXPR_A) || (EXPR_B)
        in C.  */
-    GCC_JIT_BINARY_OP_LOGICAL_OR
+    GCC_JIT_BINARY_OP_LOGICAL_OR,
+
+    /* Left shift; analogous to:
+       (EXPR_A) << (EXPR_B)
+       in C.  */
+    GCC_JIT_BINARY_OP_LSHIFT,
+
+    /* Right shift; analogous to:
+       (EXPR_A) >> (EXPR_B)
+       in C.  */
+    GCC_JIT_BINARY_OP_RSHIFT
 }
 
 gcc_jit_rvalue *gcc_jit_context_new_binary_op(gcc_jit_context *ctxt,
@@ -656,10 +693,19 @@ gcc_jit_rvalue *gcc_jit_context_new_comparison(gcc_jit_context *ctxt,
                                                gcc_jit_comparison op,
                                                gcc_jit_rvalue *a, gcc_jit_rvalue *b);
 
+/* Function calls.  */
+
+/* Call of a specific function.  */
 gcc_jit_rvalue *gcc_jit_context_new_call(gcc_jit_context *ctxt,
                                          gcc_jit_location *loc,
                                          gcc_jit_function *func,
                                          int numargs , gcc_jit_rvalue **args);
+
+/* Call through a function pointer.  */
+gcc_jit_rvalue *gcc_jit_context_new_call_through_ptr(gcc_jit_context *ctxt,
+                                                     gcc_jit_location *loc,
+                                                     gcc_jit_rvalue *fn_ptr,
+                                                     int numargs, gcc_jit_rvalue **args);
 
 /* Type-coercion.
 
@@ -681,14 +727,14 @@ gcc_jit_lvalue *gcc_jit_context_new_array_access(gcc_jit_context *ctxt,
 /* Accessing a field of an lvalue of struct type, analogous to:
       (EXPR).field = ...;
    in C.  */
-gcc_jit_lvalue *gcc_jit_lvalue_access_field(gcc_jit_lvalue *struct_,
+gcc_jit_lvalue *gcc_jit_lvalue_access_field(gcc_jit_lvalue *struct_or_union,
                                             gcc_jit_location *loc,
                                             gcc_jit_field *field);
 
 /* Accessing a field of an rvalue of struct type, analogous to:
       (EXPR).field
    in C.  */
-gcc_jit_rvalue *gcc_jit_rvalue_access_field(gcc_jit_rvalue *struct_,
+gcc_jit_rvalue *gcc_jit_rvalue_access_field(gcc_jit_rvalue *struct_or_union,
                                             gcc_jit_location *loc,
                                             gcc_jit_field *field);
 
