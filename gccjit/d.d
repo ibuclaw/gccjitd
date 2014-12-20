@@ -321,6 +321,73 @@ final class JITContext
     }
 
     ///
+    JITType newUnionType(JITLocation loc, string name, JITField[] fields...)
+    {
+        // Convert to an array of inner pointers.
+        gcc_jit_field*[] field_p = new gcc_jit_field*[fields.length];
+        foreach(i, field; fields)
+            field_p[i] = field.getField();
+
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        auto result = gcc_jit_context_new_union_type(this.m_inner_ctxt,
+                                                     loc ? loc.getLocation() : null,
+                                                     name.toStringz(),
+                                                     cast(int)fields.length,
+                                                     field_p.ptr);
+        return new JITType(result);
+    }
+
+    /// Ditto
+    JITType newUnionType(string name, JITField[] fields...)
+    {
+        return this.newUnionType(null, name, fields);
+    }
+
+    ///
+    JITType newFunctionType(JITLocation loc, JITType return_type,
+                            bool is_variadic, JITType[] param_types...)
+    {
+        // Convert to an array of inner pointers.
+        gcc_jit_type*[] type_p = new gcc_jit_type*[param_types.length];
+        foreach(i, type; param_types)
+            type_p[i] = type.getType();
+
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        auto result = gcc_jit_context_new_function_ptr_type(this.m_inner_ctxt,
+                                                            loc ? loc.getLocation() : null,
+                                                            return_type.getType(),
+                                                            cast(int)param_types.length,
+                                                            type_p.ptr, is_variadic);
+        return new JITType(result);
+    }
+
+    /// Ditto
+    JITType newFunctionType(JITType return_type, bool is_variadic,
+                            JITType[] param_types...)
+    {
+        return this.newFunctionType(null, return_type, is_variadic,
+                                    param_types);
+    }
+
+    ///
+    JITType newFunctionType(JITLocation loc, JITTypeKind return_kind,
+                            bool is_variadic, JITType[] param_types...)
+    {
+        return this.newFunctionType(loc, this.getType(return_kind),
+                                    is_variadic, param_types);
+    }
+
+    /// Ditto
+    JITType newFunctionType(JITTypeKind return_kind, bool is_variadic,
+                            JITType[] param_types...)
+    {
+        return this.newFunctionType(null, this.getType(return_kind),
+                                    is_variadic, param_types);
+    }
+
+    ///
     JITParam newParam(JITLocation loc, JITType type, string name)
     {
         auto result = gcc_jit_context_new_param(this.m_inner_ctxt,
@@ -564,6 +631,30 @@ final class JITContext
     JITRValue newCall(JITFunction func, JITRValue[] args...)
     {
         return this.newCall(null, func, args);
+    }
+
+    /// Calling a function through a pointer.
+    JITRValue newCall(JITLocation loc, JITRValue ptr, JITRValue[] args...)
+    {
+        // Convert to an array of inner pointers.
+        gcc_jit_rvalue*[] arg_p = new gcc_jit_rvalue*[args.length];
+        foreach(i, arg; args)
+            arg_p[i] = arg.getRValue();
+
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        auto result = gcc_jit_context_new_call_through_ptr(this.m_inner_ctxt,
+                                                           loc ? loc.getLocation() : null,
+                                                           ptr.getRValue(),
+                                                           cast(int)args.length,
+                                                           arg_p.ptr);
+        return new JITRValue(result);
+    }
+
+    /// Ditto
+    JITRValue newCall(JITRValue ptr, JITRValue[] args...)
+    {
+        return this.newCall(null, ptr, args);
     }
 
     ///
@@ -1030,6 +1121,18 @@ class JITRValue : JITObject
     {
         return this.castTo(null, type);
     }
+
+    ///
+    JITRValue castTo(JITLocation loc, JITTypeKind kind)
+    {
+        return this.castTo(loc, this.getContext().getType(kind));
+    }
+
+    /// Ditto
+    JITRValue castTo(JITTypeKind kind)
+    {
+        return this.castTo(null, this.getContext().getType(kind));
+    }
 }
 
 /// Class wrapper for gcc_jit_lvalue
@@ -1219,6 +1322,15 @@ enum JITTypeKind : gcc_jit_types
 
     /// C's FILE* type.
     FILE_PTR = GCC_JIT_TYPE_FILE_PTR,
+
+    /// Single precision complex float type.
+    COMPLEX_FLOAT = GCC_JIT_TYPE_COMPLEX_FLOAT,
+
+    /// Double precision complex float type.
+    COMPLEX_DOUBLE = GCC_JIT_TYPE_COMPLEX_DOUBLE,
+
+    /// Largest supported complex float type.
+    COMPLEX_LONG_DOUBLE = GCC_JIT_TYPE_COMPLEX_LONG_DOUBLE
 }
 
 ///
@@ -1255,6 +1367,10 @@ enum JITBinaryOp : gcc_jit_binary_op
     LOGICAL_AND = GCC_JIT_BINARY_OP_LOGICAL_AND,
     ///
     LOGICAL_OR = GCC_JIT_BINARY_OP_LOGICAL_OR,
+    ///
+    LSHIFT = GCC_JIT_BINARY_OP_LSHIFT,
+    ///
+    RSHIFT = GCC_JIT_BINARY_OP_RSHIFT,
 }
 
 ///
