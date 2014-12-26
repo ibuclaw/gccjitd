@@ -1,19 +1,17 @@
 
-/**
-  This examples creates and runs the equivalent of this C function:
+// This examples creates and runs the equivalent of this C function:
 
-    int loop_test (int n)
-    {
-        int i = 0;
-        int sum = 0;
-        while (i < n)
-        {
-            sum += i * i;
-            i++;
-        }
-        return sum;
-    }
-*/
+//  int loop_test (int n)
+//  {
+//      int i = 0;
+//      int sum = 0;
+//      while (i < n)
+//      {
+//          sum += i * i;
+//          i++;
+//      }
+//      return sum;
+//  }
 
 module gccjitd.tests.sum_squares;
 
@@ -37,15 +35,14 @@ JITResult create_fn()
         ctxt.setOption(JITIntOption.OPTIMIZATION_LEVEL, 3);
 
     // Build function
-    JITType type = ctxt.getType(JITTypeKind.INT);
-    JITType return_type = type;
-    JITParam param_n = ctxt.newParam(type, "n");
-    JITFunction fn = ctxt.newFunction(JITFunctionKind.EXPORTED, return_type,
+    JITParam param_n = ctxt.newParam(JITTypeKind.INT, "n");
+    JITFunction fn = ctxt.newFunction(JITFunctionKind.EXPORTED,
+                                      JITTypeKind.INT,
                                       "loop_test", false, param_n);
 
     // Build locals
-    JITLValue local_i = fn.newLocal(type, "i");
-    JITLValue local_sum = fn.newLocal(type, "sum");
+    JITLValue local_i = fn.newLocal(ctxt.getType(JITTypeKind.INT), "i");
+    JITLValue local_sum = fn.newLocal(ctxt.getType(JITTypeKind.INT), "sum");
 
     // This is what you get back from local_i.toString()
     assert(local_i.toString() == "i");
@@ -57,10 +54,10 @@ JITResult create_fn()
     JITBlock after_loop_block = fn.newBlock("after_loop");
 
     // sum = 0
-    entry_block.addAssignment(local_sum, ctxt.zero(type));
+    entry_block.addAssignment(local_sum, ctxt.zero(JITTypeKind.INT));
 
     // i = 0
-    entry_block.addAssignment(local_i, ctxt.zero(type));
+    entry_block.addAssignment(local_i, ctxt.zero(JITTypeKind.INT));
 
     entry_block.endWithJump(cond_block);
 
@@ -70,10 +67,12 @@ JITResult create_fn()
 
     // sum += i * i
     loop_block.addAssignmentOp(local_sum, JITBinaryOp.PLUS,
-                               ctxt.newBinaryOp(JITBinaryOp.MULT, type, local_i, local_i));
+                               ctxt.newBinaryOp(JITBinaryOp.MULT,
+                                                ctxt.getType(JITTypeKind.INT),
+                                                local_i, local_i));
 
     // i++
-    loop_block.addAssignmentOp(local_i, JITBinaryOp.PLUS, ctxt.one(type));
+    loop_block.addAssignmentOp(local_i, JITBinaryOp.PLUS, ctxt.one(JITTypeKind.INT));
 
     // goto cond_block
     loop_block.endWithJump(cond_block);

@@ -24,7 +24,7 @@ import std.stdio;
 import std.string;
 
 void readToBlock(File finput, ref JITBlock block, JITContext ctx,
-		 JITLValue stack, JITLValue stackp, int labelnum = 0)
+                 JITLValue stack, JITLValue stackp, int labelnum = 0)
 {
     char input;
 
@@ -47,21 +47,19 @@ void readToBlock(File finput, ref JITBlock block, JITContext ctx,
             case '+':
                 // stack[stackp] += 1;
                 block.addAssignmentOp(ctx.newArrayAccess(stack, stackp), JITBinaryOp.PLUS,
-                                      ctx.newRValue(JITTypeKind.CHAR, 1));
+                                      ctx.newRValue(JITTypeKind.SHORT, 1));
                 break;
 
             case '-':
                 // stack[stackp] -= 1;
                 block.addAssignmentOp(ctx.newArrayAccess(stack, stackp), JITBinaryOp.MINUS,
-                                      ctx.newRValue(JITTypeKind.CHAR, 1));
+                                      ctx.newRValue(JITTypeKind.SHORT, 1));
                 break;
 
             case '.':
                 // putchar(stack[stackp]);
-                JITParam c = ctx.newParam(JITTypeKind.INT, "c");
-                JITFunction putchar = ctx.newFunction(JITFunctionKind.IMPORTED,
-                                                      JITTypeKind.INT, "putchar", false, c);
-                block.addCall(putchar, ctx.newArrayAccess(stack, stackp).castTo(JITTypeKind.INT));
+                block.addCall(ctx.getBuiltinFunction("putchar"),
+                              ctx.newArrayAccess(stack, stackp).castTo(JITTypeKind.INT));
                 break;
 
             case ',':
@@ -69,7 +67,7 @@ void readToBlock(File finput, ref JITBlock block, JITContext ctx,
                 JITFunction getchar = ctx.newFunction(JITFunctionKind.IMPORTED,
                                                       JITTypeKind.INT, "getchar", false);
                 block.addAssignment(ctx.newArrayAccess(stack, stackp),
-                                    ctx.newCall(getchar).castTo(JITTypeKind.CHAR));
+                                    ctx.newCall(getchar).castTo(JITTypeKind.SHORT));
                 break;
 
             case '[':
@@ -87,7 +85,7 @@ void readToBlock(File finput, ref JITBlock block, JITContext ctx,
                 // continue by jumping to the exit block.
                 JITRValue cond = ctx.newComparison(JITComparison.NE,
                                                    ctx.newArrayAccess(stack, stackp),
-                                                   ctx.newRValue(JITTypeKind.CHAR, 0));
+                                                   ctx.newRValue(JITTypeKind.SHORT, 0));
                 condblock.endWithConditional(cond, loopblock, exitblock);
 
                 // Do code generation for the loop block.
@@ -129,15 +127,15 @@ void main(string[] args)
 
     // Adjust this to control optimization level of the generated code
     version(none)
-        ctx.setOption(JITIntOption.OPTIMIZATION_LEVEL, 3);
+        ctx.setOption(JITIntOption.OPTIMIZATION_LEVEL, 1);
 
     // int bfmain() {
     JITFunction func = ctx.newFunction(JITFunctionKind.EXPORTED,
                                        JITTypeKind.INT, "bfmain", false);
     JITBlock block = func.newBlock("start");
-    // char[65535] stack;
-    JITLValue stack = func.newLocal(ctx.newArrayType(ctx.getType(JITTypeKind.CHAR), 65535), "stack");
-    // int stackp;
+    // short[65536] stack;
+    JITLValue stack = func.newLocal(ctx.newArrayType(JITTypeKind.SHORT, 65536), "stack");
+    // unsigned short stackp;
     JITLValue stackp = func.newLocal(ctx.getType(JITTypeKind.UNSIGNED_SHORT), "stackp");
     // stackp = 0;
     block.addAssignment(stackp, ctx.newRValue(JITTypeKind.UNSIGNED_SHORT, 0));
@@ -146,7 +144,7 @@ void main(string[] args)
     readToBlock(finput, block, ctx, stack, stackp);
 
     // return 0; }
-    block.endWithReturn(ctx.zero(ctx.getType(JITTypeKind.INT)));
+    block.endWithReturn(ctx.newRValue(JITTypeKind.INT, 0));
 
     // 
     JITResult result = ctx.compile();

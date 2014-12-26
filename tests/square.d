@@ -1,11 +1,10 @@
-/**
-  This examples creates and runs the equivalent of this C function:
 
-    int square(int i)
-    {
-        return i * i;
-    }
- */
+//  This examples creates and runs the equivalent of this C function:
+//
+//  int square(int i)
+//  {
+//      return i * i;
+//  }
 
 module gccjitd.tests.square;
 
@@ -28,19 +27,19 @@ JITResult create_fn()
     version(none)
         ctxt.setOption(JITIntOption.OPTIMIZATION_LEVEL, 3);
 
-    JITType int_type = ctxt.getType(JITTypeKind.INT);
-
     // Create parameter "i"
-    JITParam param_i = ctxt.newParam(int_type, "i");
+    JITParam param_i = ctxt.newParam(JITTypeKind.INT, "i");
     // Create the function
-    JITFunction fn = ctxt.newFunction(JITFunctionKind.EXPORTED, int_type,
+    JITFunction fn = ctxt.newFunction(JITFunctionKind.EXPORTED,
+                                      JITTypeKind.INT,
                                       "square", false, param_i);
 
     // Create a basic block within the function
     JITBlock block = fn.newBlock("entry");
 
     // This basic block is relatively simple
-    block.endWithReturn(ctxt.newBinaryOp(JITBinaryOp.MULT, int_type,
+    block.endWithReturn(ctxt.newBinaryOp(JITBinaryOp.MULT,
+                                         ctxt.getType(JITTypeKind.INT),
                                          param_i, param_i));
 
     // Having populated the context, compile it
