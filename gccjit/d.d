@@ -525,7 +525,7 @@ final class JITContext
 
     /// Given a JITType, which must be a numeric type, get the
     /// constant 0 as a JITRValue of that type.
-    final JITRValue zero(JITType type)
+    JITRValue zero(JITType type)
     {
         auto result = gcc_jit_context_zero(this.m_inner_ctxt, type.getType());
         return new JITRValue(result);
@@ -533,7 +533,7 @@ final class JITContext
 
     /// Given a JITType, which must be a numeric type, get the
     /// constant 1 as a JITRValue of that type.
-    final JITRValue one(JITType type)
+    JITRValue one(JITType type)
     {
         auto result = gcc_jit_context_one(this.m_inner_ctxt, type.getType());
         return new JITRValue(result);
@@ -541,7 +541,7 @@ final class JITContext
 
     /// Given a JITType, which must be a pointer type, get a
     /// JITRValue representing the NULL pointer of that type.
-    final JITRValue nil(JITType type)
+    JITRValue nil(JITType type)
     {
         auto result = gcc_jit_context_null(this.m_inner_ctxt, type.getType());
         return new JITRValue(result);
@@ -853,27 +853,27 @@ class JITFunction : JITObject
     }
 
     /// Dump function to dot file.
-    void dump(string path)
+    final void dump(string path)
     {
         gcc_jit_function_dump_to_dot(this.getFunction(), path.toStringz());
     }
 
     ///
-    JITParam getParam(int index)
+    final JITParam getParam(int index)
     {
         auto result = gcc_jit_function_get_param(this.getFunction(), index);
         return new JITParam(result);
     }
 
     ///
-    JITBlock newBlock()
+    final JITBlock newBlock()
     {
         auto result = gcc_jit_function_new_block(this.getFunction(), null);
         return new JITBlock(result);
     }
 
     ///
-    JITBlock newBlock(string name)
+    final JITBlock newBlock(string name)
     {
         auto result = gcc_jit_function_new_block(this.getFunction(),
                                                  name.toStringz());
@@ -881,7 +881,7 @@ class JITFunction : JITObject
     }
 
     ///
-    JITLValue newLocal(JITLocation loc, JITType type, string name)
+    final JITLValue newLocal(JITLocation loc, JITType type, string name)
     {
         auto result = gcc_jit_function_new_local(this.getFunction(),
                                                  loc ? loc.getLocation() : null,
@@ -891,7 +891,7 @@ class JITFunction : JITObject
     }
 
     /// Ditto
-    JITLValue newLocal(JITType type, string name)
+    final JITLValue newLocal(JITType type, string name)
     {
         return this.newLocal(null, type, name);
     }
@@ -921,14 +921,14 @@ class JITBlock : JITObject
     }
 
     ///
-    JITFunction getFunction()
+    final JITFunction getFunction()
     {
         auto result = gcc_jit_block_get_function(this.getBlock());
         return new JITFunction(result);
     }
 
     ///
-    void addEval(JITLocation loc, JITRValue rvalue)
+    final void addEval(JITLocation loc, JITRValue rvalue)
     {
         gcc_jit_block_add_eval(this.getBlock(),
                                loc ? loc.getLocation() : null,
@@ -936,13 +936,13 @@ class JITBlock : JITObject
     }
 
     /// Ditto
-    void addEval(JITRValue rvalue)
+    final void addEval(JITRValue rvalue)
     {
         return this.addEval(null, rvalue);
     }
 
     ///
-    void addAssignment(JITLocation loc, JITLValue lvalue, JITRValue rvalue)
+    final void addAssignment(JITLocation loc, JITLValue lvalue, JITRValue rvalue)
     {
         gcc_jit_block_add_assignment(this.getBlock(),
                                      loc ? loc.getLocation() : null,
@@ -950,13 +950,13 @@ class JITBlock : JITObject
     }
 
     /// Ditto
-    void addAssignment(JITLValue lvalue, JITRValue rvalue)
+    final void addAssignment(JITLValue lvalue, JITRValue rvalue)
     {
         return this.addAssignment(null, lvalue, rvalue);
     }
 
     ///
-    void addAssignmentOp(JITLocation loc, JITLValue lvalue,
+    final void addAssignmentOp(JITLocation loc, JITLValue lvalue,
                          JITBinaryOp op, JITRValue rvalue)
     {
         gcc_jit_block_add_assignment_op(this.getBlock(),
@@ -965,14 +965,14 @@ class JITBlock : JITObject
     }
 
     /// Ditto
-    void addAssignmentOp(JITLValue lvalue, JITBinaryOp op, JITRValue rvalue)
+    final void addAssignmentOp(JITLValue lvalue, JITBinaryOp op, JITRValue rvalue)
     {
         return this.addAssignmentOp(null, lvalue, op, rvalue);
     }
 
     /// A way to add a function call to the body of a function being
     /// defined, with various number of args.
-    JITRValue addCall(JITLocation loc, JITFunction func, JITRValue[] args...)
+    final JITRValue addCall(JITLocation loc, JITFunction func, JITRValue[] args...)
     {
         JITRValue rv = this.getContext().newCall(loc, func, args);
         this.addEval(loc, rv);
@@ -980,13 +980,13 @@ class JITBlock : JITObject
     }
 
     /// Ditto
-    JITRValue addCall(JITFunction func, JITRValue[] args...)
+    final JITRValue addCall(JITFunction func, JITRValue[] args...)
     {
         return this.addCall(null, func, args);
     }
 
     ///
-    void addComment(JITLocation loc, string text)
+    final void addComment(JITLocation loc, string text)
     {
         gcc_jit_block_add_comment(this.getBlock(),
                                   loc ? loc.getLocation() : null,
@@ -994,13 +994,13 @@ class JITBlock : JITObject
     }
 
     /// Ditto
-    void addComment(string text)
+    final void addComment(string text)
     {
         return this.addComment(null, text);
     }
 
     ///
-    void endWithConditional(JITLocation loc, JITRValue val,
+    final void endWithConditional(JITLocation loc, JITRValue val,
                             JITBlock on_true, JITBlock on_false)
     {
         gcc_jit_block_end_with_conditional(this.getBlock(),
@@ -1011,13 +1011,13 @@ class JITBlock : JITObject
     }
 
     /// Ditto
-    void endWithConditional(JITRValue val, JITBlock on_true, JITBlock on_false)
+    final void endWithConditional(JITRValue val, JITBlock on_true, JITBlock on_false)
     {
         return this.endWithConditional(null, val, on_true, on_false);
     }
 
     ///
-    void endWithJump(JITLocation loc, JITBlock target)
+    final void endWithJump(JITLocation loc, JITBlock target)
     {
         gcc_jit_block_end_with_jump(this.getBlock(),
                                     loc ? loc.getLocation() : null,
@@ -1025,13 +1025,13 @@ class JITBlock : JITObject
     }
 
     /// Ditto
-    void endWithJump(JITBlock target)
+    final void endWithJump(JITBlock target)
     {
         return this.endWithJump(null, target);
     }
 
     ///
-    void endWithReturn(JITLocation loc, JITRValue rvalue)
+    final void endWithReturn(JITLocation loc, JITRValue rvalue)
     {
         gcc_jit_block_end_with_return(this.getBlock(),
                                       loc ? loc.getLocation() : null,
@@ -1039,13 +1039,13 @@ class JITBlock : JITObject
     }
 
     /// Ditto
-    void endWithReturn(JITRValue rvalue)
+    final void endWithReturn(JITRValue rvalue)
     {
         return this.endWithReturn(null, rvalue);
     }
 
     ///
-    void endWithReturn(JITLocation loc = null)
+    final void endWithReturn(JITLocation loc = null)
     {
         gcc_jit_block_end_with_void_return(this.getBlock(),
                                            loc ? loc.getLocation() : null);
@@ -1077,7 +1077,7 @@ class JITRValue : JITObject
     }
 
     ///
-    JITType getType()
+    final JITType getType()
     {
         auto result = gcc_jit_rvalue_get_type(this.getRValue());
         return new JITType(result);
@@ -1099,7 +1099,7 @@ class JITRValue : JITObject
     }
 
     ///
-    JITLValue dereferenceField(JITLocation loc, JITField field)
+    final JITLValue dereferenceField(JITLocation loc, JITField field)
     {
         auto result = gcc_jit_rvalue_dereference_field(this.getRValue(),
                                                        loc ? loc.getLocation() : null,
@@ -1108,13 +1108,13 @@ class JITRValue : JITObject
     }
 
     /// Ditto
-    JITLValue dereferenceField(JITField field)
+    final JITLValue dereferenceField(JITField field)
     {
         return this.dereferenceField(null, field);
     }
 
     ///
-    JITLValue dereference(JITLocation loc = null)
+    final JITLValue dereference(JITLocation loc = null)
     {
         auto result = gcc_jit_rvalue_dereference(this.getRValue(),
                                                  loc ? loc.getLocation() : null);
@@ -1122,25 +1122,25 @@ class JITRValue : JITObject
     }
 
     ///
-    JITRValue castTo(JITLocation loc, JITType type)
+    final JITRValue castTo(JITLocation loc, JITType type)
     {
         return this.getContext().newCast(loc, this, type);
     }
 
     /// Ditto
-    JITRValue castTo(JITType type)
+    final JITRValue castTo(JITType type)
     {
         return this.castTo(null, type);
     }
 
     ///
-    JITRValue castTo(JITLocation loc, JITTypeKind kind)
+    final JITRValue castTo(JITLocation loc, JITTypeKind kind)
     {
         return this.castTo(loc, this.getContext().getType(kind));
     }
 
     /// Ditto
-    JITRValue castTo(JITTypeKind kind)
+    final JITRValue castTo(JITTypeKind kind)
     {
         return this.castTo(null, this.getContext().getType(kind));
     }
@@ -1186,7 +1186,7 @@ class JITLValue : JITRValue
     }
 
     ///
-    JITRValue getAddress(JITLocation loc = null)
+    final JITRValue getAddress(JITLocation loc = null)
     {
         auto result = gcc_jit_lvalue_get_address(this.getLValue(),
                                                  loc ? loc.getLocation() : null);
