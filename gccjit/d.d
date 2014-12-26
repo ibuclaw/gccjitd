@@ -259,6 +259,18 @@ final class JITContext
     }
 
     ///
+    JITType newArrayType(JITLocation loc, JITTypeKind kind, int dims)
+    {
+        return this.newArrayType(loc, this.getType(kind), dims);
+    }
+
+    /// Ditto
+    JITType newArrayType(JITTypeKind kind, int dims)
+    {
+        return this.newArrayType(null, this.getType(kind), dims);
+    }
+
+    ///
     JITField newField(JITLocation loc, JITType type, string name)
     {
         auto result = gcc_jit_context_new_field(this.m_inner_ctxt,
@@ -272,6 +284,18 @@ final class JITContext
     JITField newField(JITType type, string name)
     {
         return this.newField(null, type, name);
+    }
+
+    ///
+    JITField newField(JITLocation loc, JITTypeKind kind, string name)
+    {
+        return this.newField(loc, this.getType(kind), name);
+    }
+
+    /// Ditto
+    JITField newField(JITTypeKind kind, string name)
+    {
+        return this.newField(null, this.getType(kind), name);
     }
 
     ///
@@ -467,6 +491,18 @@ final class JITContext
         return this.newGlobal(null, type, name);
     }
 
+    ///
+    JITLValue newGlobal(JITLocation loc, JITTypeKind kind, string name)
+    {
+        return this.newGlobal(loc, this.getType(kind), name);
+    }
+
+    /// Ditto
+    JITLValue newGlobal(JITTypeKind kind, string name)
+    {
+        return this.newGlobal(null, this.getType(kind), name);
+    }
+
     /// Given a JITType, which must be a numeric type, get an
     /// integer constant as a JITRValue of that type.
     JITRValue newRValue(JITType type, int value)
@@ -531,6 +567,12 @@ final class JITContext
         return new JITRValue(result);
     }
 
+    /// Ditto
+    JITRValue zero(JITTypeKind kind)
+    {
+        return this.zero(this.getType(kind));
+    }
+
     /// Given a JITType, which must be a numeric type, get the
     /// constant 1 as a JITRValue of that type.
     JITRValue one(JITType type)
@@ -539,12 +581,24 @@ final class JITContext
         return new JITRValue(result);
     }
 
+    /// Ditto
+    JITRValue one(JITTypeKind kind)
+    {
+        return this.one(this.getType(kind));
+    }
+
     /// Given a JITType, which must be a pointer type, get a
     /// JITRValue representing the NULL pointer of that type.
     JITRValue nil(JITType type)
     {
         auto result = gcc_jit_context_null(this.m_inner_ctxt, type.getType());
         return new JITRValue(result);
+    }
+
+    /// Ditto
+    JITRValue nil(JITTypeKind kind)
+    {
+        return this.nil(this.getType(kind));
     }
 
     /// Generic unary operations.
@@ -681,6 +735,18 @@ final class JITContext
     JITRValue newCast(JITRValue expr, JITType type)
     {
         return this.newCast(null, expr, type);
+    }
+
+    ///
+    JITRValue newCast(JITLocation loc, JITRValue expr, JITTypeKind kind)
+    {
+        return this.newCast(loc, expr, this.getType(kind));
+    }
+
+    /// Ditto
+    JITRValue newCast(JITRValue expr, JITTypeKind kind)
+    {
+        return this.newCast(null, expr, this.getType(kind));
     }
 
     /// Params:
