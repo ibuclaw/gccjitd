@@ -476,6 +476,12 @@ final class JITContext
         return new JITRValue(result);
     }
 
+    /// Ditto
+    JITRValue newRValue(JITTypeKind kind, int value)
+    {
+        return newRValue(this.getType(kind), value);
+    }
+
     /// Given a JITType, which must be a numeric type, get an
     /// floating point constant as a JITRValue of that type.
     JITRValue newRValue(JITType type, double value)
@@ -483,6 +489,12 @@ final class JITContext
         auto result = gcc_jit_context_new_rvalue_from_double(this.m_inner_ctxt,
                                                              type.getType(), value);
         return new JITRValue(result);
+    }
+
+    /// Ditto
+    JITRValue newRValue(JITTypeKind kind, double value)
+    {
+        return newRValue(this.getType(kind), value);
     }
 
     /// Given a JITType, which must be a pointer type, and an
@@ -493,6 +505,12 @@ final class JITContext
         auto result = gcc_jit_context_new_rvalue_from_ptr(this.m_inner_ctxt,
                                                           type.getType(), value);
         return new JITRValue(result);
+    }
+
+    /// Ditto
+    JITRValue newRValue(JITTypeKind kind, void *value)
+    {
+        return newRValue(this.getType(kind), value);
     }
 
     /// Make a JITRValue for the given string literal value.
