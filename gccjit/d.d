@@ -116,13 +116,6 @@ final class JITContext
     }
 
     ///
-    ~this()
-    {
-        if (this.m_inner_ctxt)
-            this.release();
-    }
-
-    ///
     static JITContext acquire()
     {
         return new JITContext(gcc_jit_context_acquire());

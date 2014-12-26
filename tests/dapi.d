@@ -33,7 +33,7 @@ void main()
     // in a mutex for now, getting make a result object.
     // The result is actually a wrapper around a DSO.
     JITResult result = ctxt.compile();
-    ctxt.destroy();
+    ctxt.release();
 
     // Look up a generated function by name, getting a void* back
     // from the result object (pointing to the machine code), and
