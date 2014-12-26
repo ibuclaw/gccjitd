@@ -7,7 +7,7 @@
     }
  */
 
-module square;
+module gccjitd.tests.square;
 
 import gccjit.d;
 

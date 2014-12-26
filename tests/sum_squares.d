@@ -15,7 +15,7 @@
     }
 */
 
-module sum_squares;
+module gccjitd.tests.sum_squares;
 
 import gccjit.d;
 
