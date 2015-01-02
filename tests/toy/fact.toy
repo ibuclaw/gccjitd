@@ -1,0 +1,25 @@
+# Factorial(n)
+n := 10;
+fact := 1;
+
+while n > 0 do
+  fact := fact * n;
+  n := n - 1
+end;
+
+print fact;
+
+# Factorial2(n)
+n := 10;
+fact := 1;
+
+if n > 1 then
+  k := 2;
+  while k <= n do
+    fact := fact * k;
+    k := k + 1
+  end  
+end;
+
+print fact
+
