@@ -1,6 +1,6 @@
 
-SOURCES = gccjit/c.d gccjit/d.d
-OBJECTS = gccjit/c.o gccjit/d.o
+SOURCES = gccjit/d.d
+OBJECTS = gccjit/d.o
 LIBRARY = libgccjitd.a
 
 AR = ar -r

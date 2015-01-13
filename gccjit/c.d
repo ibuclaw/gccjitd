@@ -1,5 +1,23 @@
-/*
-  A pure C API to enable client code to embed GCC as a JIT-compiler.
+/* A pure C API to enable client code to embed GCC as a JIT-compiler.
+
+   This file has been modified from the libgccjit.h header to work with
+   the D compiler.  The original file is part of the GCC distribution
+   and is licensed under the following terms.
+
+   Copyright (C) 2013-2015 Free Software Foundation, Inc.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 module gccjit.c;
@@ -245,6 +263,12 @@ const char *gcc_jit_context_get_first_error(gcc_jit_context *ctxt);
    correct type before it can be called. */
 void *gcc_jit_result_get_code(gcc_jit_result *result,
                               in char *funcname);
+
+/* Locate a given global within the built machine code.
+   It must have been created using GCC_JIT_GLOBAL_EXPORTED.
+   This is a ptr to the global, so e.g. for an int this is an int *.  */
+void *gcc_jit_result_get_global (gcc_jit_result *result,
+                                 in char *name);
 
 /* Once we're done with the code, this unloads the built .so file.
    This cleans up the result; after calling this, it's no longer
@@ -521,8 +545,26 @@ gcc_jit_function *gcc_jit_block_get_function(gcc_jit_block *block);
  lvalues, rvalues and expressions.
  **********************************************************************/
 
+alias gcc_jit_global_kind = uint;
+enum : gcc_jit_global_kind
+{
+  /* Global is defined by the client code and visible
+     by name outside of this JIT context via gcc_jit_result_get_global.  */
+  GCC_JIT_GLOBAL_EXPORTED,
+
+  /* Global is defined by the client code, but is invisible
+     outside of this JIT context.  Analogous to a "static" global.  */
+  GCC_JIT_GLOBAL_INTERNAL,
+
+  /* Global is not defined by the client code; we're merely
+     referring to it.  Analogous to using an "extern" global from a
+     header file.  */
+  GCC_JIT_GLOBAL_IMPORTED
+}
+
 gcc_jit_lvalue *gcc_jit_context_new_global(gcc_jit_context *ctxt,
                                            gcc_jit_location *loc,
+                                           gcc_jit_global_kind kind,
                                            gcc_jit_type *type,
                                            in char *name);
 

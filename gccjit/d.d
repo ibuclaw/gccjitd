@@ -1,5 +1,21 @@
 
 /// A D API for libgccjit, purely as final class wrapper functions.
+/// Copyright (C) 2014-2015 Iain Buclaw.
+
+/// This file is part of gccjitd.
+
+/// This program is free software: you can redistribute it and/or modify
+/// it under the terms of the GNU General Public License as published by
+/// the Free Software Foundation, either version 3 of the License, or
+/// (at your option) any later version.
+
+/// This program is distributed in the hope that it will be useful,
+/// but WITHOUT ANY WARRANTY; without even the implied warranty of
+/// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+/// GNU General Public License for more details.
+
+/// You should have received a copy of the GNU General Public License
+/// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module gccjit.d;
 
@@ -507,31 +523,33 @@ final class JITContext
     }
 
     ///
-    JITLValue newGlobal(JITLocation loc, JITType type, string name)
+    JITLValue newGlobal(JITLocation loc, JITGlobalKind global_kind,
+                        JITType type, string name)
     {
         auto result = gcc_jit_context_new_global(this.m_inner_ctxt,
                                                  loc ? loc.getLocation() : null,
-                                                 type.getType(),
+                                                 global_kind, type.getType(),
                                                  name.toStringz());
         return new JITLValue(result);
     }
 
     /// Ditto
-    JITLValue newGlobal(JITType type, string name)
+    JITLValue newGlobal(JITGlobalKind global_kind, JITType type, string name)
     {
-        return this.newGlobal(null, type, name);
+        return this.newGlobal(null, global_kind, type, name);
     }
 
     /// Ditto
-    JITLValue newGlobal(JITLocation loc, JITTypeKind kind, string name)
+    JITLValue newGlobal(JITLocation loc, JITGlobalKind global_kind,
+                        JITTypeKind kind, string name)
     {
-        return this.newGlobal(loc, this.getType(kind), name);
+        return this.newGlobal(loc, global_kind, this.getType(kind), name);
     }
 
     /// Ditto
-    JITLValue newGlobal(JITTypeKind kind, string name)
+    JITLValue newGlobal(JITGlobalKind global_kind, JITTypeKind kind, string name)
     {
-        return this.newGlobal(null, this.getType(kind), name);
+        return this.newGlobal(null, global_kind, this.getType(kind), name);
     }
 
     /// Given a JITType, which must be a numeric type, get an integer constant
@@ -1366,6 +1384,14 @@ final class JITResult
         return gcc_jit_result_get_code(this.getResult(), name.toStringz());
     }
 
+    /// Locate a given global within the built machine code.
+    /// It must have been created using JITGlobalKind.EXPORTED.
+    /// This returns is a pointer to the global.
+    void *getGlobal(string name)
+    {
+        return gcc_jit_result_get_global(this.getResult(), name.toStringz());
+    }
+
     /// Once we're done with the code, this unloads the built .so file.
     /// After this call, it's no longer valid to use this JITResult.
     void release()
@@ -1392,6 +1418,20 @@ enum JITFunctionKind : gcc_jit_function_kind
     /// Function is only ever inlined into other functions, and is
     /// invisible outside of the JIT.
     ALWAYS_INLINE = GCC_JIT_FUNCTION_ALWAYS_INLINE,
+}
+
+/// Kinds of global.
+enum JITGlobalKind : gcc_jit_global_kind
+{
+  /// Global is defined by the client code and visible by name
+  /// outside of this JIT context.
+  EXPORTED = GCC_JIT_GLOBAL_EXPORTED,
+  /// Global is defined by the client code, but is invisible
+  /// outside of this JIT context.  Analogous to a "static" global.
+  INTERNAL = GCC_JIT_GLOBAL_INTERNAL,
+  /// Global is not defined by the client code; we're merely
+  /// referring to it.  Analogous to using an "extern" global.
+  IMPORTED = GCC_JIT_GLOBAL_IMPORTED,
 }
 
 /// Standard types.
@@ -1464,7 +1504,7 @@ enum JITTypeKind : gcc_jit_types
     COMPLEX_DOUBLE = GCC_JIT_TYPE_COMPLEX_DOUBLE,
 
     /// Largest supported complex float type.
-    COMPLEX_LONG_DOUBLE = GCC_JIT_TYPE_COMPLEX_LONG_DOUBLE
+    COMPLEX_LONG_DOUBLE = GCC_JIT_TYPE_COMPLEX_LONG_DOUBLE,
 }
 
 /// Kinds of unary ops.
