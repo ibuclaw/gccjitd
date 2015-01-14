@@ -13,7 +13,7 @@
 //      return sum;
 //  }
 
-module gccjitd.tests.sum_squares;
+module gccjitd.examples.sum_squares;
 
 import gccjit.d;
 

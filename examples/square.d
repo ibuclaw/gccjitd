@@ -6,7 +6,7 @@
 //      return i * i;
 //  }
 
-module gccjitd.tests.square;
+module gccjitd.examples.square;
 
 import gccjit.d;
 

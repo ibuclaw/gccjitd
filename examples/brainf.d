@@ -17,7 +17,7 @@
 
 // Written by Iain  Buclaw <ibuclaw@gdcproject.org>
 
-module gccjitd.tests.brainf;
+module gccjitd.examples.brainf;
 
 import gccjit.d;
 import std.stdio;

@@ -1,7 +1,7 @@
 
 // Sample client code for D API
 
-module gccjitd.tests.dapi;
+module gccjitd.examples.dapi;
 
 import gccjit.d;
 

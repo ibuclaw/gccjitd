@@ -1,7 +1,7 @@
 
 // Sample client code for C API
 
-module gccjitd.tests.capi;
+module gccjitd.examples.capi;
 
 import gccjit.c;
 
