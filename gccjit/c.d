@@ -256,7 +256,7 @@ void gcc_jit_context_dump_to_file(gcc_jit_context *ctxt,
    context.
 
    If no errors occurred, this will be NULL.  */
-const char *gcc_jit_context_get_first_error(gcc_jit_context *ctxt);
+const(char) *gcc_jit_context_get_first_error(gcc_jit_context *ctxt);
 
 /* Locate a given function within the built machine code.
    This will need to be cast to a function pointer of the
@@ -302,7 +302,7 @@ gcc_jit_context *gcc_jit_object_get_context(gcc_jit_object *obj);
 /* Get a human-readable description of this object.
    The string buffer is created the first time this is called on a given
    object, and persists until the object's context is released.  */
-const char *gcc_jit_object_get_debug_string(gcc_jit_object *obj);
+const(char) *gcc_jit_object_get_debug_string(gcc_jit_object *obj);
 
 /**********************************************************************
  Debugging information.
