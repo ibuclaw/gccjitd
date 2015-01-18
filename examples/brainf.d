@@ -133,8 +133,8 @@ void main(string[] args)
     JITFunction func = ctx.newFunction(JITFunctionKind.EXPORTED,
                                        JITTypeKind.INT, "bfmain", false);
     JITBlock block = func.newBlock("start");
-    // short[65536] stack;
-    JITLValue stack = func.newLocal(ctx.newArrayType(JITTypeKind.SHORT, 65536), "stack");
+    // static short[65536] stack;
+    JITLValue stack = ctx.newGlobal(JITGlobalKind.INTERNAL, ctx.newArrayType(JITTypeKind.SHORT, 65536), "stack");
     // unsigned short stackp;
     JITLValue stackp = func.newLocal(ctx.getType(JITTypeKind.UNSIGNED_SHORT), "stackp");
     // stackp = 0;
