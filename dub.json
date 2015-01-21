@@ -1,0 +1,11 @@
+{
+    "name": "gccjitd",
+    "description": "D bindings for libgccjit.so",
+    "homepage": "https://github.com/ibuclaw/gccjitd",
+    "license": "GPL-3.0",
+    "authors": ["Iain Buclaw"],
+    "excludedSourceFiles": ["gccjit/c.d"],
+    "importPaths": ["."],
+    "sourcePaths": ["gccjit"],
+    "libs": ["gccjit"],
+}
