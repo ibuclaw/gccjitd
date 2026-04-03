@@ -20,9 +20,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module gccjit.c;
+module gccjit.bindings;
 
-import core.stdc.stdio;
+import core.stdc.stdio : FILE;
+import core.stdc.config : c_long;
 
 extern(C):
 
@@ -222,11 +223,12 @@ enum : gcc_jit_bool_option
 
 /** Set a string option on the given context.
 
-   The context directly stores the (const char *), so the passed string
-   must outlive the context.  */
+   The context takes a copy of the string, so the
+   (const char *) buffer is not needed anymore after the call
+   returns.  */
 void gcc_jit_context_set_str_option(gcc_jit_context *ctxt,
                                     gcc_jit_str_option opt,
-                                    in char *value);
+                                    scope const char *value);
 
 /** Set an int option on the given context.  */
 void gcc_jit_context_set_int_option(gcc_jit_context *ctxt,
@@ -273,7 +275,7 @@ enum : gcc_jit_output_kind
 
 void gcc_jit_context_compile_to_file(gcc_jit_context *ctxt,
                                      gcc_jit_output_kind output_kind,
-                                     in char *output_path);
+                                     scope const char *output_path);
 
 /** To help with debugging: dump a C-like representation to the given path,
    describing what's been set up on the context.
@@ -284,7 +286,7 @@ void gcc_jit_context_compile_to_file(gcc_jit_context *ctxt,
    GCC_JIT_BOOL_OPTION_DEBUGINFO to allow stepping through the code in a
    debugger.  */
 void gcc_jit_context_dump_to_file(gcc_jit_context *ctxt,
-                                  in char *path,
+                                  scope const char *path,
                                   int update_locations);
 
 /** To help with debugging; enable ongoing logging of the context's
@@ -321,13 +323,13 @@ const(char) *gcc_jit_context_get_last_error(gcc_jit_context *ctxt);
    This will need to be cast to a function pointer of the
    correct type before it can be called. */
 void *gcc_jit_result_get_code(gcc_jit_result *result,
-                              in char *funcname);
+                              scope const char *funcname);
 
 /** Locate a given global within the built machine code.
    It must have been created using GCC_JIT_GLOBAL_EXPORTED.
    This is a ptr to the global, so e.g. for an int this is an int *.  */
-void *gcc_jit_result_get_global (gcc_jit_result *result,
-                                 in char *name);
+void *gcc_jit_result_get_global(gcc_jit_result *result,
+                                scope const char *name);
 
 /** Once we're done with the code, this unloads the built .so file.
    This cleans up the result; after calling this, it's no longer
@@ -370,7 +372,7 @@ const(char) *gcc_jit_object_get_debug_string(gcc_jit_object *obj);
 /** Creating source code locations for use by the debugger.
    Line and column numbers are 1-based.  */
 gcc_jit_location *gcc_jit_context_new_location(gcc_jit_context *ctxt,
-                                               in char *filename,
+                                               scope const char *filename,
                                                int line,
                                                int column);
 
@@ -468,10 +470,12 @@ gcc_jit_type *gcc_jit_context_new_array_type(gcc_jit_context *ctxt,
                                              int num_elements);
 
 /** Struct-handling.  */
+
+/** Create a field, for use within a struct or union.  */
 gcc_jit_field *gcc_jit_context_new_field(gcc_jit_context *ctxt,
                                          gcc_jit_location *loc,
                                          gcc_jit_type *type,
-                                         in char *name);
+                                         scope const char *name);
 
 /** Upcasting from field to object.  */
 gcc_jit_object *gcc_jit_field_as_object(gcc_jit_field *field);
@@ -479,7 +483,7 @@ gcc_jit_object *gcc_jit_field_as_object(gcc_jit_field *field);
 /** Create a struct type from an array of fields.  */
 gcc_jit_struct *gcc_jit_context_new_struct_type(gcc_jit_context *ctxt,
                                                 gcc_jit_location *loc,
-                                                in char *name,
+                                                scope const char *name,
                                                 int num_fields,
                                                 gcc_jit_field **fields);
 
@@ -487,7 +491,7 @@ gcc_jit_struct *gcc_jit_context_new_struct_type(gcc_jit_context *ctxt,
 /** Create an opaque struct type.  */
 gcc_jit_struct *gcc_jit_context_new_opaque_struct(gcc_jit_context *ctxt,
                                                   gcc_jit_location *loc,
-                                                  in char *name);
+                                                  scope const char *name);
 
 /** Upcast a struct to a type.  */
 gcc_jit_type *gcc_jit_struct_as_type(gcc_jit_struct *struct_type);
@@ -502,7 +506,7 @@ void gcc_jit_struct_set_fields(gcc_jit_struct *struct_type,
 /** Unions work similarly to structs.  */
 gcc_jit_type *gcc_jit_context_new_union_type(gcc_jit_context *ctxt,
                                              gcc_jit_location *loc,
-                                             in char *name,
+                                             scope const char *name,
                                              int num_fields,
                                              gcc_jit_field **fields);
 
@@ -522,7 +526,7 @@ gcc_jit_type *gcc_jit_context_new_function_ptr_type(gcc_jit_context *ctxt,
 gcc_jit_param *gcc_jit_context_new_param(gcc_jit_context *ctxt,
                                          gcc_jit_location *loc,
                                          gcc_jit_type *type,
-                                         in char *name);
+                                         scope const char *name);
 
 /** Upcasting from param to object.  */
 gcc_jit_object *gcc_jit_param_as_object(gcc_jit_param *param);
@@ -567,14 +571,14 @@ gcc_jit_function *gcc_jit_context_new_function(gcc_jit_context *ctxt,
                                                gcc_jit_location *loc,
                                                gcc_jit_function_kind kind,
                                                gcc_jit_type *return_type,
-                                               in char *name,
+                                               scope const char *name,
                                                int num_params,
                                                gcc_jit_param **params,
                                                int is_variadic);
 
 /** Create a reference to a builtin function (sometimes called intrinsic functions).  */
 gcc_jit_function *gcc_jit_context_get_builtin_function(gcc_jit_context *ctxt,
-                                                       in char *name);
+                                                       scope const char *name);
 
 /** Upcasting from function to object.  */
 gcc_jit_object *gcc_jit_function_as_object(gcc_jit_function *func);
@@ -584,7 +588,7 @@ gcc_jit_param *gcc_jit_function_get_param(gcc_jit_function *func, int index);
 
 /** Emit the function in graphviz format.  */
 void gcc_jit_function_dump_to_dot(gcc_jit_function *func,
-                                  in char *path);
+                                  scope const char *path);
 
 /** Create a block.
 
@@ -592,7 +596,7 @@ void gcc_jit_function_dump_to_dot(gcc_jit_function *func,
    may show up in dumps of the internal representation, and in error
    messages.  */
 gcc_jit_block *gcc_jit_function_new_block(gcc_jit_function *func,
-                                          in char *name);
+                                          scope const char *name);
 
 /** Upcasting from block to object.  */
 gcc_jit_object *gcc_jit_block_as_object(gcc_jit_block *block);
@@ -624,7 +628,7 @@ gcc_jit_lvalue *gcc_jit_context_new_global(gcc_jit_context *ctxt,
                                            gcc_jit_location *loc,
                                            gcc_jit_global_kind kind,
                                            gcc_jit_type *type,
-                                           in char *name);
+                                           scope const char *name);
 
 /** Upcasting.  */
 gcc_jit_object *gcc_jit_lvalue_as_object(gcc_jit_lvalue *lvalue);
@@ -642,7 +646,7 @@ gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_int(gcc_jit_context *ctxt,
 
 gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_long(gcc_jit_context *ctxt,
                                                      gcc_jit_type *numeric_type,
-                                                     long value);
+                                                     c_long value);
 
 gcc_jit_rvalue *gcc_jit_context_zero(gcc_jit_context *ctxt,
                                      gcc_jit_type *numeric_type);
@@ -665,7 +669,7 @@ gcc_jit_rvalue *gcc_jit_context_null(gcc_jit_context *ctxt,
 
 /** String literals. */
 gcc_jit_rvalue *gcc_jit_context_new_string_literal(gcc_jit_context *ctxt,
-                                                   in char *value);
+                                                   scope const char *value);
 
 alias gcc_jit_unary_op = uint;
 enum : gcc_jit_unary_op
@@ -684,7 +688,12 @@ enum : gcc_jit_unary_op
     /** Logical negation of an arithmetic or pointer value; analogous to:
          !(EXPR)
        in C.  */
-    GCC_JIT_UNARY_OP_LOGICAL_NEGATE
+    GCC_JIT_UNARY_OP_LOGICAL_NEGATE,
+
+    /** Absolute value of an arithmetic expression; analogous to:
+         abs (EXPR)
+       in C.  */
+    GCC_JIT_UNARY_OP_ABS,
 }
 
 gcc_jit_rvalue *gcc_jit_context_new_unary_op(gcc_jit_context *ctxt,
@@ -864,7 +873,7 @@ gcc_jit_rvalue *gcc_jit_lvalue_get_address(gcc_jit_lvalue *lvalue,
 gcc_jit_lvalue *gcc_jit_function_new_local(gcc_jit_function *func,
                                            gcc_jit_location *loc,
                                            gcc_jit_type *type,
-                                           in char *name);
+                                           scope const char *name);
 
 /**********************************************************************
  Statement-creation.
@@ -918,7 +927,7 @@ void gcc_jit_block_add_assignment_op(gcc_jit_block *block,
    representation gets converted to the libgccjit IR.  */
 void gcc_jit_block_add_comment(gcc_jit_block *block,
                                gcc_jit_location *loc,
-                               in char *text);
+                               scope const char *text);
 
 /** Terminate a block by adding evaluation of an rvalue, branching on the
    result to the appropriate successor block.
@@ -1000,3 +1009,53 @@ void gcc_jit_block_end_with_void_return(gcc_jit_block *block,
 
 gcc_jit_context *gcc_jit_context_new_child_context(gcc_jit_context *parent_ctxt);
 
+/**********************************************************************
+ Implementation support.
+ **********************************************************************/
+
+/** Write C source code into "path" that can be compiled into a
+   self-contained executable (i.e. with libgccjit as the only dependency).
+   The generated code will attempt to replay the API calls that have been
+   made into the given context.
+
+   This may be useful when debugging the library or client code, for
+   reducing a complicated recipe for reproducing a bug into a simpler
+   form.
+
+   Typically you need to supply the option "-Wno-unused-variable" when
+   compiling the generated file (since the result of each API call is
+   assigned to a unique variable within the generated C source, and not
+   all are necessarily then used).  */
+
+void gcc_jit_context_dump_reproducer_to_file(gcc_jit_context *ctxt,
+                                             scope const char *path);
+
+/** Enable the dumping of a specific set of internal state from the
+   compilation, capturing the result in-memory as a buffer.
+
+   Parameter "dumpname" corresponds to the equivalent gcc command-line
+   option, without the "-fdump-" prefix.
+   For example, to get the equivalent of "-fdump-tree-vrp1", supply
+   "tree-vrp1".
+   The context directly stores the dumpname as a (const char *), so the
+   passed string must outlive the context.
+
+   gcc_jit_context_compile and gcc_jit_context_to_file
+   will capture the dump as a dynamically-allocated buffer, writing
+   it to ``*out_ptr``.
+
+   The caller becomes responsible for calling
+      free (*out_ptr)
+   each time that gcc_jit_context_compile or gcc_jit_context_to_file
+   are called.  *out_ptr will be written to, either with the address of a
+   buffer, or with NULL if an error occurred.
+
+   This API entrypoint is likely to be less stable than the others.
+   In particular, both the precise dumpnames, and the format and content
+   of the dumps are subject to change.
+
+   It exists primarily for writing the library's own test suite.  */
+
+void gcc_jit_context_enable_dump(gcc_jit_context *ctxt,
+                                 scope const char *dumpname,
+                                 char **out_ptr);

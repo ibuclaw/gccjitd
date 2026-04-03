@@ -17,9 +17,9 @@
 
 // Written by Iain  Buclaw <ibuclaw@gdcproject.org>
 
-module gccjitd.examples.brainf;
+module gccjitd.test.brainf;
 
-import gccjit.d;
+import gccjit;
 import std.stdio;
 import std.string;
 
@@ -126,7 +126,7 @@ void main(string[] args)
     }
 
     // Adjust this to control optimization level of the generated code
-    version(none)
+    version(all)
         ctx.setOption(JITIntOption.OPTIMIZATION_LEVEL, 1);
 
     // int bfmain() {

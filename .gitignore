@@ -1,5 +1,10 @@
 .dub
 docs.json
 dub.selections.json
-*.o
-*.a
+libgccjitd.a
+test/brainf/gccjitd_brainf
+test/capi/gccjitd_capi
+test/dapi/gccjitd_dapi
+test/square/gccjitd_square
+test/sum-squares/gccjitd_sum-squares
+test/toy/gccjitd_toy

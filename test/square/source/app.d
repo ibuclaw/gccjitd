@@ -6,9 +6,9 @@
 //      return i * i;
 //  }
 
-module gccjitd.examples.square;
+module gccjitd.test.square;
 
-import gccjit.d;
+import gccjit;
 
 JITResult create_fn()
 {
@@ -64,6 +64,5 @@ int square(int i)
 
 void main()
 {
-    import std.stdio : writeln;
-    writeln(square(5));
+    assert(square(5) == 25);
 }

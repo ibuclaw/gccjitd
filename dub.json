@@ -4,8 +4,13 @@
     "homepage": "https://github.com/ibuclaw/gccjitd",
     "license": "GPL-3.0",
     "authors": ["Iain Buclaw"],
-    "excludedSourceFiles": ["gccjit/c.d"],
-    "importPaths": ["."],
-    "sourcePaths": ["gccjit"],
     "libs": ["gccjit"],
+    "subPackages": [
+	"./test/brainf",
+	"./test/capi",
+	"./test/dapi",
+	"./test/square",
+	"./test/sum-squares",
+	"./test/toy"
+    ]
 }

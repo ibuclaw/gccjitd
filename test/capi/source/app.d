@@ -1,9 +1,9 @@
 
 // Sample client code for C API
 
-module gccjitd.examples.capi;
+module gccjitd.test.capi;
 
-import gccjit.c;
+import gccjit.bindings;
 
 void main()
 {
@@ -33,7 +33,7 @@ void main()
                                      gcc_jit_context_get_type(ctxt, GCC_JIT_TYPE_VOID),
                                      "hello_fn", 1, &param_name, 0);
 
-    gcc_jit_rvalue *args[2];
+    gcc_jit_rvalue*[2] args;
     args[0] = gcc_jit_context_new_string_literal(ctxt, "hello %s\n");
     args[1] = gcc_jit_param_as_rvalue(param_name);
 

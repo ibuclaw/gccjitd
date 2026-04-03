@@ -20,7 +20,7 @@ module toy.backend;
 
 import toy.ast;
 
-private import gccjit.d;
+import gccjit;
 
 /// Internal backend value exposed via alias.
 alias BEValue = JITRValue;

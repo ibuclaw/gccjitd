@@ -13,9 +13,9 @@
 //      return sum;
 //  }
 
-module gccjitd.examples.sum_squares;
+module gccjitd.test.sum_squares;
 
-import gccjit.d;
+import gccjit;
 
 JITResult create_fn()
 {
@@ -93,6 +93,5 @@ int loop_test(int n)
 
 void main()
 {
-    import std.stdio : writeln;
-    writeln(loop_test(10));
+    assert(loop_test(10) == 285);
 }

@@ -1,0 +1,12 @@
+{
+    "name": "toy",
+    "description": "Example program, part of the testsuite",
+    "targetType": "executable",
+    "configurations": [{
+	"name": "unittest",
+	"mainSourceFile": "source/main.d",
+    	"dependencies": {
+    	    "gccjitd": {"path": "../../"}
+    	}
+    }]
+}

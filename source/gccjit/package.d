@@ -1,6 +1,6 @@
 
 /// A D API for libgccjit, purely as final class wrapper functions.
-/// Copyright (C) 2014-2015 Iain Buclaw.
+/// Copyright (C) 2014-2026 Iain Buclaw.
 
 /// This file is part of gccjitd.
 
@@ -17,10 +17,11 @@
 /// You should have received a copy of the GNU General Public License
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-module gccjit.d;
+module gccjit;
 
-public import gccjit.c;
+import gccjit.bindings;
 
+import core.stdc.stdio : FILE;
 import std.conv : to;
 import std.string : toStringz;
 import std.traits : isIntegral, isSigned;
@@ -154,12 +155,79 @@ final class JITContext
         return new JITContext(gcc_jit_context_acquire());
     }
 
+    /// Create a new child context of the given JITContext, inheriting a copy
+    /// of all option settings from the parent.
+    /// The returned JITContext can reference objects created within the
+    /// parent, but not vice-versa.  The lifetime of the child context must be
+    /// bounded by that of the parent. You should release a child context
+    /// before releasing the parent context.
+    JITContext newChildContext()
+    {
+        auto result = gcc_jit_context_new_child_context(this.m_inner_ctxt);
+        if (!result)
+            throw new JITError("Unknown error creating child context");
+        return new JITContext(result);
+    }
+
+    /// Returns the internal gcc_jit_context object.
+    gcc_jit_context *getContext()
+    {
+        return this.m_inner_ctxt;
+    }
+
     /// Release the context.
     /// After this call, it's no longer valid to use this JITContext.
     void release()
     {
         gcc_jit_context_release(this.m_inner_ctxt);
         this.m_inner_ctxt = null;
+    }
+
+    /// Calls into GCC and runs the build.  It can be called more than once on
+    /// a given context.
+    /// Returns:
+    ///     A wrapper around a .so file.
+    JITResult compile()
+    {
+        auto result = gcc_jit_context_compile(this.m_inner_ctxt);
+        if (!result)
+            throw new JITError(this.getFirstError());
+        return new JITResult(result);
+    }
+
+    /// Ditto
+    /// Params:
+    ///     kind = What of output file to write.
+    ///     path = Location of file to write to.
+    void compile(JITOutputKind kind, string path)
+    {
+        gcc_jit_context_compile_to_file(this.m_inner_ctxt, kind, path.toStringz());
+    }
+
+    /// Dump a C-like representation describing what's been set up on the
+    /// context to file.
+    /// Params:
+    ///     path             = Location of file to write to.
+    ///     update_locations = If true, then also write JITLocation information.
+    void dump(string path, bool update_locations)
+    {
+        gcc_jit_context_dump_to_file(this.m_inner_ctxt,
+                                     path.toStringz(),
+                                     update_locations);
+    }
+
+    ///
+    void setLogfile(FILE* logfile, int flags, int verbosity)
+    {
+        gcc_jit_context_set_logfile (this.m_inner_ctxt,
+                                     logfile, flags, verbosity);
+    }
+
+    ///
+    void dumpReproducer(string path)
+    {
+        gcc_jit_context_dump_reproducer_to_file (this.m_inner_ctxt,
+                                                 path.toStringz());
     }
 
     /// Set a string option of the context; see JITStrOption for notes
@@ -192,18 +260,6 @@ final class JITContext
         gcc_jit_context_set_bool_option(this.m_inner_ctxt, opt, value);
     }
 
-    /// Calls into GCC and runs the build.  It can only be called once on a
-    /// given context.
-    /// Returns:
-    ///     A wrapper around a .so file.
-    JITResult compile()
-    {
-        auto result = gcc_jit_context_compile(this.m_inner_ctxt);
-        if (!result)
-            throw new JITError(this.getFirstError());
-        return new JITResult(result);
-    }
-
     /// Returns:
     ///     The first error message that occurred when compiling the context.
     string getFirstError()
@@ -214,22 +270,17 @@ final class JITContext
         return null;
     }
 
-    /// Dump a C-like representation describing what's been set up on the
-    /// context to file.
-    /// Params:
-    ///     path             = Location of file to write to.
-    ///     update_locations = If true, then also write JITLocation information.
-    void dump(string path, bool update_locations)
+    /// Make a JITLocation representing a source location,
+    /// for use by the debugger.
+    /// Note:
+    ///     You need to enable JITBoolOption.DEBUGINFO on the context
+    ///     for these locations to actually be usable by the debugger.
+    JITLocation newLocation(string filename, int line, int column)
     {
-        gcc_jit_context_dump_to_file(this.m_inner_ctxt,
-                                     path.toStringz(),
-                                     update_locations);
-    }
-
-    /// Returns the internal gcc_jit_context object.
-    gcc_jit_context *getContext()
-    {
-        return this.m_inner_ctxt;
+        auto result = gcc_jit_context_new_location(this.m_inner_ctxt,
+                                                   filename.toStringz(),
+                                                   line, column);
+        return new JITLocation(result);
     }
 
     /// Build a JITType from one of the types in JITTypeKind.
@@ -253,41 +304,6 @@ final class JITContext
     JITType getIntType(T)() if (isIntegral!T)
     {
         return this.getIntType(T.sizeof, isSigned!T);
-    }
-
-    /// Create a reference to a GCC builtin function.
-    JITFunction getBuiltinFunction(string name)
-    {
-        auto result = gcc_jit_context_get_builtin_function(this.m_inner_ctxt,
-                                                           name.toStringz());
-        return new JITFunction(result);
-    }
-
-    /// Create a new child context of the given JITContext, inheriting a copy
-    /// of all option settings from the parent.
-    /// The returned JITContext can reference objects created within the
-    /// parent, but not vice-versa.  The lifetime of the child context must be
-    /// bounded by that of the parent. You should release a child context
-    /// before releasing the parent context.
-    JITContext newChildContext()
-    {
-        auto result = gcc_jit_context_new_child_context(this.m_inner_ctxt);
-        if (!result)
-            throw new JITError("Unknown error creating child context");
-        return new JITContext(result);
-    }
-
-    /// Make a JITLocation representing a source location,
-    /// for use by the debugger.
-    /// Note:
-    ///     You need to enable JITBoolOption.DEBUGINFO on the context
-    ///     for these locations to actually be usable by the debugger.
-    JITLocation newLocation(string filename, int line, int column)
-    {
-        auto result = gcc_jit_context_new_location(this.m_inner_ctxt,
-                                                   filename.toStringz(),
-                                                   line, column);
-        return new JITLocation(result);
     }
 
     /// Given type "T", build a new array type of "T[N]".
@@ -520,6 +536,14 @@ final class JITContext
     {
         return this.newFunction(null, kind, this.getType(return_kind),
                                 name, is_variadic, params);
+    }
+
+    /// Create a reference to a GCC builtin function.
+    JITFunction getBuiltinFunction(string name)
+    {
+        auto result = gcc_jit_context_get_builtin_function(this.m_inner_ctxt,
+                                                           name.toStringz());
+        return new JITFunction(result);
     }
 
     ///
@@ -1577,6 +1601,19 @@ enum JITComparison : gcc_jit_comparison
     GT = GCC_JIT_COMPARISON_GT,
     /// This is equivalent to "(a) >= (b)".
     GE = GCC_JIT_COMPARISON_GE,
+}
+
+/// Kinds of ahead-of-time compilation
+enum JITOutputKind : gcc_jit_output_kind
+{
+    /// Compile the context to an assembler file.
+    ASSEMBLER = GCC_JIT_OUTPUT_KIND_ASSEMBLER,
+    /// Compile the context to an object file.
+    OBJECT_FILE = GCC_JIT_OUTPUT_KIND_OBJECT_FILE,
+    /// Compile the context to a dynamic library.
+    DYNAMIC_LIBRARY = GCC_JIT_OUTPUT_KIND_DYNAMIC_LIBRARY,
+    /// Compile the context to an executable.
+    EXECUTABLE = GCC_JIT_OUTPUT_KIND_EXECUTABLE,
 }
 
 /// String options

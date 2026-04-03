@@ -1,0 +1,12 @@
+{
+    "name": "capi",
+    "description": "Example program, part of the testsuite",
+    "targetType": "executable",
+    "configurations": [{
+	"name": "unittest",
+	"mainSourceFile": "source/app.d",
+    	"dependencies": {
+    	    "gccjitd": {"path": "../../"}
+    	}
+    }]
+}
