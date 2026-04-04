@@ -25,14 +25,14 @@ JIT.CompileResult create_fn()
     // Turn these on to get various kinds of debugging
     version(none)
     {
-        ctxt.set_option(BoolOption.DumpInitialTree, true);
-        ctxt.set_option(BoolOption.DumpInitialGimple, true);
-        ctxt.set_option(BoolOption.DumpGeneratedCode, true);
+        ctxt.set_dump_initial_tree = true;
+        ctxt.set_dump_initial_gimple = true;
+        ctxt.set_dump_generated_code = true;
     }
 
     // Adjust this to control optimization level of the generated code
     version(none)
-        ctxt.set_option(IntOption.OptimizationLevel, 3);
+        ctxt.set_optimization_level = OptimizationLevel.Aggressive;
 
     // Build function
     JIT.Parameter param_n = ctxt.new_param(CType.Int, "n");

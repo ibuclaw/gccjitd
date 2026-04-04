@@ -209,70 +209,49 @@ enum OutputKind : gcc_jit_output_kind
     Executable = GCC_JIT_OUTPUT_KIND_EXECUTABLE,
 }
 
-/// String options
+// String options
+deprecated
 enum StrOption : gcc_jit_str_option
 {
-    /// The name of the program, for use as a prefix when printing error
-    /// messages to stderr. If None, or default, "libgccjit.so" is used.
     ProgName = GCC_JIT_STR_OPTION_PROGNAME,
 }
 
-/// Integer options
+// Integer options
+deprecated
 enum IntOption : gcc_jit_int_option
 {
-    /// How much to optimize the code.
-
-    /// Valid values are 0-3, corresponding to GCC's command-line options
-    /// -O0 through -O3.
-
-    /// The default value is 0 (unoptimized).
     OptimizationLevel = GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL,
 }
 
-/// Boolean options
+// Boolean options
+deprecated
 enum BoolOption : gcc_jit_bool_option
 {
-    /// If true, JIT.Context.compile() will attempt to do the right thing
-    /// so that if you attach a debugger to the process, it will be able
-    /// to inspect variables and step through your code.
-
-    /// Note that you can’t step through code unless you set up source
-    /// location information for the code (by creating and passing in
-    /// JIT.Location instances).
     DebugInfo = GCC_JIT_BOOL_OPTION_DEBUGINFO,
-
-    /// If true, JIT.Context.compile() will dump its initial "tree"
-    /// representation of your code to stderr, before any optimizations.
     DumpInitialTree = GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE,
-
-    /// If true, JIT.Context.compile() will dump its initial "gimple"
-    /// representation of your code to stderr, before any optimizations
-    /// are performed. The dump resembles C code.
     DumpInitialGimple = GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE,
-
-    /// If true, JIT.Context.compile() will dump the final generated code
-    /// to stderr, in the form of assembly language.
     DumpGeneratedCode = GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE,
-
-    /// If true, JIT.Context.compile() will print information to stderr
-    /// on the actions it is performing, followed by a profile showing
-    /// the time taken and memory usage of each phase.
     DumpSummary = GCC_JIT_BOOL_OPTION_DUMP_SUMMARY,
-
-    /// If true, JIT.Context.compile() will dump copious amounts of
-    /// information on what it’s doing to various files within a
-    /// temporary directory. Use BoolOption.KeepIntermediates
-    /// to see the results. The files are intended to be human-readable,
-    /// but the exact files and their formats are subject to change.
     DumpEverything = GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING,
-
-    /// If true, libgccjit will aggressively run its garbage collector,
-    /// to shake out bugs (greatly slowing down the compile). This is
-    /// likely to only be of interest to developers of the library.
     SelfcheckGC = GCC_JIT_BOOL_OPTION_SELFCHECK_GC,
-
-    /// If true, the JIT.Context will not clean up intermediate files
-    /// written to the filesystem, and will display their location on
-    /// stderr.
     KeepIntermediates = GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES,
+}
+
+/// Optimization options
+enum OptimizationLevel : int
+{
+    /// No optimizations applied.
+    None = 0,
+
+    /// Optimizes for both speed and code size, without performing any
+    /// optimizations that take a great deal of compilation time.
+    Limited = 1,
+
+    /// Performs nearly all supported optimizations that do not involve
+    /// a tradeoff of code size for speed.
+    Standard = 2,
+
+    /// Turns on all optimizations at the Standard level, as well as performing
+    /// the more expensive optimizations.
+    Aggressive = 3,
 }

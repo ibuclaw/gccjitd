@@ -31,8 +31,11 @@ nothrow:
 
 /** Library version.
   0: The initial release of the library.
+  1: Add support for adding arbitrary command-line options.
+  2: Add support for disabling the check for unreachable blocks.
+  3: Add support for switch statements.
  */
-enum LIBGCCJIT_ABI = 0;
+enum LIBGCCJIT_ABI = 3;
 
 /**********************************************************************
  Data structures.
@@ -75,6 +78,7 @@ struct gcc_jit_result;
          +- gcc_jit_rvalue
              +- gcc_jit_lvalue
                  +- gcc_jit_param
+         +- gcc_jit_case
 */
 struct gcc_jit_object;
 
@@ -139,12 +143,21 @@ struct gcc_jit_lvalue;
    rvalue); use gcc_jit_param_as_lvalue to convert.  */
 struct gcc_jit_param;
 
+/** A gcc_jit_case is for use when building multiway branches via
+   gcc_jit_block_end_with_switch and represents a range of integer
+   values (or an individual integer value) together with an associated
+   destination block.  */
+struct gcc_jit_case;
+
 /** Acquire a JIT-compilation context.  */
 gcc_jit_context *gcc_jit_context_acquire();
 
 /** Release the context.  After this call, it's no longer valid to use
    the ctxt.  */
 void gcc_jit_context_release(gcc_jit_context *ctxt);
+
+/** Options present in the initial release of libgccjit.
+   These were handled using enums.  */
 
 /** Options taking string values. */
 alias gcc_jit_str_option = uint;
@@ -248,6 +261,38 @@ void gcc_jit_context_set_int_option(gcc_jit_context *ctxt,
 void gcc_jit_context_set_bool_option(gcc_jit_context *ctxt,
                                      gcc_jit_bool_option opt,
                                      int value);
+
+/** Options added after the initial release of libgccjit.
+   These are handled by providing an entrypoint per option,
+   rather than by extending the enum gcc_jit_*_option,
+   so that client code that use these new options can be identified
+   from binary metadata.  */
+
+/** By default, libgccjit will issue an error about unreachable blocks
+   within a function.
+
+   This option can be used to disable that error.
+
+   This entrypoint was added in LIBGCCJIT_ABI_2
+*/
+
+void gcc_jit_context_set_bool_allow_unreachable_blocks(gcc_jit_context *ctxt,
+                                                       int bool_value);
+
+/** Add an arbitrary gcc command-line option to the context.
+   The context takes a copy of the string, so the
+   (const char *) optname is not needed anymore after the call
+   returns.
+
+   Note that only some options are likely to be meaningful; there is no
+   "frontend" within libgccjit, so typically only those affecting
+   optimization and code-generation are likely to be useful.
+
+   This entrypoint was added in LIBGCCJIT_ABI_1
+*/
+
+void gcc_jit_context_add_command_line_option(gcc_jit_context *ctxt,
+                                             scope const char *optname);
 
 /** Compile the context to in-memory machine code.
 
@@ -982,6 +1027,65 @@ void gcc_jit_block_end_with_return(gcc_jit_block *block,
 */
 void gcc_jit_block_end_with_void_return(gcc_jit_block *block,
                                         gcc_jit_location *loc);
+
+/** Create a new gcc_jit_case instance for use in a switch statement.
+   min_value and max_value must be constants of integer type.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_3
+*/
+gcc_jit_case *gcc_jit_context_new_case(gcc_jit_context *ctxt,
+                                       gcc_jit_rvalue *min_value,
+                                       gcc_jit_rvalue *max_value,
+                                       gcc_jit_block *dest_block);
+
+/** Upcasting from case to object.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_3
+*/
+
+gcc_jit_object *gcc_jit_case_as_object(gcc_jit_case *case_);
+
+/** Terminate a block by adding evalation of an rvalue, then performing
+   a multiway branch.
+
+   This is roughly equivalent to this C code:
+
+     switch (expr)
+       {
+       default:
+         goto default_block;
+
+       case C0.min_value ... C0.max_value:
+         goto C0.dest_block;
+
+       case C1.min_value ... C1.max_value:
+         goto C1.dest_block;
+
+       ...etc...
+
+       case C[N - 1].min_value ... C[N - 1].max_value:
+         goto C[N - 1].dest_block;
+     }
+
+   block, expr, default_block and cases must all be non-NULL.
+
+   expr must be of the same integer type as all of the min_value
+   and max_value within the cases.
+
+   num_cases must be >= 0.
+
+   The ranges of the cases must not overlap (or have duplicate
+   values).
+
+   This API entrypoint was added in LIBGCCJIT_ABI_3
+*/
+
+void gcc_jit_block_end_with_switch(gcc_jit_block *block,
+                                   gcc_jit_location *loc,
+                                   gcc_jit_rvalue *expr,
+                                   gcc_jit_block *default_block,
+                                   int num_cases,
+                                   gcc_jit_case **cases);
 
 /**********************************************************************
  Nested contexts.

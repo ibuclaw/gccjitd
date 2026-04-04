@@ -103,7 +103,7 @@ struct Block
 
     /// Add a no-op textual comment to the internal representation of the code.
     /// It will be optimized away, but visible in the dumps seens via
-    /// BoolOption.DumpInitialTree and BoolOption.DumpInitialGimple.
+    /// `set_dump_initial_tree` and `set_dump_initial_gimple`.
     void add_comment(Location loc, string text) nothrow @nogc
     {
         text.toCStringThen!((t)
@@ -162,5 +162,43 @@ struct Block
     {
         gcc_jit_block_end_with_void_return(get_block(),
                                            loc.get_location());
+    }
+
+    ///
+    void end_with_switch(Location loc, RValue expr, Block default_block,
+                         scope Case[] cases...) nothrow @nogc
+    {
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        gcc_jit_block_end_with_switch(get_block(),
+                                      loc.get_location(),
+                                      expr.get_rvalue(),
+                                      default_block.get_block(),
+                                      cast(int)cases.length,
+                                      cast(gcc_jit_case**)cases.ptr);
+    }
+
+    /// Ditto
+    void end_with_switch(RValue expr, Block default_block, scope Case[] cases...) nothrow @nogc
+    { return end_with_switch(Location(), expr, default_block, cases); }
+}
+
+/// Struct wrapper for gcc_jit_case
+struct Case
+{
+    JitObject __super;
+    alias __super this;
+
+    ///
+    this(gcc_jit_case* case_) @nogc
+    {
+        __super = JitObject(gcc_jit_case_as_object(case_));
+    }
+
+    /// Returns the internal gcc_jit_case object.
+    gcc_jit_case* get_case() pure nothrow @nogc
+    {
+        // Manual downcast.
+        return cast(gcc_jit_case *)get_object();
     }
 }

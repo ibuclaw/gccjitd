@@ -38,8 +38,8 @@ class Backend
         this.func = this.context.new_function(FunctionType.Exported,
                                               CType.Void, "toymain", false);
         this.block = this.func.new_block();
-        this.context.set_option(StrOption.ProgName, "toy");
-        debug this.context.set_option(BoolOption.DumpInitialGimple, true);
+        this.context.set_program_name = "toy";
+        debug this.context.set_dump_initial_gimple = true;
     }
 
     void run()

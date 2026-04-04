@@ -114,19 +114,19 @@ void main(string[] args)
     File finput = (args.length > 1) ? File(args[1], "r") : stdin;
 
     JIT.Context ctx = JIT.Context.acquire();
-    ctx.set_option(StrOption.ProgName, "brainf***");
+    ctx.set_program_name = "brainf***";
 
     // Turn these on to get various kinds of debugging
     version(none)
     {
-        ctx.set_option(BoolOption.DumpInitialTree, true);
-        ctx.set_option(BoolOption.DumpInitialGimple, true);
-        ctx.set_option(BoolOption.DumpGeneratedCode, true);
+        ctx.set_dump_initial_tree = true;
+        ctx.set_dump_initial_gimple = true;
+        ctx.set_dump_generated_code = true;
     }
 
     // Adjust this to control optimization level of the generated code
     version(all)
-        ctx.set_option(IntOption.OptimizationLevel, 1);
+        ctx.set_optimization_level = OptimizationLevel.Limited;
 
     // int bfmain() {
     JIT.Function func = ctx.new_function(FunctionType.Exported,
