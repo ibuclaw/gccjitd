@@ -1,12 +1,16 @@
 all:
 	dub build
 
-check: check-brainf \
+check: check-gccjitd \
+	check-brainf \
 	check-capi \
 	check-dapi \
 	check-square \
 	check-sum-squares \
 	check-toy
+
+check-gccjitd:
+	dub test
 
 check-brainf:
 	dub test :brainf -- test/brainf/mandelbrot.bf
@@ -29,6 +33,7 @@ check-toy:
 # Build objects
 DUB_ARTEFACTS = \
 	    libgccjitd.a \
+	    gccjitd-test-library \
 	    test/brainf/gccjitd_brainf \
 	    test/capi/gccjitd_capi \
 	    test/dapi/gccjitd_dapi \

@@ -9,7 +9,7 @@ void main()
 {
     // Memory mangement is simple: all objects created are associated with a gcc_jit_context,
     // and get automatically cleaned up when the context is released.
-    JITContext ctxt = new JITContext();
+    JIT.Context ctxt = JIT.Context.acquire();
 
     // Let's inject the equivalent of:
     //  extern(C) int printf(in char *format, ...);
@@ -18,30 +18,30 @@ void main()
     //      printf("hello %s\n", name);
     //  }
     // into the context.
-    JITParam param_format = ctxt.newParam(JITTypeKind.CONST_CHAR_PTR, "format");
-    JITFunction printf_func = ctxt.newFunction(JITFunctionKind.IMPORTED, JITTypeKind.INT,
-                                               "printf", true, param_format);
+    JIT.Parameter param_format = ctxt.new_param(CType.ConstCharPtr, "format");
+    JIT.Function printf_func = ctxt.new_function(FunctionType.Imported, CType.Int,
+                                                 "printf", true, param_format);
 
-    JITParam param_name = ctxt.newParam(JITTypeKind.CONST_CHAR_PTR, "name");
-    JITFunction func = ctxt.newFunction(JITFunctionKind.EXPORTED, JITTypeKind.VOID,
-                                        "hello_fn", false, param_name);
+    JIT.Parameter param_name = ctxt.new_param(CType.ConstCharPtr, "name");
+    JIT.Function func = ctxt.new_function(FunctionType.Exported, CType.Void,
+                                          "hello_fn", false, param_name);
 
-    JITBlock block = func.newBlock("initial");
-    block.addEval(ctxt.newCall(printf_func, ctxt.newRValue("hello %s\n"), param_name));
-    block.endWithReturn();
+    JIT.Block block = func.new_block("initial");
+    block.add_eval(ctxt.new_call(printf_func, ctxt.new_rvalue("hello %s\n"), param_name));
+    block.end_with_return();
 
     // OK, we're done populating the context.
     // The next line actually calls into GCC and runs the build, all
     // in a mutex for now, getting make a result object.
     // The result is actually a wrapper around a DSO.
-    JITResult result = ctxt.compile();
+    JIT.CompileResult result = ctxt.compile();
     ctxt.release();
 
     // Look up a generated function by name, getting a void* back
     // from the result object (pointing to the machine code), and
     // cast it to the appropriate type for the function:
     alias hello_fn_type = void function(in char *);
-    auto hello_fn = cast(hello_fn_type) result.getCode("hello_fn");
+    auto hello_fn = cast(hello_fn_type) result.get_code("hello_fn");
 
     // We can now call the machine code:
     hello_fn("world");

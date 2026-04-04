@@ -17,77 +17,75 @@ module gccjitd.test.sum_squares;
 
 import gccjit;
 
-JITResult create_fn()
+JIT.CompileResult create_fn()
 {
     // Create a compilation context
-    JITContext ctxt = new JITContext();
+    JIT.Context ctxt = JIT.Context.acquire();
 
     // Turn these on to get various kinds of debugging
     version(none)
     {
-        ctxt.setOption(JITBoolOption.DUMP_INITIAL_TREE, true);
-        ctxt.setOption(JITBoolOption.DUMP_INITIAL_GIMPLE, true);
-        ctxt.setOption(JITBoolOption.DUMP_GENERATED_CODE, true);
+        ctxt.set_option(BoolOption.DumpInitialTree, true);
+        ctxt.set_option(BoolOption.DumpInitialGimple, true);
+        ctxt.set_option(BoolOption.DumpGeneratedCode, true);
     }
 
     // Adjust this to control optimization level of the generated code
     version(none)
-        ctxt.setOption(JITIntOption.OPTIMIZATION_LEVEL, 3);
+        ctxt.set_option(IntOption.OptimizationLevel, 3);
 
     // Build function
-    JITParam param_n = ctxt.newParam(JITTypeKind.INT, "n");
-    JITFunction fn = ctxt.newFunction(JITFunctionKind.EXPORTED,
-                                      JITTypeKind.INT,
-                                      "loop_test", false, param_n);
+    JIT.Parameter param_n = ctxt.new_param(CType.Int, "n");
+    JIT.Function fn = ctxt.new_function(FunctionType.Exported, CType.Int,
+                                        "loop_test", false, param_n);
 
     // Build locals
-    JITLValue local_i = fn.newLocal(ctxt.getType(JITTypeKind.INT), "i");
-    JITLValue local_sum = fn.newLocal(ctxt.getType(JITTypeKind.INT), "sum");
+    JIT.LValue local_i = fn.new_local(ctxt.get_type(CType.Int), "i");
+    JIT.LValue local_sum = fn.new_local(ctxt.get_type(CType.Int), "sum");
 
     // This is what you get back from local_i.toString()
     assert(local_i.toString() == "i");
 
     // Build blocks
-    JITBlock entry_block = fn.newBlock("entry");
-    JITBlock cond_block = fn.newBlock("cond");
-    JITBlock loop_block = fn.newBlock("loop");
-    JITBlock after_loop_block = fn.newBlock("after_loop");
+    JIT.Block entry_block = fn.new_block("entry");
+    JIT.Block cond_block = fn.new_block("cond");
+    JIT.Block loop_block = fn.new_block("loop");
+    JIT.Block after_loop_block = fn.new_block("after_loop");
 
     // sum = 0
-    entry_block.addAssignment(local_sum, ctxt.zero(JITTypeKind.INT));
+    entry_block.add_assignment(local_sum, ctxt.zero(CType.Int));
 
     // i = 0
-    entry_block.addAssignment(local_i, ctxt.zero(JITTypeKind.INT));
+    entry_block.add_assignment(local_i, ctxt.zero(CType.Int));
 
-    entry_block.endWithJump(cond_block);
+    entry_block.end_with_jump(cond_block);
 
     // while (i < n)
-    cond_block.endWithConditional(ctxt.newComparison(JITComparison.LT, local_i, param_n),
-                                  loop_block, after_loop_block);
+    cond_block.end_with_conditional(ctxt.new_lt(local_i, param_n),
+                                    loop_block, after_loop_block);
 
     // sum += i * i
-    loop_block.addAssignmentOp(local_sum, JITBinaryOp.PLUS,
-                               ctxt.newBinaryOp(JITBinaryOp.MULT,
-                                                ctxt.getType(JITTypeKind.INT),
-                                                local_i, local_i));
+    loop_block.add_assignment_op(local_sum, BinaryOp.Plus,
+                                 ctxt.new_mult(ctxt.get_type(CType.Int),
+                                               local_i, local_i));
 
     // i++
-    loop_block.addAssignmentOp(local_i, JITBinaryOp.PLUS, ctxt.one(JITTypeKind.INT));
+    loop_block.add_assignment_op(local_i, BinaryOp.Plus, ctxt.one(CType.Int));
 
     // goto cond_block
-    loop_block.endWithJump(cond_block);
+    loop_block.end_with_jump(cond_block);
 
     // return sum
-    after_loop_block.endWithReturn(local_sum);
+    after_loop_block.end_with_return(local_sum);
 
-    JITResult result = ctxt.compile();
+    JIT.CompileResult result = ctxt.compile();
     return result;
 }
 
 int loop_test(int n)
 {
-    JITResult result = create_fn();
-    auto code = cast(int function(int))(result.getCode("loop_test"));
+    JIT.CompileResult result = create_fn();
+    auto code = cast(int function(int))(result.get_code("loop_test"));
     return code(n);
 }
 

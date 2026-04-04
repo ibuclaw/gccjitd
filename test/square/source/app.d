@@ -10,50 +10,48 @@ module gccjitd.test.square;
 
 import gccjit;
 
-JITResult create_fn()
+JIT.CompileResult create_fn()
 {
     // Create a compilation context
-    JITContext ctxt = new JITContext();
+    JIT.Context ctxt = JIT.Context.acquire();
 
     // Turn these on to get various kinds of debugging
     version(none)
     {
-        ctxt.setOption(JITBoolOption.DUMP_INITIAL_TREE, true);
-        ctxt.setOption(JITBoolOption.DUMP_INITIAL_GIMPLE, true);
-        ctxt.setOption(JITBoolOption.DUMP_GENERATED_CODE, true);
+        ctxt.set_option(BoolOption.DumpInitialTree, true);
+        ctxt.set_option(BoolOption.DumpInitialGimple, true);
+        ctxt.set_option(BoolOption.DumpGeneratedCode, true);
     }
 
     // Adjust this to control optimization level of the generated code
     version(none)
-        ctxt.setOption(JITIntOption.OPTIMIZATION_LEVEL, 3);
+        ctxt.setOption(IntOption.OptimizationLevel, 3);
 
     // Create parameter "i"
-    JITParam param_i = ctxt.newParam(JITTypeKind.INT, "i");
+    JIT.Parameter param_i = ctxt.new_param(CType.Int, "i");
     // Create the function
-    JITFunction fn = ctxt.newFunction(JITFunctionKind.EXPORTED,
-                                      JITTypeKind.INT,
-                                      "square", false, param_i);
+    JIT.Function fn = ctxt.new_function(FunctionType.Exported, CType.Int,
+                                        "square", false, param_i);
 
     // Create a basic block within the function
-    JITBlock block = fn.newBlock("entry");
+    JIT.Block block = fn.new_block("entry");
 
     // This basic block is relatively simple
-    block.endWithReturn(ctxt.newBinaryOp(JITBinaryOp.MULT,
-                                         ctxt.getType(JITTypeKind.INT),
-                                         param_i, param_i));
+    block.end_with_return(ctxt.new_mult(ctxt.get_type(CType.Int),
+                                        param_i, param_i));
 
     // Having populated the context, compile it
-    JITResult result = ctxt.compile();
+    JIT.CompileResult result = ctxt.compile();
     return result;
 }
 
 int square(int i)
 {
-    JITResult result = create_fn();
+    JIT.CompileResult result = create_fn();
 
-    // Look up a specific machine code routine within the JITResult,
+    // Look up a specific machine code routine within the JIT.CompileResult,
     // in this case, the function we created above.
-    void *void_ptr = result.getCode("square");
+    void *void_ptr = result.get_code("square");
 
     // Now turn it into something we can call from D.
     auto code = cast(int function(int))(void_ptr);

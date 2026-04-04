@@ -23,8 +23,8 @@ import gccjit;
 import std.stdio;
 import std.string;
 
-void readToBlock(File finput, ref JITBlock block, JITContext ctx,
-                 JITLValue stack, JITLValue stackp, int labelnum = 0)
+void readToBlock(File finput, ref JIT.Block block, JIT.Context ctx,
+                 JIT.LValue stack, JIT.LValue stackp, int labelnum = 0)
 {
     char input;
 
@@ -34,65 +34,64 @@ void readToBlock(File finput, ref JITBlock block, JITContext ctx,
         {
             case '>':
                 // stackp += 1;
-                block.addAssignmentOp(stackp, JITBinaryOp.PLUS,
-                                      ctx.newRValue(JITTypeKind.UNSIGNED_SHORT, 1));
+                block.add_assignment_op(stackp, BinaryOp.Plus,
+                                        ctx.new_rvalue(CType.UShort, 1));
                 break;
 
             case '<':
                 // stackp -= 1;
-                block.addAssignmentOp(stackp, JITBinaryOp.MINUS,
-                                      ctx.newRValue(JITTypeKind.UNSIGNED_SHORT, 1));
+                block.add_assignment_op(stackp, BinaryOp.Minus,
+                                        ctx.new_rvalue(CType.UShort, 1));
                 break;
 
             case '+':
                 // stack[stackp] += 1;
-                block.addAssignmentOp(ctx.newArrayAccess(stack, stackp), JITBinaryOp.PLUS,
-                                      ctx.newRValue(JITTypeKind.SHORT, 1));
+                block.add_assignment_op(ctx.new_array_access(stack, stackp), BinaryOp.Plus,
+                                        ctx.new_rvalue(CType.Short, 1));
                 break;
 
             case '-':
                 // stack[stackp] -= 1;
-                block.addAssignmentOp(ctx.newArrayAccess(stack, stackp), JITBinaryOp.MINUS,
-                                      ctx.newRValue(JITTypeKind.SHORT, 1));
+                block.add_assignment_op(ctx.new_array_access(stack, stackp), BinaryOp.Minus,
+                                        ctx.new_rvalue(CType.Short, 1));
                 break;
 
             case '.':
                 // putchar(stack[stackp]);
-                block.addCall(ctx.getBuiltinFunction("putchar"),
-                              ctx.newArrayAccess(stack, stackp).castTo(JITTypeKind.INT));
+                block.add_call(ctx.get_builtin_function("putchar"),
+                               ctx.new_array_access(stack, stackp).cast_to(CType.Int));
                 break;
 
             case ',':
                 // stack[stackp] = getchar();
-                JITFunction getchar = ctx.newFunction(JITFunctionKind.IMPORTED,
-                                                      JITTypeKind.INT, "getchar", false);
-                block.addAssignment(ctx.newArrayAccess(stack, stackp),
-                                    ctx.newCall(getchar).castTo(JITTypeKind.SHORT));
+                JIT.Function getchar = ctx.new_function(FunctionType.Imported,
+                                                        CType.Int, "getchar", false);
+                block.add_assignment(ctx.new_array_access(stack, stackp),
+                                     ctx.new_call(getchar).cast_to(CType.Short));
                 break;
 
             case '[':
-                // while (stack[stackp] != 0) { [loop] } 
-                JITFunction func = block.getFunction();
-                JITBlock condblock = func.newBlock("cond%s".format(labelnum));
-                JITBlock loopblock = func.newBlock("loop%s".format(labelnum));
-                JITBlock exitblock = func.newBlock("exit%s".format(labelnum));
+                // while (stack[stackp] != 0) { [loop] }
+                JIT.Function func = block.get_function();
+                JIT.Block condblock = func.new_block("cond%s".format(labelnum));
+                JIT.Block loopblock = func.new_block("loop%s".format(labelnum));
+                JIT.Block exitblock = func.new_block("exit%s".format(labelnum));
                 labelnum++;
 
                 // Close current block with jump to condition.
-                block.endWithJump(condblock);
+                block.end_with_jump(condblock);
 
                 // Evaluate condition, jumping to the loop block if true, else
                 // continue by jumping to the exit block.
-                JITRValue cond = ctx.newComparison(JITComparison.NE,
-                                                   ctx.newArrayAccess(stack, stackp),
-                                                   ctx.newRValue(JITTypeKind.SHORT, 0));
-                condblock.endWithConditional(cond, loopblock, exitblock);
+                JIT.RValue cond = ctx.new_ne(ctx.new_array_access(stack, stackp),
+                                             ctx.new_rvalue(CType.Short, 0));
+                condblock.end_with_conditional(cond, loopblock, exitblock);
 
                 // Do code generation for the loop block.
                 readToBlock(finput, loopblock, ctx, stack, stackp, labelnum);
 
                 // Close loop with jump back to condition.
-                loopblock.endWithJump(condblock);
+                loopblock.end_with_jump(condblock);
 
                 // We now start generating code from the exit block.
                 block = exitblock;
@@ -114,43 +113,43 @@ void main(string[] args)
 {
     File finput = (args.length > 1) ? File(args[1], "r") : stdin;
 
-    JITContext ctx = new JITContext();
-    ctx.setOption(JITStrOption.PROGNAME, "brainf***");
+    JIT.Context ctx = JIT.Context.acquire();
+    ctx.set_option(StrOption.ProgName, "brainf***");
 
     // Turn these on to get various kinds of debugging
     version(none)
     {
-        ctx.setOption(JITBoolOption.DUMP_INITIAL_TREE, true);
-        ctx.setOption(JITBoolOption.DUMP_INITIAL_GIMPLE, true);
-        ctx.setOption(JITBoolOption.DUMP_GENERATED_CODE, true);
+        ctx.set_option(BoolOption.DumpInitialTree, true);
+        ctx.set_option(BoolOption.DumpInitialGimple, true);
+        ctx.set_option(BoolOption.DumpGeneratedCode, true);
     }
 
     // Adjust this to control optimization level of the generated code
     version(all)
-        ctx.setOption(JITIntOption.OPTIMIZATION_LEVEL, 1);
+        ctx.set_option(IntOption.OptimizationLevel, 1);
 
     // int bfmain() {
-    JITFunction func = ctx.newFunction(JITFunctionKind.EXPORTED,
-                                       JITTypeKind.INT, "bfmain", false);
-    JITBlock block = func.newBlock("start");
+    JIT.Function func = ctx.new_function(FunctionType.Exported,
+                                         CType.Int, "bfmain", false);
+    JIT.Block block = func.new_block("start");
     // static short[65536] stack;
-    JITLValue stack = ctx.newGlobal(JITGlobalKind.INTERNAL, ctx.newArrayType(JITTypeKind.SHORT, 65536), "stack");
+    JIT.LValue stack = ctx.new_global(GlobalKind.Internal, ctx.new_array_type(CType.Short, 65536), "stack");
     // unsigned short stackp;
-    JITLValue stackp = func.newLocal(ctx.getType(JITTypeKind.UNSIGNED_SHORT), "stackp");
+    JIT.LValue stackp = func.new_local(ctx.get_type(CType.UShort), "stackp");
     // stackp = 0;
-    block.addAssignment(stackp, ctx.newRValue(JITTypeKind.UNSIGNED_SHORT, 0));
+    block.add_assignment(stackp, ctx.new_rvalue(CType.UShort, 0));
 
     // [body]
     readToBlock(finput, block, ctx, stack, stackp);
 
     // return 0; }
-    block.endWithReturn(ctx.newRValue(JITTypeKind.INT, 0));
+    block.end_with_return(ctx.new_rvalue(CType.Int, 0));
 
-    // 
-    JITResult result = ctx.compile();
+    //
+    JIT.CompileResult result = ctx.compile();
     ctx.release();
 
-    auto mainfn = cast(int function()) result.getCode("bfmain");
+    auto mainfn = cast(int function()) result.get_code("bfmain");
     mainfn();
 
     result.release();

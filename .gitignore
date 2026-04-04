@@ -2,6 +2,7 @@
 docs.json
 dub.selections.json
 libgccjitd.a
+gccjitd-test-library
 test/brainf/gccjitd_brainf
 test/capi/gccjitd_capi
 test/dapi/gccjitd_dapi

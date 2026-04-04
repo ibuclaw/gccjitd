@@ -18,7 +18,7 @@ if n > 1 then
   while k <= n do
     fact := fact * k;
     k := k + 1
-  end  
+  end
 end;
 
 print fact

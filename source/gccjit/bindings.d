@@ -26,6 +26,8 @@ import core.stdc.stdio : FILE;
 import core.stdc.config : c_long;
 
 extern(C):
+nothrow:
+@nogc:
 
 /**********************************************************************
  Data structures.

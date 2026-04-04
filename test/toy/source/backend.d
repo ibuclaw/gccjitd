@@ -23,33 +23,33 @@ import toy.ast;
 import gccjit;
 
 /// Internal backend value exposed via alias.
-alias BEValue = JITRValue;
+alias BEValue = JIT.RValue;
 
 /// Backend visitor class.
 class Backend
 {
-    JITContext context;
-    JITFunction func;
-    JITBlock block;
+    JIT.Context context;
+    JIT.Function func;
+    JIT.Block block;
 
     this()
     {
-        this.context = new JITContext();
-        this.func = this.context.newFunction(JITFunctionKind.EXPORTED,
-                                             JITTypeKind.VOID, "toymain", false);
-        this.block = this.func.newBlock();
-        this.context.setOption(JITStrOption.PROGNAME, "toy");
-        debug this.context.setOption(JITBoolOption.DUMP_INITIAL_GIMPLE, true);
+        this.context = JIT.Context.acquire();
+        this.func = this.context.new_function(FunctionType.Exported,
+                                              CType.Void, "toymain", false);
+        this.block = this.func.new_block();
+        this.context.set_option(StrOption.ProgName, "toy");
+        debug this.context.set_option(BoolOption.DumpInitialGimple, true);
     }
 
     void run()
     {
-        this.block.endWithReturn();
+        this.block.end_with_return();
 
-        JITResult result = this.context.compile();
+        JIT.CompileResult result = this.context.compile();
         this.context.release();
 
-        auto toymain = cast(void function()) result.getCode("toymain");
+        auto toymain = cast(void function()) result.get_code("toymain");
         toymain();
 
         result.release();
@@ -57,9 +57,9 @@ class Backend
 
     void compile(AssignStatement as)
     {
-        JITLValue name = cast(JITLValue) as.name.compile(this);
-        JITRValue value = as.value.compile(this);
-        this.block.addAssignment(name, value);
+        JIT.LValue name = cast(JIT.LValue)as.name.compile(this);
+        JIT.RValue value = as.value.compile(this);
+        this.block.add_assignment(name, value);
     }
 
     void compile(CompoundStatement cs)
@@ -72,25 +72,25 @@ class Backend
 
     void compile(IfStatement ifs)
     {
-        JITBlock condblock = this.func.newBlock();
-        JITBlock exitblock = this.func.newBlock();
-        JITBlock trueblock = this.func.newBlock();
-        JITBlock falseblock = ifs.elsebody ? this.func.newBlock() : null;
+        JIT.Block condblock = this.func.new_block();
+        JIT.Block exitblock = this.func.new_block();
+        JIT.Block trueblock = this.func.new_block();
+        JIT.Block falseblock = ifs.elsebody ? this.func.new_block() : JIT.Block.init;
 
-        this.block.endWithJump(condblock);
+        this.block.end_with_jump(condblock);
         this.block = condblock;
-        JITRValue condition = ifs.condition.compile(this);
-        this.block.endWithConditional(condition, trueblock, falseblock ? falseblock : exitblock);
+        JIT.RValue condition = ifs.condition.compile(this);
+        this.block.end_with_conditional(condition, trueblock, falseblock ? falseblock : exitblock);
 
         this.block = trueblock;
         ifs.ifbody.compile(this);
-        this.block.endWithJump(exitblock);
+        this.block.end_with_jump(exitblock);
 
-        if (falseblock !is null)
+        if (falseblock)
         {
             this.block = falseblock;
             ifs.elsebody.compile(this);
-            this.block.endWithJump(exitblock);
+            this.block.end_with_jump(exitblock);
         }
 
         this.block = exitblock;
@@ -98,94 +98,94 @@ class Backend
 
     void compile(WhileStatement ws)
     {
-        JITBlock condblock = this.func.newBlock();
-        JITBlock exitblock = this.func.newBlock();
-        JITBlock loopblock = this.func.newBlock();
+        JIT.Block condblock = this.func.new_block();
+        JIT.Block exitblock = this.func.new_block();
+        JIT.Block loopblock = this.func.new_block();
 
-        this.block.endWithJump(condblock);
+        this.block.end_with_jump(condblock);
         this.block = condblock;
-        JITRValue condition = ws.condition.compile(this);
-        this.block.endWithConditional(condition, loopblock, exitblock);
+        JIT.RValue condition = ws.condition.compile(this);
+        this.block.end_with_conditional(condition, loopblock, exitblock);
 
         this.block = loopblock;
         ws.whilebody.compile(this);
-        this.block.endWithJump(condblock);
+        this.block.end_with_jump(condblock);
 
         this.block = exitblock;
     }
 
     void compile(PrintStatement ps)
     {
-        JITRValue value = ps.value.compile(this);
-        this.block.addCall(this.context.getBuiltinFunction("printf"),
-                           this.context.newRValue("%d\n"), value);
+        JIT.RValue value = ps.value.compile(this);
+        this.block.add_call(this.context.get_builtin_function("printf"),
+                            this.context.new_rvalue("%d\n"), value);
     }
 
     BEValue compile(IntegerExp ie)
     {
-        if (ie.bevalue is null)
-            ie.bevalue = this.context.newRValue(JITTypeKind.INT, ie.e1);
+        if (!ie.bevalue)
+            ie.bevalue = this.context.new_rvalue(CType.Int, ie.e1);
         return ie.bevalue;
     }
 
     BEValue compile(VarExp ve)
     {
-        if (ve.bevalue is null)
-            ve.bevalue = this.func.newLocal(this.context.getType(JITTypeKind.INT), ve.e1);
+        if (!ve.bevalue)
+            ve.bevalue = this.func.new_local(this.context.get_type(CType.Int), ve.e1);
         return ve.bevalue;
     }
 
     BEValue compile(BinExp be)
     {
-        JITRValue e1 = be.e1.compile(this);
-        JITRValue e2 = be.e2.compile(this);
-        JITBinaryOp op;
+        JIT.RValue e1 = be.e1.compile(this);
+        JIT.RValue e2 = be.e2.compile(this);
+        BinaryOp op;
 
         final switch (be.op)
         {
-            case "/": op = JITBinaryOp.DIVIDE; break;
-            case "*": op = JITBinaryOp.MULT; break;
-            case "+": op = JITBinaryOp.PLUS; break;
-            case "-": op = JITBinaryOp.MINUS; break;
+            case "/": op = BinaryOp.Divide; break;
+            case "*": op = BinaryOp.Mult; break;
+            case "+": op = BinaryOp.Plus; break;
+            case "-": op = BinaryOp.Minus; break;
         }
-        return this.context.newBinaryOp(op, e2.getType(), e1, e2);
+        return this.context.new_binary_op(op, e2.get_type(), e1, e2);
     }
 
     BEValue compile(CmpExp ce)
     {
-        JITRValue e1 = ce.e1.compile(this);
-        JITRValue e2 = ce.e2.compile(this);
-        JITComparison op;
+        JIT.RValue e1 = ce.e1.compile(this);
+        JIT.RValue e2 = ce.e2.compile(this);
+        ComparisonOp op;
 
         final switch (ce.op)
         {
-            case "=":   op = JITComparison.EQ; break;
-            case "!=":  op = JITComparison.NE; break;
-            case "<":   op = JITComparison.LT; break;
-            case "<=":  op = JITComparison.LE; break;
-            case ">":   op = JITComparison.GT; break;
-            case ">=":  op = JITComparison.GE; break;
+            case "=":   op = ComparisonOp.Equals; break;
+            case "!=":  op = ComparisonOp.NotEquals; break;
+            case "<":   op = ComparisonOp.LessThan; break;
+            case "<=":  op = ComparisonOp.LessThanEquals; break;
+            case ">":   op = ComparisonOp.GreaterThan; break;
+            case ">=":  op = ComparisonOp.GreaterThanEquals; break;
         }
-        return this.context.newComparison(op, e1, e2);
+        return this.context.new_comparison(op, e1, e2);
     }
 
     BEValue compile(AndExp ae)
     {
-        JITRValue e1 = ae.e1.compile(this);
-        JITRValue e2 = ae.e2.compile(this);
-        return this.context.newBinaryOp(JITBinaryOp.LOGICAL_AND, e2.getType(), e1, e2);
+        JIT.RValue e1 = ae.e1.compile(this);
+        JIT.RValue e2 = ae.e2.compile(this);
+        return this.context.new_logical_and(e2.get_type(), e1, e2);
     }
 
     BEValue compile(OrExp oe)
     {
-        JITRValue e1 = oe.e1.compile(this);
-        JITRValue e2 = oe.e2.compile(this);
-        return this.context.newBinaryOp(JITBinaryOp.LOGICAL_OR, e2.getType(), e1, e2);
+        JIT.RValue e1 = oe.e1.compile(this);
+        JIT.RValue e2 = oe.e2.compile(this);
+        return this.context.new_logical_or(e2.get_type(), e1, e2);
     }
 
     BEValue compile(NotExp ne)
     {
-        JITRValue e1 = ne.e1.compile(this);
-        return this.context.newUnaryOp(JITUnaryOp.LOGICAL_NEGATE, e1.getType(), e1);
+        JIT.RValue e1 = ne.e1.compile(this);
+        return this.context.new_logical_negate(e1.get_type(), e1);
     }
 }
