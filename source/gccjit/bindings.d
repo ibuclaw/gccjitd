@@ -29,6 +29,11 @@ extern(C):
 nothrow:
 @nogc:
 
+/** Library version.
+  0: The initial release of the library.
+ */
+enum LIBGCCJIT_ABI = 0;
+
 /**********************************************************************
  Data structures.
  **********************************************************************/
