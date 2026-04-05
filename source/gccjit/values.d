@@ -111,6 +111,11 @@ struct RValue
     RValue cast_to(CType kind) @nogc
     { return cast_to(Location(), get_context().get_type(kind)); }
 
+    /// Given a JIT.RValue for a call created through JIT.Context.new_call,
+    /// mark/clear the call as needing tail-call optimization.
+    void set_require_tail_call(bool require_tail_call) nothrow @nogc @property
+    { gcc_jit_rvalue_set_bool_require_tail_call(get_rvalue(), require_tail_call); }
+
     /// Overloaded operators, for those who want the most terse API
     /// (at the possible risk of being a little too magical).
 

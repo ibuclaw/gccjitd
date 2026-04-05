@@ -36,8 +36,9 @@ nothrow:
   3: Add support for switch statements.
   4: Add timing API.
   5: Add support for enabling use of external driver executable.
+  6: Add support for marking calls as needing tail-call optimization.
  */
-enum LIBGCCJIT_ABI = 5;
+enum LIBGCCJIT_ABI = 6;
 
 /**********************************************************************
  Data structures.
@@ -1250,3 +1251,10 @@ void gcc_jit_timer_pop(gcc_jit_timer *timer,
 
 void gcc_jit_timer_print(gcc_jit_timer *timer,
                          FILE *f_out);
+
+/** Mark/clear a call as needing tail-call optimization.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_6
+*/
+void gcc_jit_rvalue_set_bool_require_tail_call(gcc_jit_rvalue *call,
+                                               int require_tail_call);
