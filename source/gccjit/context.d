@@ -26,6 +26,7 @@ import gccjit.exception;
 import gccjit.flags;
 import gccjit.helpers;
 import gccjit.location;
+import gccjit.timer;
 import gccjit.types;
 import gccjit.values;
 
@@ -221,11 +222,29 @@ struct Context
     void set_allow_unreachable_blocks(bool value) nothrow @nogc @property
     { gcc_jit_context_set_bool_allow_unreachable_blocks(__impl, value); }
 
+    /// Controls whether libgccjit will use an external executable for
+    /// converting its generated assembler into other formats.
+    void set_use_external_driver(bool value) nothrow @nogc @property
+    { gcc_jit_context_set_bool_use_external_driver(__impl, value); }
+
     /// Add an arbitrary gcc command-line option to the context.
     void add_command_line_option(string optname) nothrow @nogc
     {
         optname.toCStringThen!((opt)
             => gcc_jit_context_add_command_line_option(__impl, opt.ptr));
+    }
+
+    /// Associate a gcc_jit_timer instance with a context.
+    void timer(Timer t) nothrow @nogc @property
+    {
+        gcc_jit_context_set_timer(__impl, t.get_timer());
+    }
+
+    /// Get the timer associated with a context (if any).
+    Timer timer() nothrow @nogc
+    {
+        auto result = gcc_jit_context_get_timer(__impl);
+        return Timer(result);
     }
 
     /// Returns:

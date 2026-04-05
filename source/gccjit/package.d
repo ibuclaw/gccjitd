@@ -66,6 +66,12 @@ struct JIT
     import gccjit.compile;
     ///
     alias CompileResult = gccjit.compile.CompileResult;
+
+    import gccjit.timer;
+    ///
+    alias Timer = gccjit.timer.Timer;
+    ///
+    alias AutoTime = gccjit.timer.AutoTime;
 }
 
 public import gccjit.flags;

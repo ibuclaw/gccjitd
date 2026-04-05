@@ -34,8 +34,10 @@ nothrow:
   1: Add support for adding arbitrary command-line options.
   2: Add support for disabling the check for unreachable blocks.
   3: Add support for switch statements.
+  4: Add timing API.
+  5: Add support for enabling use of external driver executable.
  */
-enum LIBGCCJIT_ABI = 3;
+enum LIBGCCJIT_ABI = 5;
 
 /**********************************************************************
  Data structures.
@@ -278,6 +280,24 @@ void gcc_jit_context_set_bool_option(gcc_jit_context *ctxt,
 
 void gcc_jit_context_set_bool_allow_unreachable_blocks(gcc_jit_context *ctxt,
                                                        int bool_value);
+
+/** Implementation detail:
+   libgccjit internally generates assembler, and uses "driver" code
+   for converting it to other formats (e.g. shared libraries).
+
+   By default, libgccjit will use an embedded copy of the driver
+   code.
+
+   This option can be used to instead invoke an external driver executable
+   as a subprocess.
+
+   This entrypoint was added in LIBGCCJIT_ABI_5; you can test for
+   its presence using
+     #ifdef LIBGCCJIT_HAVE_gcc_jit_context_set_bool_use_external_driver
+*/
+
+void gcc_jit_context_set_bool_use_external_driver(gcc_jit_context *ctxt,
+                                                  int bool_value);
 
 /** Add an arbitrary gcc command-line option to the context.
    The context takes a copy of the string, so the
@@ -1170,3 +1190,63 @@ void gcc_jit_context_dump_reproducer_to_file(gcc_jit_context *ctxt,
 void gcc_jit_context_enable_dump(gcc_jit_context *ctxt,
                                  scope const char *dumpname,
                                  char **out_ptr);
+
+/**********************************************************************
+ Timing support.
+ **********************************************************************/
+
+/** The timing API was added in LIBGCCJIT_ABI_4
+*/
+
+struct gcc_jit_timer;
+
+/** Create a gcc_jit_timer instance, and start timing.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+gcc_jit_timer *gcc_jit_timer_new();
+
+/** Release a gcc_jit_timer instance.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+void gcc_jit_timer_release(gcc_jit_timer *timer);
+
+/** Associate a gcc_jit_timer instance with a context.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+void gcc_jit_context_set_timer(gcc_jit_context *ctxt,
+                               gcc_jit_timer *timer);
+
+/** Get the timer associated with a context (if any).
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+
+gcc_jit_timer *gcc_jit_context_get_timer(gcc_jit_context *ctxt);
+
+/** Push the given item onto the timing stack.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+
+void gcc_jit_timer_push(gcc_jit_timer *timer,
+                        scope const char *item_name);
+
+/** Pop the top item from the timing stack.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+
+void gcc_jit_timer_pop(gcc_jit_timer *timer,
+                       scope const char *item_name);
+
+/** Print timing information to the given stream about activity since
+   the timer was started.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+
+void gcc_jit_timer_print(gcc_jit_timer *timer,
+                         FILE *f_out);
