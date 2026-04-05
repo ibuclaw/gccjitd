@@ -31,6 +31,7 @@ import gccjit.types;
 import gccjit.values;
 
 import core.stdc.stdio : FILE;
+import core.stdc.config : c_long;
 
 /// The top-level of the API is the JIT.Context class.
 
@@ -497,6 +498,18 @@ struct Context
     RValue new_rvalue(CType kind, int value) @nogc
     { return new_rvalue(get_type(kind), value); }
 
+    /// Ditto
+    RValue new_rvalue(Type type, long value) @nogc
+    {
+        auto result = gcc_jit_context_new_rvalue_from_long(__impl, type.get_type(),
+                                                           cast(c_long)value);
+        return RValue(result);
+    }
+
+    /// Ditto
+    RValue new_rvalue(CType kind, long value) @nogc
+    { return new_rvalue(get_type(kind), value); }
+
     /// Given a JIT.Type, which must be a floating point type, get a floating
     /// point constant as a JIT.RValue of that type.
     RValue new_rvalue(Type type, double value) @nogc
@@ -531,41 +544,78 @@ struct Context
         return RValue(result);
     }
 
+    /// Given a JIT.Type, which must be a vector type, build a vector rvalue
+    /// from an array of JIT.RValue elements.
+    RValue new_rvalue(Type vector_type, scope RValue[] elements...) @nogc
+    {
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        auto result = gcc_jit_context_new_rvalue_from_vector(__impl, null,
+                                                             vector_type.get_type(),
+                                                             cast(int)elements.length,
+                                                             cast(gcc_jit_rvalue**)elements.ptr);
+        return RValue(result);
+    }
+
     /// Given a JIT.Type, which must be a numeric type, get the constant 0 as a
     /// JIT.RValue of that type.
-    RValue zero(Type type) @nogc
+    RValue new_rvalue_zero(Type type) @nogc
     {
         auto result = gcc_jit_context_zero(__impl, type.get_type());
         return RValue(result);
     }
 
     /// Ditto
-    RValue zero(CType kind) @nogc
-    { return zero(get_type(kind)); }
+    RValue new_rvalue_zero(CType kind) @nogc
+    { return new_rvalue_zero(get_type(kind)); }
 
     /// Given a JIT.Type, which must be a numeric type, get the constant 1 as a
     /// JIT.RValue of that type.
-    RValue one(Type type) @nogc
+    RValue new_rvalue_one(Type type) @nogc
     {
         auto result = gcc_jit_context_one(__impl, type.get_type());
         return RValue(result);
     }
 
     /// Ditto
-    RValue one(CType kind) @nogc
-    { return one(get_type(kind)); }
+    RValue new_rvalue_one(CType kind) @nogc
+    { return new_rvalue_one(get_type(kind)); }
 
     /// Given a JIT.Type, which must be a pointer type, get a JIT.RValue
     /// representing the NULL pointer of that type.
-    RValue nil(Type type) @nogc
+    RValue new_null(Type type) @nogc
     {
         auto result = gcc_jit_context_null(__impl, type.get_type());
         return RValue(result);
     }
 
     /// Ditto
+    RValue new_null(CType kind) @nogc
+    { return new_null(get_type(kind)); }
+
+    deprecated("Use new_rvalue_zero instead")
+    RValue zero(Type type) @nogc
+    { return new_rvalue_zero(type); }
+
+    deprecated("Use new_rvalue_zero instead")
+    RValue zero(CType kind) @nogc
+    { return new_rvalue_zero(kind); }
+
+    deprecated("Use new_rvalue_one instead")
+    RValue one(Type type) @nogc
+    { return new_rvalue_one(type); }
+
+    deprecated("Use new_rvalue_one instead")
+    RValue one(CType kind) @nogc
+    { return new_rvalue_one(kind); }
+
+    deprecated("Use new_null instead")
+    RValue nil(Type type) @nogc
+    { return new_null(type); }
+
+    deprecated("Use new_null instead")
     RValue nil(CType kind) @nogc
-    { return nil(get_type(kind)); }
+    { return new_null(kind); }
 
     /// Generic unary operations.
 

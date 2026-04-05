@@ -113,6 +113,13 @@ struct Function
     LValue new_local(Type type, string name) @nogc
     { return new_local(Location(), type, name); }
 
+    /// Return the address of the function.
+    RValue get_address(Location loc = Location()) @nogc
+    {
+        auto result = gcc_jit_function_get_address(get_function(), loc.get_location());
+        return RValue(result);
+    }
+
     /// A series of overloaded call operators with various numbers of arguments
     /// for a very terse way of creating a call to this function.  The call
     /// is created within the same context as the function itself, which may

@@ -67,6 +67,20 @@ struct Type
         auto result = gcc_jit_type_get_volatile(get_type());
         return Type(result);
     }
+
+    /// Given type T, get type T __attribute__((aligned(alignment_in_bytes))).
+    Type get_aligned(size_t alignment_in_bytes) @nogc
+    {
+        auto result = gcc_jit_type_get_aligned(get_type(), alignment_in_bytes);
+        return Type(result);
+    }
+
+    /// Given type T, get type T __attribute__((vector_size(sizeof(T) * num_units))).
+    Type get_vector(size_t num_units) @nogc
+    {
+        auto result = gcc_jit_type_get_vector(get_type(), num_units);
+        return Type(result);
+    }
 }
 
 /// You can model C struct types by creating JIT.Struct and JIT.Field

@@ -37,8 +37,12 @@ nothrow:
   4: Add timing API.
   5: Add support for enabling use of external driver executable.
   6: Add support for marking calls as needing tail-call optimization.
+  7: Add support for aligned types.
+  8: Add support for vector types.
+  9: Add support for obtaining function addresses.
+  10: Add support for vector rvalues.
  */
-enum LIBGCCJIT_ABI = 6;
+enum LIBGCCJIT_ABI = 10;
 
 /**********************************************************************
  Data structures.
@@ -1258,3 +1262,44 @@ void gcc_jit_timer_print(gcc_jit_timer *timer,
 */
 void gcc_jit_rvalue_set_bool_require_tail_call(gcc_jit_rvalue *call,
                                                int require_tail_call);
+
+/** Given type "T", get type:
+
+     T __attribute__ ((aligned (ALIGNMENT_IN_BYTES)))
+
+   The alignment must be a power of two.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_7
+*/
+gcc_jit_type *gcc_jit_type_get_aligned(gcc_jit_type *type,
+                                       size_t alignment_in_bytes);
+
+/** Given type "T", get type:
+
+     T  __attribute__ ((vector_size (sizeof(T) * num_units))
+
+   T must be integral/floating point; num_units must be a power of two.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_8
+*/
+gcc_jit_type *gcc_jit_type_get_vector(gcc_jit_type *type, size_t num_units);
+
+/** Get the address of a function as an rvalue, of function pointer
+   type.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_9
+*/
+gcc_jit_rvalue *gcc_jit_function_get_address(gcc_jit_function *fn,
+                                             gcc_jit_location *loc);
+
+/** Build a vector rvalue from an array of elements.
+
+   "vec_type" should be a vector type, created using gcc_jit_type_get_vector.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_10
+*/
+gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_vector(gcc_jit_context *ctxt,
+                                                       gcc_jit_location *loc,
+                                                       gcc_jit_type *vec_type,
+                                                       size_t num_elements,
+                                                       gcc_jit_rvalue **elements);
