@@ -41,8 +41,9 @@ nothrow:
   8: Add support for vector types.
   9: Add support for obtaining function addresses.
   10: Add support for vector rvalues.
+  11: Add support for adding arbitrary gcc driver options.
  */
-enum LIBGCCJIT_ABI = 10;
+enum LIBGCCJIT_ABI = 11;
 
 /**********************************************************************
  Data structures.
@@ -318,6 +319,20 @@ void gcc_jit_context_set_bool_use_external_driver(gcc_jit_context *ctxt,
 
 void gcc_jit_context_add_command_line_option(gcc_jit_context *ctxt,
                                              scope const char *optname);
+
+/** Add an arbitrary gcc driver option to the context.
+   The context takes a copy of the string, so the
+   (const char *) optname is not needed anymore after the call
+   returns.
+
+   Note that only some options are likely to be meaningful; there is no
+   "frontend" within libgccjit, so typically only those affecting
+   assembler and linker are likely to be useful.
+
+   This entrypoint was added in LIBGCCJIT_ABI_11
+*/
+void gcc_jit_context_add_driver_option(gcc_jit_context *ctxt,
+                                       scope const char *optname);
 
 /** Compile the context to in-memory machine code.
 

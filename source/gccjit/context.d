@@ -250,6 +250,13 @@ struct Context
             => gcc_jit_context_add_command_line_option(__impl, opt.ptr));
     }
 
+    /// Add an arbitrary gcc driver option to the context.
+    void add_driver_option(string optname) nothrow @nogc
+    {
+        optname.toCStringThen!((opt)
+            => gcc_jit_context_add_driver_option(__impl, opt.ptr));
+    }
+
     /// Associate a gcc_jit_timer instance with a context.
     void timer(Timer t) nothrow @nogc @property
     {
