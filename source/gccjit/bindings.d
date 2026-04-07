@@ -44,8 +44,10 @@ nothrow:
   11: Add support for adding arbitrary gcc driver options.
   12: Add support for bit-fields.
   13: Add libgccjit version functions.
+  14: Add support for initializing globals.
+  15: Add support for inline assembly.
  */
-enum LIBGCCJIT_ABI = 13;
+enum LIBGCCJIT_ABI = 15;
 
 /**********************************************************************
  Data structures.
@@ -89,6 +91,7 @@ struct gcc_jit_result;
              +- gcc_jit_lvalue
                  +- gcc_jit_param
          +- gcc_jit_case
+         +- gcc_jit_extended_asm
 */
 struct gcc_jit_object;
 
@@ -158,6 +161,12 @@ struct gcc_jit_param;
    values (or an individual integer value) together with an associated
    destination block.  */
 struct gcc_jit_case;
+
+/** A gcc_jit_extended_asm represents an assembly language statement,
+   analogous to an extended "asm" statement in GCC's C front-end: a series
+   of low-level instructions inside a function that convert inputs to
+   outputs.  */
+struct gcc_jit_extended_asm;
 
 /** Acquire a JIT-compilation context.  */
 gcc_jit_context *gcc_jit_context_acquire();
@@ -733,6 +742,16 @@ gcc_jit_lvalue *gcc_jit_context_new_global(gcc_jit_context *ctxt,
                                            gcc_jit_global_kind kind,
                                            gcc_jit_type *type,
                                            scope const char *name);
+
+/** Set an initial value for a global, which must be an array of
+   integral type.  Return the global itself.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_14
+*/
+
+gcc_jit_lvalue *gcc_jit_global_set_initializer (gcc_jit_lvalue *global,
+                                                scope const void *blob,
+                                                size_t num_bytes);
 
 /** Upcasting.  */
 gcc_jit_object *gcc_jit_lvalue_as_object(gcc_jit_lvalue *lvalue);
@@ -1331,7 +1350,7 @@ gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_vector(gcc_jit_context *ctxt,
                                                        size_t num_elements,
                                                        gcc_jit_rvalue **elements);
 
-/** Functions to retrive libgccjit version.
+/** Functions to retrieve libgccjit version.
    Analogous to __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__ in C code.
 
    These API entrypoints were added in LIBGCCJIT_ABI_13
@@ -1339,3 +1358,86 @@ gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_vector(gcc_jit_context *ctxt,
 int gcc_jit_version_major();
 int gcc_jit_version_minor();
 int gcc_jit_version_patchlevel();
+
+/**********************************************************************
+ Asm support.
+ **********************************************************************/
+
+/** Functions for adding inline assembler code, analogous to GCC's
+   "extended asm" syntax.
+
+   See https://gcc.gnu.org/onlinedocs/gcc/Using-Assembly-Language-with-C.html
+
+   These API entrypoints were added in LIBGCCJIT_ABI_15
+*/
+
+/** Create a gcc_jit_extended_asm for an extended asm statement
+   with no control flow (i.e. without the goto qualifier).
+
+   The asm_template parameter  corresponds to the AssemblerTemplate
+   within C's extended asm syntax.  It must be non-NULL.  */
+
+gcc_jit_extended_asm *gcc_jit_block_add_extended_asm(gcc_jit_block *block,
+                                                     gcc_jit_location *loc,
+                                                     scope const char *asm_template);
+
+/** Create a gcc_jit_extended_asm for an extended asm statement
+   that may perform jumps, and use it to terminate the given block.
+   This is equivalent to the "goto" qualifier in C's extended asm
+   syntax.  */
+
+gcc_jit_extended_asm *gcc_jit_block_end_with_extended_asm_goto(gcc_jit_block *block,
+                                                               gcc_jit_location *loc,
+                                                               scope const char *asm_template,
+                                                               int num_goto_blocks,
+                                                               gcc_jit_block **goto_blocks,
+                                                               gcc_jit_block *fallthrough_block);
+
+/** Upcasting from extended asm to object.  */
+
+gcc_jit_object *gcc_jit_extended_asm_as_object(gcc_jit_extended_asm *ext_asm);
+
+/** Set whether the gcc_jit_extended_asm has side-effects, equivalent to
+   the "volatile" qualifier in C's extended asm syntax.  */
+
+void gcc_jit_extended_asm_set_volatile_flag(gcc_jit_extended_asm *ext_asm,
+                                            int flag);
+
+/** Set the equivalent of the "inline" qualifier in C's extended asm
+   syntax.  */
+
+void gcc_jit_extended_asm_set_inline_flag(gcc_jit_extended_asm *ext_asm,
+                                          int flag);
+
+/** Add an output operand to the extended asm statement.
+   "asm_symbolic_name" can be NULL.
+   "constraint" and "dest" must be non-NULL.
+   This function can't be called on an "asm goto" as such instructions
+   can't have outputs  */
+
+void gcc_jit_extended_asm_add_output_operand(gcc_jit_extended_asm *ext_asm,
+                                             scope const char *asm_symbolic_name,
+                                             scope const char *constraint,
+                                             gcc_jit_lvalue *dest);
+
+/** Add an input operand to the extended asm statement.
+   "asm_symbolic_name" can be NULL.
+   "constraint" and "src" must be non-NULL.  */
+
+void gcc_jit_extended_asm_add_input_operand(gcc_jit_extended_asm *ext_asm,
+                                            scope const char *asm_symbolic_name,
+                                            scope const char *constraint,
+                                            gcc_jit_rvalue *src);
+
+/** Add "victim" to the list of registers clobbered by the extended
+   asm statement.  It must be non-NULL.  */
+
+void gcc_jit_extended_asm_add_clobber(gcc_jit_extended_asm *ext_asm,
+                                      scope const char *victim);
+
+/** Add "asm_stmts", a set of top-level asm statements, analogous to
+   those created by GCC's "basic" asm syntax in C at file scope.  */
+
+void gcc_jit_context_add_top_level_asm(gcc_jit_context *ctxt,
+                                       gcc_jit_location *loc,
+                                       scope const char *asm_stmts);

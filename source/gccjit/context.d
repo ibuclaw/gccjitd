@@ -974,6 +974,17 @@ struct Context
         return Case(result);
     }
 
+    /// Add top-level asm statement to the context.
+    void add_top_level_asm(Location loc, string asm_stmts) nothrow @nogc
+    {
+        asm_stmts.toCStringThen!((s)
+            => gcc_jit_context_add_top_level_asm(__context, loc.get_location(), s.ptr));
+    }
+
+    /// Ditto
+    void add_top_level_asm(string asm_stmts) nothrow @nogc
+    { return add_top_level_asm(Location(), asm_stmts); }
+
 private:
     gcc_jit_context* __context = null;
 }

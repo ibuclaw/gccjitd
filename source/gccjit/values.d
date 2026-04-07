@@ -242,4 +242,11 @@ struct LValue
                                                  loc.get_location());
         return RValue(result);
     }
+
+    /// Set an initial value for a global.
+    LValue set_initializer(scope const void* blob, size_t num_bytes) return nothrow @nogc
+    {
+        gcc_jit_global_set_initializer(get_lvalue(), blob, num_bytes);
+        return this;
+    }
 }

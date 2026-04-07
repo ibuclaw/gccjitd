@@ -38,7 +38,8 @@ import gccjit.helpers;
 ///      $(OL - RValue
 ///          $(OL - LValue
 ///              $(OL - Parameter)))
-///      $(OL - Case))
+///      $(OL - Case)
+///      $(OL - ExtendedAsm))
 struct JitObject
 {
     /// Return the context this JitObject is within.

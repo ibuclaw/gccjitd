@@ -181,6 +181,37 @@ struct Block
     /// Ditto
     void end_with_switch(RValue expr, Block default_block, scope Case[] cases...) nothrow @nogc
     { return end_with_switch(Location(), expr, default_block, cases); }
+
+    ///
+    ExtendedAsm add_extended_asm(Location loc, string asm_template) @nogc
+    {
+        auto result = asm_template.toCStringThen!((a)
+            => gcc_jit_block_add_extended_asm(get_block(), loc.get_location(), a.ptr));
+        return ExtendedAsm(result);
+    }
+
+    /// Ditto
+    ExtendedAsm add_extended_asm(string asm_template) @nogc
+    { return add_extended_asm(Location(), asm_template); }
+
+    ///
+    ExtendedAsm end_with_extended_asm_goto(Location loc, string asm_template, scope Block[] goto_blocks,
+                                           Block fallthrough_block = Block()) @nogc
+    {
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        auto result = asm_template.toCStringThen!((a)
+            => gcc_jit_block_end_with_extended_asm_goto(get_block(), loc.get_location(), a.ptr,
+                                                        cast(int)goto_blocks.length,
+                                                        cast(gcc_jit_block**)goto_blocks.ptr,
+                                                        fallthrough_block.get_block()));
+        return ExtendedAsm(result);
+    }
+
+    /// Ditto
+    ExtendedAsm end_with_extended_asm_goto(string asm_template, scope Block[] goto_blocks,
+                                           Block fallthrough_block = Block()) @nogc
+    { return end_with_extended_asm_goto(Location(), asm_template, goto_blocks, fallthrough_block); }
 }
 
 /// Struct wrapper for gcc_jit_case
@@ -200,5 +231,87 @@ struct Case
     {
         // Manual downcast.
         return cast(gcc_jit_case *)get_object();
+    }
+}
+
+/// Struct wrapper for gcc_jit_extended_asm
+struct ExtendedAsm
+{
+    JitObject __super;
+    alias __super this;
+
+    ///
+    this(gcc_jit_extended_asm* extended_asm) @nogc
+    {
+        __super = JitObject(gcc_jit_extended_asm_as_object(extended_asm));
+    }
+
+    /// Set whether this JIT.ExtendedAsm statement has side-effects.
+    ExtendedAsm set_volatile_flag(bool flag) return nothrow @nogc @property
+    {
+        gcc_jit_extended_asm_set_volatile_flag(get_extended_asm(), flag);
+        return this;
+    }
+
+    /// Set whether this JIT.ExtendedAsm statement is inlinable.
+    ExtendedAsm set_inline_flag(bool flag) return nothrow @nogc @property
+    {
+        gcc_jit_extended_asm_set_inline_flag(get_extended_asm(), flag);
+        return this;
+    }
+
+    /// Add an output operand to this JIT.ExtendedAsm statement.
+    ExtendedAsm add_output_operand(string asm_symbolic_name, string constraint,
+                                   LValue dest) return nothrow @nogc
+    {
+        asm_symbolic_name.toCStringThen!((a)
+            => constraint.toCStringThen!((c)
+                => gcc_jit_extended_asm_add_output_operand(get_extended_asm(), a.ptr, c.ptr,
+                                                           dest.get_lvalue())));
+        return this;
+    }
+
+    /// Ditto
+    ExtendedAsm add_output_operand(string constraint, LValue dest) return nothrow @nogc
+    {
+        constraint.toCStringThen!((c)
+            => gcc_jit_extended_asm_add_output_operand(get_extended_asm(), null, c.ptr,
+                                                       dest.get_lvalue()));
+        return this;
+    }
+
+    /// Add an input operand to this JIT.ExtendedAsm statement.
+    ExtendedAsm add_input_operand(string asm_symbolic_name, string constraint,
+                                  RValue src) return nothrow @nogc
+    {
+        asm_symbolic_name.toCStringThen!((a)
+            => constraint.toCStringThen!((c)
+                => gcc_jit_extended_asm_add_input_operand(get_extended_asm(), a.ptr, c.ptr,
+                                                          src.get_rvalue())));
+        return this;
+    }
+
+    /// Ditto
+    ExtendedAsm add_input_operand(string constraint, RValue dest) return nothrow @nogc
+    {
+        constraint.toCStringThen!((c)
+            => gcc_jit_extended_asm_add_input_operand(get_extended_asm(), null, c.ptr,
+                                                      dest.get_rvalue()));
+        return this;
+    }
+
+    /// Append to the list of registers clobbered by this JIT.ExtendedAsm statement.
+    ExtendedAsm add_input_operand(string victim) return nothrow @nogc
+    {
+        victim.toCStringThen!((v)
+            => gcc_jit_extended_asm_add_clobber(get_extended_asm(), v.ptr));
+        return this;
+    }
+
+    /// Returns the internal gcc_jit_extended_asm object.
+    gcc_jit_extended_asm* get_extended_asm() pure nothrow @nogc
+    {
+        // Manual downcast.
+        return cast(gcc_jit_extended_asm *)get_object();
     }
 }
