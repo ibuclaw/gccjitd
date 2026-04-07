@@ -75,6 +75,10 @@ struct JIT
     alias Timer = gccjit.timer.Timer;
     ///
     alias AutoTime = gccjit.timer.AutoTime;
+
+    import gccjit.version_;
+    ///
+    alias Version = gccjit.version_.Version;
 }
 
 public import gccjit.flags;

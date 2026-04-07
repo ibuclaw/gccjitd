@@ -355,6 +355,27 @@ struct Context
     Field new_field(CType kind, string name) @nogc
     { return new_field(Location(), get_type(kind), name); }
 
+    /// Create a bit-field, for use within a struct or union.
+    Field new_bitfield(Location loc, Type type, int width, string name) @nogc
+    {
+        auto result = name.toCStringThen!((n)
+            => gcc_jit_context_new_bitfield(__impl, loc.get_location(),
+                                         type.get_type(), width, n.ptr));
+        return Field(result);
+    }
+
+    /// Ditto
+    Field new_bitfield(Type type, int width, string name) @nogc
+    { return new_bitfield(Location(), type, width, name); }
+
+    /// Ditto
+    Field new_bitfield(Location loc, CType kind, int width, string name) @nogc
+    { return new_bitfield(loc, get_type(kind), width, name); }
+
+    /// Ditto
+    Field new_bitfield(CType kind, int width, string name) @nogc
+    { return new_bitfield(Location(), get_type(kind), width, name); }
+
     /// Create a struct type from an array of fields.
     Struct new_struct_type(Location loc, string name, scope Field[] fields...) @nogc
     {

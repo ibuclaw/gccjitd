@@ -42,8 +42,10 @@ nothrow:
   9: Add support for obtaining function addresses.
   10: Add support for vector rvalues.
   11: Add support for adding arbitrary gcc driver options.
+  12: Add support for bit-fields.
+  13: Add libgccjit version functions.
  */
-enum LIBGCCJIT_ABI = 11;
+enum LIBGCCJIT_ABI = 13;
 
 /**********************************************************************
  Data structures.
@@ -568,6 +570,16 @@ gcc_jit_field *gcc_jit_context_new_field(gcc_jit_context *ctxt,
                                          gcc_jit_location *loc,
                                          gcc_jit_type *type,
                                          scope const char *name);
+
+/** Create a bit field, for use within a struct or union.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_12
+*/
+gcc_jit_field *gcc_jit_context_new_bitfield(gcc_jit_context *ctxt,
+                                            gcc_jit_location *loc,
+                                            gcc_jit_type *type,
+                                            int width,
+                                            scope const char *name);
 
 /** Upcasting from field to object.  */
 gcc_jit_object *gcc_jit_field_as_object(gcc_jit_field *field);
@@ -1318,3 +1330,12 @@ gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_vector(gcc_jit_context *ctxt,
                                                        gcc_jit_type *vec_type,
                                                        size_t num_elements,
                                                        gcc_jit_rvalue **elements);
+
+/** Functions to retrive libgccjit version.
+   Analogous to __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__ in C code.
+
+   These API entrypoints were added in LIBGCCJIT_ABI_13
+ */
+int gcc_jit_version_major();
+int gcc_jit_version_minor();
+int gcc_jit_version_patchlevel();
