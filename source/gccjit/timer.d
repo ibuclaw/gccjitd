@@ -37,7 +37,7 @@ struct Timer
     ///
     this(gcc_jit_timer* timer) pure nothrow @nogc
     {
-        __impl = timer;
+        __timer = timer;
         __constructed = true;
     }
 
@@ -45,21 +45,21 @@ struct Timer
     gcc_jit_timer* get_timer() nothrow @nogc
     {
         __start(this);
-        return __impl;
+        return __timer;
     }
 
     /// Push the given item onto the timing stack.
     void push(string item_name)() nothrow @nogc
     {
         __start(this);
-        gcc_jit_timer_push(__impl, item_name.ptr);
+        gcc_jit_timer_push(__timer, item_name.ptr);
     }
 
     /// Pop the top item from the timing stack.
     void pop(string item_name)() nothrow @nogc
     {
         __start(this);
-        gcc_jit_timer_pop(__impl, item_name.ptr);
+        gcc_jit_timer_pop(__timer, item_name.ptr);
     }
 
     /// Print timing information to the given stream about activity since
@@ -67,19 +67,19 @@ struct Timer
     void print(FILE* f_out) nothrow @nogc
     {
         __start(this);
-        gcc_jit_timer_print(__impl, f_out);
+        gcc_jit_timer_print(__timer, f_out);
     }
 
     /// Release a JIT.Timer instance
     void release() nothrow @nogc
     {
         __start(this);
-        gcc_jit_timer_release(__impl);
-        __impl = null;
+        gcc_jit_timer_release(__timer);
+        __timer = null;
     }
 
 private:
-    gcc_jit_timer* __impl = null;
+    gcc_jit_timer* __timer = null;
 
     // Internal handling of dealing with default construction
     // using a runtime-only value, as ideally we should start
@@ -91,7 +91,7 @@ private:
     {
         if (!t.__constructed)
         {
-            t.__impl = gcc_jit_timer_new();
+            t.__timer = gcc_jit_timer_new();
             t.__constructed = true;
         }
     }

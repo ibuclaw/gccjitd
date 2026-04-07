@@ -44,20 +44,20 @@ struct JitObject
     /// Return the context this JitObject is within.
     Context get_context() @nogc
     {
-        auto result = gcc_jit_object_get_context(__impl);
+        auto result = gcc_jit_object_get_context(__object);
         return Context(result);
     }
 
     /// Get a human-readable description of this object.
     string toString() nothrow @nogc
     {
-        return gcc_jit_object_get_debug_string(__impl).toDString();
+        return gcc_jit_object_get_debug_string(__object).toDString();
     }
 
     /// Returns true if this JitObject has a value.
     bool opCast(T : bool)() const nothrow @nogc
     {
-        return __impl !is null;
+        return __object !is null;
     }
 
     /// Prevents `opCast` from disabling built-in conversions.
@@ -83,15 +83,15 @@ package(gccjit):
             else
                 abort!ErrorBadObject();
         }
-        __impl = obj;
+        __object = obj;
     }
 
     gcc_jit_object* get_object() pure nothrow @nogc
     {
-        return __impl;
+        return __object;
     }
 
 private:
     // The actual gccjit object we interface with.
-    gcc_jit_object* __impl = null;
+    gcc_jit_object* __object = null;
 }

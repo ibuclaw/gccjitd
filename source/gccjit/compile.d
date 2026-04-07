@@ -35,13 +35,13 @@ struct CompileResult
             else
                 abort!ErrorBadResult();
         }
-        __impl = result;
+        __result = result;
     }
 
     /// Returns the internal gcc_jit_result object.
     gcc_jit_result* get_result() pure nothrow @nogc
     {
-        return __impl;
+        return __result;
     }
 
     /// Locate a given function within the built machine code.
@@ -50,7 +50,7 @@ struct CompileResult
     void* get_code(string name) nothrow @nogc
     {
         return name.toCStringThen!((n)
-            => gcc_jit_result_get_code(__impl, n.ptr));
+            => gcc_jit_result_get_code(__result, n.ptr));
     }
 
     /// Locate a given global within the built machine code.
@@ -59,16 +59,16 @@ struct CompileResult
     void* get_global(string name) nothrow @nogc
     {
         return name.toCStringThen!((n)
-            => gcc_jit_result_get_global(__impl, n.ptr));
+            => gcc_jit_result_get_global(__result, n.ptr));
     }
 
     /// Once we're done with the code, this unloads the built .so file.
     /// After this call, it's no longer valid to use this JIT.CompileResult.
     void release() nothrow @nogc
     {
-        gcc_jit_result_release(__impl);
+        gcc_jit_result_release(__result);
     }
 
 private:
-    gcc_jit_result* __impl = null;
+    gcc_jit_result* __result = null;
 }
