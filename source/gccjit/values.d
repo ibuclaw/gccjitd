@@ -249,4 +249,43 @@ struct LValue
         gcc_jit_global_set_initializer(get_lvalue(), blob, num_bytes);
         return this;
     }
+
+    /// Ditto
+    LValue set_initializer(RValue init_value)
+    {
+        auto result = gcc_jit_global_set_initializer_rvalue(get_lvalue(),
+                                                            init_value.get_rvalue());
+        return LValue(result);
+    }
+
+    /// Set the TLS model of a global variable.
+    LValue set_tls_model(TlsModel model) return nothrow @nogc
+    {
+        gcc_jit_lvalue_set_tls_model(get_lvalue(), model);
+        return this;
+    }
+
+    /// Set the link section name of a global variable.
+    LValue set_link_section(string section_name) return nothrow @nogc
+    {
+        section_name.toCStringThen!((s)
+            => gcc_jit_lvalue_set_link_section(get_lvalue(), s.ptr));
+        return this;
+    }
+
+    /// Set register name of a local variable.
+    LValue set_register_name(string reg_name) return nothrow @nogc
+    {
+        reg_name.toCStringThen!((r)
+            => gcc_jit_lvalue_set_register_name(get_lvalue(), r.ptr));
+        return this;
+    }
+
+    /// Set the alignment of a variable.
+    void set_alignment(uint bytes) nothrow @nogc @property
+    { gcc_jit_lvalue_set_alignment(get_lvalue(), bytes); }
+
+    /// Get the alignment of a variable
+    uint get_alignment() nothrow @nogc
+    { return gcc_jit_lvalue_get_alignment(get_lvalue()); }
 }

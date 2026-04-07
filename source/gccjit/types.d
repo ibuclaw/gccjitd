@@ -81,6 +81,73 @@ struct Type
         auto result = gcc_jit_type_get_vector(get_type(), num_units);
         return Type(result);
     }
+
+    /// Returns true if the given JIT.Type is compatible with this JIT.Type.
+    bool is_compatible_with(Type type) nothrow @nogc
+    {
+        return !!gcc_jit_compatible_types(get_type(), type.get_type());
+    }
+
+    /// Returns the size of this JIT.Type.
+    size_t get_size() nothrow @nogc
+    {
+        return gcc_jit_type_get_size(get_type());
+    }
+
+    /// Return the element type of an array or null if it's not an array.
+    Type dyncast_array() @nogc
+    {
+        auto result = gcc_jit_type_dyncast_array(get_type());
+        return result ? Type(result) : Type();
+    }
+
+    /// Returns true if the type is a bool.
+    bool is_bool() nothrow @nogc
+    {
+        return !!gcc_jit_type_is_bool(get_type());
+    }
+
+    /// Return the JIT.FunctionPtrType if it is one or null.
+    FunctionPtrType dyncast_function_ptr_type() @nogc
+    {
+        auto result = gcc_jit_type_dyncast_function_ptr_type(get_type());
+        return FunctionPtrType(result);
+    }
+
+    /// Returns true if the type is integral.
+    bool is_integral() nothrow @nogc
+    {
+        return !!gcc_jit_type_is_integral(get_type());
+    }
+
+    /// Returns the type pointer by the pointer type or null if it's not a pointer.
+    Type get_pointee() @nogc
+    {
+        auto result = gcc_jit_type_is_pointer(get_type());
+        return result ? Type(result) : Type();
+    }
+
+    /// Return the JIT.VectorType if it is one or null.
+    VectorType dyncast_vector() @nogc
+    {
+        auto result = gcc_jit_type_dyncast_vector(get_type());
+        return VectorType(result);
+    }
+
+    /// Return the JIT.Struct if it is one or null.
+    Struct is_struct() @nogc
+    {
+        auto result = gcc_jit_type_is_struct(get_type());
+        return result ? Struct(result) : Struct();
+    }
+
+    /// Return the unqualified type of this JIT.Type, removing `const`, `volatile`,
+    /// and alignment qualifiers.
+    Type unqualified() @nogc
+    {
+        auto result = gcc_jit_type_unqualified(get_type());
+        return Type(result);
+    }
 }
 
 /// You can model C struct types by creating JIT.Struct and JIT.Field
@@ -122,4 +189,86 @@ struct Struct
     /// Ditto
     void set_fields(Field[] fields...) nothrow @nogc
     { set_fields(Location(), fields); }
+
+    /// Get a field by index.
+    Field get_field(size_t index) @nogc
+    {
+        auto result = gcc_jit_struct_get_field(get_struct(), index);
+        return Field(result);
+    }
+
+    /// Get the number of fields.
+    size_t get_field_count() nothrow @nogc
+    {
+        return gcc_jit_struct_get_field_count(get_struct());
+    }
+}
+
+/// Function Types can be created using JIT.Context.new_function_type().
+/// To get an instance of FunctionPtrType use JIT.Type.dyncast_function_ptr_type().
+struct FunctionPtrType
+{
+    union
+    {
+        private gcc_jit_function_type* __function_type = null;
+        Type __super;
+    }
+    alias __super this;
+
+    ///
+    this(gcc_jit_function_type* function_type) @nogc
+    {
+        __function_type = function_type;
+    }
+
+    /// Get function return type.
+    Type get_return_type() @nogc
+    {
+        auto result = gcc_jit_function_type_get_return_type(__function_type);
+        return Type(result);
+    }
+
+    /// Get the number of parameters of the function type.
+    size_t get_param_count() nothrow @nogc
+    {
+        return gcc_jit_function_type_get_param_count(__function_type);
+    }
+
+    /// Get a parameter type by index.
+    Type get_param_type(size_t index) @nogc
+    {
+        auto result = gcc_jit_function_type_get_param_type(__function_type, index);
+        return Type(result);
+    }
+}
+
+/// Vector Types can be created using JIT.Type.get_vector().
+/// To get an instance of VectorType use JIT.Type.dyncast_vector().
+struct VectorType
+{
+    union
+    {
+        private gcc_jit_vector_type* __vector_type = null;
+        Type __super;
+    }
+    alias __super this;
+
+    ///
+    this(gcc_jit_vector_type* vector_type) @nogc
+    {
+        __vector_type = vector_type;
+    }
+
+    /// Return number of units contained in this JIT.VectorType.
+    size_t get_num_units() nothrow @nogc
+    {
+        return gcc_jit_vector_type_get_num_units(__vector_type);
+    }
+
+    /// Return the element type of this JIT.VectorType.
+    Type get_element_type()
+    {
+        auto result = gcc_jit_vector_type_get_element_type(__vector_type);
+        return Type(result);
+    }
 }

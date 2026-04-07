@@ -125,6 +125,19 @@ struct Function
         return RValue(result);
     }
 
+    /// Get the return type of the function.
+    Type get_return_type() @nogc
+    {
+        auto result = gcc_jit_function_get_return_type(get_function());
+        return Type(result);
+    }
+
+    /// Get the number of parameters of the function.
+    size_t get_param_count() @nogc
+    {
+        return gcc_jit_function_get_param_count(get_function());
+    }
+
     /// A series of overloaded call operators with various numbers of arguments
     /// for a very terse way of creating a call to this function.  The call
     /// is created within the same context as the function itself, which may

@@ -238,6 +238,10 @@ struct Context
     void set_allow_unreachable_blocks(bool value) nothrow @nogc @property
     { gcc_jit_context_set_bool_allow_unreachable_blocks(__context, value); }
 
+    /// Controls whether libgccjit will print errors to stderr.
+    void set_print_errors_to_stderr(bool value) nothrow @nogc @property
+    { gcc_jit_context_set_bool_print_errors_to_stderr(__context, value); }
+
     /// Controls whether libgccjit will use an external executable for
     /// converting its generated assembler into other formats.
     void set_use_external_driver(bool value) nothrow @nogc @property
@@ -984,6 +988,65 @@ struct Context
     /// Ditto
     void add_top_level_asm(string asm_stmts) nothrow @nogc
     { return add_top_level_asm(Location(), asm_stmts); }
+
+    /// Reinterpret the JIT.RValue as another JIT.Type.
+    RValue new_bitcast(Location loc, RValue rvalue, Type type) @nogc
+    {
+        auto result = gcc_jit_context_new_bitcast(__context, loc.get_location,
+                                                  rvalue.get_rvalue(), type.get_type());
+        return RValue(result);
+    }
+
+    /// Ditto
+    RValue new_bitcast(RValue rvalue, Type type) @nogc
+    { return new_bitcast(Location(), rvalue, type); }
+
+    /// Create a constructor for a struct as a JIT.RValue.
+    RValue new_struct_constructor(Location loc, Type type, scope Field[] fields,
+                                  scope RValue[] values) @nogc
+    {
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        auto result = gcc_jit_context_new_struct_constructor(__context, loc.get_location(),
+                                                             type.get_type(),
+                                                             values.length,
+                                                             cast(gcc_jit_field**)fields.ptr,
+                                                             cast(gcc_jit_rvalue**)values.ptr);
+        return RValue(result);
+    }
+
+    /// Ditto
+    RValue new_struct_constructor(Type type, scope Field[] fields, scope RValue[] values) @nogc
+    { return new_struct_constructor(Location(), type, fields, values); }
+
+    /// Create a constructor for an union as a JIT.RValue.
+    RValue new_union_constructor(Location loc, Type type, Field field, RValue value) @nogc
+    {
+        auto result = gcc_jit_context_new_union_constructor(__context, loc.get_location(),
+                                                            type.get_type(), field.get_field(),
+                                                            value.get_rvalue());
+        return RValue(result);
+    }
+
+    /// Ditto
+    RValue new_union_constructor(Type type, Field field, RValue value) @nogc
+    { return new_union_constructor(Location(), type, field, value); }
+
+    /// Create a constructor for an array as a JIT.RValue.
+    RValue new_array_constructor(Location loc, Type type, scope RValue[] values...) @nogc
+    {
+        // Treat the array as being of the underlying pointers, relying on
+        // the wrapper type being such a pointer internally.
+        auto result = gcc_jit_context_new_array_constructor(__context, loc.get_location(),
+                                                            type.get_type(),
+                                                            values.length,
+                                                            cast(gcc_jit_rvalue**)values.ptr);
+        return RValue(result);
+    }
+
+    /// Ditto
+    RValue new_array_constructor(Type type, scope RValue[] values...) @nogc
+    { return new_array_constructor(Location(), type, values); }
 
 private:
     gcc_jit_context* __context = null;

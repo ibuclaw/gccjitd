@@ -122,6 +122,36 @@ enum CType : gcc_jit_types
 
     /// Largest supported complex float type.
     ComplexLongDouble = GCC_JIT_TYPE_COMPLEX_LONG_DOUBLE,
+
+    /// C's int8_t type.
+    Int8t = GCC_JIT_TYPE_INT8_T,
+
+    /// C's int16_t type.
+    Int16t = GCC_JIT_TYPE_INT16_T,
+
+    /// C's int32_t type.
+    Int32t = GCC_JIT_TYPE_INT32_T,
+
+    /// C's int64_t type.
+    Int64t = GCC_JIT_TYPE_INT64_T,
+
+    /// C's int128_t type.
+    Int128t = GCC_JIT_TYPE_INT128_T,
+
+    /// C's uint8_t type.
+    UInt8t = GCC_JIT_TYPE_UINT8_T,
+
+    /// C's uint16_t type.
+    UInt16t = GCC_JIT_TYPE_UINT16_T,
+
+    /// C's uint32_t type.
+    UInt32t = GCC_JIT_TYPE_UINT32_T,
+
+    /// C's uint64_t type.
+    UInt64t = GCC_JIT_TYPE_UINT64_T,
+
+    /// C's uint128_t type.
+    UInt128t = GCC_JIT_TYPE_UINT128_T,
 }
 
 /// Kinds of unary ops.
@@ -254,4 +284,14 @@ enum OptimizationLevel : int
     /// Turns on all optimizations at the Standard level, as well as performing
     /// the more expensive optimizations.
     Aggressive = 3,
+}
+
+/// Thread local storage models
+enum TlsModel : gcc_jit_tls_model
+{
+    None = GCC_JIT_TLS_MODEL_NONE,
+    GlobalDynamic = GCC_JIT_TLS_MODEL_GLOBAL_DYNAMIC,
+    LocalDynamic = GCC_JIT_TLS_MODEL_LOCAL_DYNAMIC,
+    InitialExec = GCC_JIT_TLS_MODEL_INITIAL_EXEC,
+    LocalExec = GCC_JIT_TLS_MODEL_LOCAL_EXEC,
 }

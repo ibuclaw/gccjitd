@@ -31,7 +31,9 @@ import gccjit.helpers;
 ///  $(OL - JitObject
 ///      $(OL - Location)
 ///      $(OL - Type
-///         $(OL - Struct))
+///         $(OL - Struct)
+///         $(OL - FunctionPtrType)
+///         $(OL - VectorType))
 ///      $(OL - Field)
 ///      $(OL - Function)
 ///      $(OL - Block)
