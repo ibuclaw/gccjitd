@@ -3,6 +3,7 @@ docs.json
 dub.selections.json
 libgccjitd.a
 gccjitd-test-library
+gccjitd-test-betterC
 test/brainf/gccjitd_brainf
 test/capi/gccjitd_capi
 test/dapi/gccjitd_dapi

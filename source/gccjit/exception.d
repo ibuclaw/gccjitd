@@ -18,12 +18,15 @@
 
 module gccjit.exception;
 
-/// Errors within the API become D exceptions of this class.
-final class JitException : Exception
+version (D_Exceptions)
 {
-    ///
-    this(string msg, string file = __FILE__, size_t line = __LINE__) @safe pure nothrow @nogc
+    /// Errors within the API become D exceptions of this class.
+    final class JitException : Exception
     {
-        super(msg, file, line, null);
+        ///
+        this(string msg, string file = __FILE__, size_t line = __LINE__) @safe pure nothrow @nogc
+        {
+            super(msg, file, line, null);
+        }
     }
 }

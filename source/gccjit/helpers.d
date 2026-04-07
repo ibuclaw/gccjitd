@@ -20,6 +20,18 @@ module gccjit.helpers;
 
 package(gccjit):
 
+enum
+{
+    ErrorBadResult = "Unknown error, got bad result",
+    ErrorBadContext = "Unknown error, got bad context",
+    ErrorChildContext = "Unknown error creating child context",
+    ErrorBadFunction = "Unknown error, got bad function",
+    ErrorBadParameter = "Unknown error, got bad param",
+    ErrorBadObject = "Unknown error, got bad object",
+    ErrorBadRValue = "Unknown error, got bad rvalue",
+    ErrorBadLValue = "Unknown error, got bad lvalue",
+}
+
 // Slices a `\0`-terminated C-string, excluding the terminator
 string toDString (inout(char)* s) pure nothrow @nogc
 {
@@ -157,11 +169,17 @@ unittest
 //   The return value of `T`
 auto toCStringThen(alias dg)(const(char)[] src) nothrow
 {
+    import core.stdc.string : memcpy;
     const len = src.length + 1;
     char[512] small = void;
     auto sb = SmallBuffer(len, small[]);
     scope ptr = sb[];
-    ptr[0 .. src.length] = src[];
+
+    src.length < ptr.length || abort!"Mismatched array lengths in toCStringThen";
+    immutable diff = src.ptr > ptr.ptr ? src.ptr - ptr.ptr : ptr.ptr - src.ptr;
+    diff >= src.length || abort!"Overlapping arrays in toCStringThen";
+
+    memcpy(ptr.ptr, src.ptr, src.length);
     ptr[src.length] = '\0';
     return dg(ptr);
 }
@@ -171,4 +189,24 @@ unittest
     assert("Hello world".toCStringThen!((v) => v == "Hello world\0"));
     assert("Hello world\0".toCStringThen!((v) => v == "Hello world\0\0"));
     assert(null.toCStringThen!((v) => v == "\0"));
+}
+
+// Print message to stderr then abort runtime.
+void abort(string msg)() @nogc nothrow
+{
+    import core.stdc.stdio : fputs, stderr;
+    import core.stdc.stdlib : abort;
+    fputs(msg.ptr, stderr);
+    fputs("\n", stderr);
+    abort();
+}
+
+// Ditto
+void abort()(string msg) @nogc nothrow
+{
+    import core.stdc.stdio : fputs, stderr;
+    import core.stdc.stdlib : abort;
+    msg.toCStringThen!((m) => fputs(m.ptr, stderr));
+    fputs("\n", stderr);
+    abort();
 }

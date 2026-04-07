@@ -29,7 +29,12 @@ struct CompileResult
     this(gcc_jit_result* result) @nogc
     {
         if (!result)
-            throw staticException!JitException("Unknown error, got bad result");
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(ErrorBadResult);
+            else
+                abort!ErrorBadResult();
+        }
         __impl = result;
     }
 

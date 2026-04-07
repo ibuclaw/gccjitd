@@ -37,7 +37,12 @@ struct RValue
     this(gcc_jit_rvalue* rvalue) @nogc
     {
         if (!rvalue)
-            throw staticException!JitException("Unknown error, got bad rvalue");
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(ErrorBadRValue);
+            else
+                abort!ErrorBadRValue();
+        }
         __super = JitObject(gcc_jit_rvalue_as_object(rvalue));
     }
 
@@ -199,7 +204,12 @@ struct LValue
     this(gcc_jit_lvalue* lvalue) @nogc
     {
         if (!lvalue)
-            throw staticException!JitException("Unknown error, got bad lvalue");
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(ErrorBadLValue);
+            else
+                abort!ErrorBadLValue();
+        }
         __super = RValue(gcc_jit_lvalue_as_rvalue(lvalue));
     }
 

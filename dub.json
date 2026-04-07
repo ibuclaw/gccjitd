@@ -5,6 +5,13 @@
     "license": "GPL-3.0",
     "authors": ["Iain Buclaw"],
     "libs": ["gccjit"],
+    "configurations": [{
+	"name": "library"
+    },{
+	"name": "betterC",
+	"buildOptions": ["betterC"],
+	"dflags-gdc": ["-fno-exceptions"]
+    }],
     "subPackages": [
 	"./test/brainf",
 	"./test/capi",

@@ -11,6 +11,7 @@ check: check-gccjitd \
 
 check-gccjitd:
 	dub test
+	dub test --config=betterC
 
 check-brainf:
 	dub test :brainf -- test/brainf/mandelbrot.bf
@@ -34,6 +35,7 @@ check-toy:
 DUB_ARTEFACTS = \
 	    libgccjitd.a \
 	    gccjitd-test-library \
+	    gccjitd-test-betterC \
 	    test/brainf/gccjitd_brainf \
 	    test/capi/gccjitd_capi \
 	    test/dapi/gccjitd_dapi \

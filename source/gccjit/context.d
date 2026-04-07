@@ -49,7 +49,12 @@ struct Context
     this(gcc_jit_context* context) @nogc
     {
         if (!context)
-            throw staticException!JitException("Unknown error, got bad context");
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(ErrorBadContext);
+            else
+                abort!ErrorBadContext();
+        }
         __impl = context;
     }
 
@@ -69,7 +74,12 @@ struct Context
     {
         auto result = gcc_jit_context_new_child_context(__impl);
         if (!result)
-            throw staticException!JitException("Unknown error creating child context");
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(ErrorChildContext);
+            else
+                abort!ErrorChildContext();
+        }
         return Context(result);
     }
 
@@ -95,7 +105,12 @@ struct Context
     {
         auto result = gcc_jit_context_compile(__impl);
         if (!result)
-            throw staticException!JitException(get_first_error());
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(get_first_error());
+            else
+                abort(get_first_error());
+        }
         return CompileResult(result);
     }
 

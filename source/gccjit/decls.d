@@ -57,7 +57,12 @@ struct Function
     this(gcc_jit_function* func) @nogc
     {
         if (!func)
-            throw staticException!JitException("Unknown error, got bad function");
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(ErrorBadFunction);
+            else
+                abort!ErrorBadFunction();
+        }
         __super = JitObject(gcc_jit_function_as_object(func));
     }
 
@@ -152,7 +157,12 @@ struct Parameter
     this(gcc_jit_param* param) @nogc
     {
         if (!param)
-            throw staticException!JitException("Unknown error, got bad param");
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(ErrorBadParameter);
+            else
+                abort!ErrorBadParameter();
+        }
         __super = LValue(gcc_jit_param_as_lvalue(param));
     }
 

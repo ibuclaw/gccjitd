@@ -77,7 +77,12 @@ package(gccjit):
     this(gcc_jit_object* obj) @nogc
     {
         if (!obj)
-            throw staticException!JitException("Unknown error, got bad object");
+        {
+            version (D_Exceptions)
+                throw staticException!JitException(ErrorBadObject);
+            else
+                abort!ErrorBadObject();
+        }
         __impl = obj;
     }
 
