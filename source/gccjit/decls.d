@@ -20,7 +20,6 @@ module gccjit.decls;
 
 import gccjit.bindings;
 import gccjit.block;
-import gccjit.exception;
 import gccjit.helpers;
 import gccjit.location;
 import gccjit.object;
@@ -34,7 +33,7 @@ struct Field
     alias __super this;
 
     ///
-    this(gcc_jit_field* field) @nogc
+    this(gcc_jit_field* field) nothrow @nogc
     {
         __super = JitObject(gcc_jit_field_as_object(field));
     }
@@ -54,15 +53,8 @@ struct Function
     alias __super this;
 
     ///
-    this(gcc_jit_function* func) @nogc
+    this(gcc_jit_function* func) nothrow @nogc
     {
-        if (!func)
-        {
-            version (D_Exceptions)
-                throw staticException!JitException(ErrorBadFunction);
-            else
-                abort!ErrorBadFunction();
-        }
         __super = JitObject(gcc_jit_function_as_object(func));
     }
 
@@ -81,7 +73,7 @@ struct Function
     }
 
     /// Get a specific parameter of a function by index.
-    Parameter get_param(int index) @nogc
+    Parameter get_param(int index) nothrow @nogc
     {
         auto result = gcc_jit_function_get_param(get_function(), index);
         return Parameter(result);
@@ -90,14 +82,14 @@ struct Function
     /// Create a JIT.Block.
     /// The name can be null, or you can give it a meaningful name, which may
     /// show up in dumps of the internal representation, and in error messages.
-    Block new_block() @nogc
+    Block new_block() nothrow @nogc
     {
         auto result = gcc_jit_function_new_block(get_function(), null);
         return Block(result);
     }
 
     /// Ditto
-    Block new_block(string name) @nogc
+    Block new_block(string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
             => gcc_jit_function_new_block(get_function(), n.ptr));
@@ -105,7 +97,7 @@ struct Function
     }
 
     /// Create a new local variable.
-    LValue new_local(Location loc, Type type, string name) @nogc
+    LValue new_local(Location loc, Type type, string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
             => gcc_jit_function_new_local(get_function(),
@@ -115,25 +107,25 @@ struct Function
     }
 
     /// Ditto
-    LValue new_local(Type type, string name) @nogc
+    LValue new_local(Type type, string name) nothrow @nogc
     { return new_local(Location(), type, name); }
 
     /// Return the address of the function.
-    RValue get_address(Location loc = Location()) @nogc
+    RValue get_address(Location loc = Location()) nothrow @nogc
     {
         auto result = gcc_jit_function_get_address(get_function(), loc.get_location());
         return RValue(result);
     }
 
     /// Get the return type of the function.
-    Type get_return_type() @nogc
+    Type get_return_type() nothrow @nogc
     {
         auto result = gcc_jit_function_get_return_type(get_function());
         return Type(result);
     }
 
     /// Get the number of parameters of the function.
-    size_t get_param_count() @nogc
+    size_t get_param_count() nothrow @nogc
     {
         return gcc_jit_function_get_param_count(get_function());
     }
@@ -144,19 +136,19 @@ struct Function
     /// not be what you want.
 
     ///
-    RValue opCall(Location loc = Location())
+    RValue opCall(Location loc = Location()) nothrow @nogc
     { return get_context().new_call(loc, this); }
 
     ///
-    RValue opCall(RValue arg0, Location loc = Location())
+    RValue opCall(RValue arg0, Location loc = Location()) nothrow @nogc
     { return get_context().new_call(loc, this, arg0); }
 
     ///
-    RValue opCall(RValue arg0, RValue arg1, Location loc = Location())
+    RValue opCall(RValue arg0, RValue arg1, Location loc = Location()) nothrow @nogc
     { return get_context().new_call(loc, this, arg0, arg1); }
 
     ///
-    RValue opCall(RValue arg0, RValue arg1, RValue arg2, Location loc = Location())
+    RValue opCall(RValue arg0, RValue arg1, RValue arg2, Location loc = Location()) nothrow @nogc
     { return get_context().new_call(loc, this, arg0, arg1, arg2); }
 }
 
@@ -167,15 +159,8 @@ struct Parameter
     alias __super this;
 
     ///
-    this(gcc_jit_param* param) @nogc
+    this(gcc_jit_param* param) nothrow @nogc
     {
-        if (!param)
-        {
-            version (D_Exceptions)
-                throw staticException!JitException(ErrorBadParameter);
-            else
-                abort!ErrorBadParameter();
-        }
         __super = LValue(gcc_jit_param_as_lvalue(param));
     }
 

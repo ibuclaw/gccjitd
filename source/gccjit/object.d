@@ -20,7 +20,6 @@ module gccjit.object;
 
 import gccjit.bindings;
 import gccjit.context;
-import gccjit.exception;
 import gccjit.helpers;
 
 /// Struct wrapper for gcc_jit_object.
@@ -45,7 +44,7 @@ import gccjit.helpers;
 struct JitObject
 {
     /// Return the context this JitObject is within.
-    Context get_context() @nogc
+    Context get_context() nothrow @nogc
     {
         auto result = gcc_jit_object_get_context(__object);
         return Context(result);
@@ -77,15 +76,8 @@ struct JitObject
 
 package(gccjit):
     // Constructors and get_object are hidden from public.
-    this(gcc_jit_object* obj) @nogc
+    this(gcc_jit_object* obj) nothrow @nogc
     {
-        if (!obj)
-        {
-            version (D_Exceptions)
-                throw staticException!JitException(ErrorBadObject);
-            else
-                abort!ErrorBadObject();
-        }
         __object = obj;
     }
 

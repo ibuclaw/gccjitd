@@ -20,75 +20,11 @@ module gccjit.helpers;
 
 package(gccjit):
 
-enum
-{
-    ErrorBadResult = "Unknown error, got bad result",
-    ErrorBadContext = "Unknown error, got bad context",
-    ErrorChildContext = "Unknown error creating child context",
-    ErrorBadFunction = "Unknown error, got bad function",
-    ErrorBadParameter = "Unknown error, got bad param",
-    ErrorBadObject = "Unknown error, got bad object",
-    ErrorBadRValue = "Unknown error, got bad rvalue",
-    ErrorBadLValue = "Unknown error, got bad lvalue",
-}
-
 // Slices a `\0`-terminated C-string, excluding the terminator
 string toDString (inout(char)* s) pure nothrow @nogc
 {
     import core.stdc.string : strlen;
     return s ? cast(string)s[0 .. strlen(s)] : null;
-}
-
-// Given a raw memory area `chunk` (but already typed as an Exception `T`),
-// constructs an object of `class` type `T` at that address. The constructor
-// is passed the arguments `Args`.
-// Returns: The newly constructed object.
-private T emplaceException(T, Args...)(T chunk, auto ref Args args)
-    if (is(T : Exception))
-{
-    static assert(!__traits(isAbstractClass, T), T.stringof ~
-        " is abstract and it can't be emplaced");
-
-    // Initialize the object in its pre-ctor state
-    static if (__traits(compiles, __traits(initSymbol, T)))
-        const initializer = __traits(initSymbol, T);
-    else
-        const initializer = typeid(T).initializer[];
-    () @trusted { (cast(void*) chunk)[0 .. initializer.length] = cast(void[]) initializer[]; }();
-
-    // Call the ctor if any
-    static if (is(typeof(chunk.__ctor(args))))
-    {
-        // T defines a genuine constructor accepting args
-        // Go the classic route: write .init first, then call ctor
-        chunk.__ctor(args);
-    }
-    else
-    {
-        static assert(args.length == 0 && !is(typeof(&T.__ctor)),
-            "Don't know how to initialize an object of type "
-            ~ T.stringof ~ " with arguments " ~ typeof(args).stringof);
-    }
-    return chunk;
-}
-
-// TLS storage shared for all exceptions, chaining might create circular reference
-private align(2 * size_t.sizeof) void[256] _store;
-
-T staticException(T, Args...)(auto ref Args args)
-    if (is(T : Exception))
-{
-    // pure hack, what we actually need is @noreturn and allow to call that in pure functions
-    static T get()
-    {
-        static assert(__traits(classInstanceSize, T) <= _store.length,
-                      T.stringof ~ " is too large for staticException()");
-
-        return cast(T) _store.ptr;
-    }
-    auto res = (cast(T function() @trusted pure nothrow @nogc) &get)();
-    emplaceException(res, args);
-    return res;
 }
 
 // Defines a temporary array of `char`s using a fixed-length buffer as back
@@ -192,21 +128,11 @@ unittest
 }
 
 // Print message to stderr then abort runtime.
-void abort(string msg)() @nogc nothrow
+private void abort(string msg)() @nogc nothrow
 {
     import core.stdc.stdio : fputs, stderr;
     import core.stdc.stdlib : abort;
     fputs(msg.ptr, stderr);
-    fputs("\n", stderr);
-    abort();
-}
-
-// Ditto
-void abort()(string msg) @nogc nothrow
-{
-    import core.stdc.stdio : fputs, stderr;
-    import core.stdc.stdlib : abort;
-    msg.toCStringThen!((m) => fputs(m.ptr, stderr));
     fputs("\n", stderr);
     abort();
 }

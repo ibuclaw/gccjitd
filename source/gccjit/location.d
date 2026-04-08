@@ -30,7 +30,7 @@ struct Location
     alias __super this;
 
     ///
-    this(gcc_jit_location* loc) @nogc
+    this(gcc_jit_location* loc) nothrow @nogc
     {
         __super = JitObject(gcc_jit_location_as_object(loc));
     }

@@ -19,22 +19,14 @@
 module gccjit.compile;
 
 import gccjit.bindings;
-import gccjit.exception;
 import gccjit.helpers;
 
 /// Struct wrapper for gcc_jit_result
 struct CompileResult
 {
     ///
-    this(gcc_jit_result* result) @nogc
+    this(gcc_jit_result* result) nothrow @nogc
     {
-        if (!result)
-        {
-            version (D_Exceptions)
-                throw staticException!JitException(ErrorBadResult);
-            else
-                abort!ErrorBadResult();
-        }
         __result = result;
     }
 

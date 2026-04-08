@@ -23,13 +23,6 @@ import gccjit.bindings;
 /// D API
 struct JIT
 {
-    version (D_Exceptions)
-    {
-        import gccjit.exception;
-        ///
-        alias Exception = JitException;
-    }
-
     import gccjit.object;
     ///
     alias Object = JitObject;

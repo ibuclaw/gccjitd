@@ -20,7 +20,6 @@ module gccjit.values;
 
 import gccjit.bindings;
 import gccjit.decls;
-import gccjit.exception;
 import gccjit.flags;
 import gccjit.helpers;
 import gccjit.location;
@@ -34,15 +33,8 @@ struct RValue
     alias __super this;
 
     ///
-    this(gcc_jit_rvalue* rvalue) @nogc
+    this(gcc_jit_rvalue* rvalue) nothrow @nogc
     {
-        if (!rvalue)
-        {
-            version (D_Exceptions)
-                throw staticException!JitException(ErrorBadRValue);
-            else
-                abort!ErrorBadRValue();
-        }
         __super = JitObject(gcc_jit_rvalue_as_object(rvalue));
     }
 
@@ -54,7 +46,7 @@ struct RValue
     }
 
     /// Returns the JIT.Type of the rvalue.
-    Type get_type() @nogc
+    Type get_type() nothrow @nogc
     {
         auto result = gcc_jit_rvalue_get_type(get_rvalue());
         return Type(result);
@@ -62,7 +54,7 @@ struct RValue
 
     /// Accessing a field of an rvalue of struct type.
     /// This is equivalent to "(value).field".
-    RValue access_field(Location loc, Field field) @nogc
+    RValue access_field(Location loc, Field field) nothrow @nogc
     {
         auto result = gcc_jit_rvalue_access_field(get_rvalue(),
                                                   loc.get_location(),
@@ -71,12 +63,12 @@ struct RValue
     }
 
     /// Ditto
-    RValue access_field(Field field) @nogc
+    RValue access_field(Field field) nothrow @nogc
     { return access_field(Location(), field); }
 
     /// Accessing a field of an rvalue of pointer type.
     /// This is equivalent to "(*value).field".
-    LValue dereference_field(Location loc, Field field) @nogc
+    LValue dereference_field(Location loc, Field field) nothrow @nogc
     {
         auto result = gcc_jit_rvalue_dereference_field(get_rvalue(),
                                                        loc.get_location(),
@@ -85,12 +77,12 @@ struct RValue
     }
 
     /// Ditto
-    LValue dereference_field(Field field) @nogc
+    LValue dereference_field(Field field) nothrow @nogc
     { return dereference_field(Location(), field); }
 
     /// Dereferencing an rvalue of pointer type.
     /// This is equivalent to "*(value)".
-    LValue dereference(Location loc = Location()) @nogc
+    LValue dereference(Location loc = Location()) nothrow @nogc
     {
         auto result = gcc_jit_rvalue_dereference(get_rvalue(),
                                                  loc.get_location());
@@ -99,21 +91,21 @@ struct RValue
 
     /// Convert an rvalue to the given JIT.Type.  See JIT.Context.new_cast for
     /// limitations.
-    RValue cast_to(Location loc, Type type) @nogc
+    RValue cast_to(Location loc, Type type) nothrow @nogc
     {
         return get_context().new_cast(loc, this, type);
     }
 
     /// Ditto
-    RValue cast_to(Type type) @nogc
+    RValue cast_to(Type type) nothrow @nogc
     { return cast_to(Location(), type); }
 
     /// Ditto
-    RValue cast_to(Location loc, CType kind) @nogc
+    RValue cast_to(Location loc, CType kind) nothrow @nogc
     { return cast_to(loc, get_context().get_type(kind)); }
 
     /// Ditto
-    RValue cast_to(CType kind) @nogc
+    RValue cast_to(CType kind) nothrow @nogc
     { return cast_to(Location(), get_context().get_type(kind)); }
 
     /// Given a JIT.RValue for a call created through JIT.Context.new_call,
@@ -129,68 +121,68 @@ struct RValue
     /// latter's type is.
 
     /// Array access.
-    LValue opIndex(RValue index)
+    LValue opIndex(RValue index) nothrow @nogc
     { return get_context().new_array_access(this, index); }
 
     /// Ditto
-    LValue opIndex(int index)
+    LValue opIndex(int index) nothrow @nogc
     { with (get_context())
         return new_array_access(this, new_rvalue(get_int_type!int, index)); }
 
     /// Unary operators.
 
     ///
-    RValue opUnary(string op : "-")()
+    RValue opUnary(string op : "-")() nothrow @nogc
     { return get_context().new_minus(get_type(), this); }
 
     ///
-    RValue opUnary(string op : "~")()
+    RValue opUnary(string op : "~")() nothrow @nogc
     { return get_context().new_bitwise_negate(get_type(), this); }
 
     /// Binary operators
 
     ///
-    RValue opBinary(string op : "+")(RValue b)
+    RValue opBinary(string op : "+")(RValue b) nothrow @nogc
     { return get_context().new_plus(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : "-")(RValue b)
+    RValue opBinary(string op : "-")(RValue b) nothrow @nogc
     { return get_context().new_minus(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : "*")(RValue b)
+    RValue opBinary(string op : "*")(RValue b) nothrow @nogc
     { return get_context().new_mult(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : "/")(RValue b)
+    RValue opBinary(string op : "/")(RValue b) nothrow @nogc
     { return get_context().new_divide(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : "%")(RValue b)
+    RValue opBinary(string op : "%")(RValue b) nothrow @nogc
     { return get_context().new_modulo(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : "&")(RValue b)
+    RValue opBinary(string op : "&")(RValue b) nothrow @nogc
     { return get_context().new_bitwise_and(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : "^")(RValue b)
+    RValue opBinary(string op : "^")(RValue b) nothrow @nogc
     { return get_context().new_bitwise_xor(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : "|")(RValue b)
+    RValue opBinary(string op : "|")(RValue b) nothrow @nogc
     { return get_context().new_bitwise_or(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : "<<")(RValue b)
+    RValue opBinary(string op : "<<")(RValue b) nothrow @nogc
     { return get_context().new_lshift(get_type(), this, b); }
 
     ///
-    RValue opBinary(string op : ">>")(RValue b)
+    RValue opBinary(string op : ">>")(RValue b) nothrow @nogc
     { return get_context().new_rshift(get_type(), this, b); }
 
     /// Dereferencing
-    LValue opUnary(string op : "*")()
+    LValue opUnary(string op : "*")() nothrow @nogc
     { return dereference(); }
 }
 
@@ -201,15 +193,8 @@ struct LValue
     alias __super this;
 
     ///
-    this(gcc_jit_lvalue* lvalue) @nogc
+    this(gcc_jit_lvalue* lvalue) nothrow @nogc
     {
-        if (!lvalue)
-        {
-            version (D_Exceptions)
-                throw staticException!JitException(ErrorBadLValue);
-            else
-                abort!ErrorBadLValue();
-        }
         __super = RValue(gcc_jit_lvalue_as_rvalue(lvalue));
     }
 
@@ -222,7 +207,7 @@ struct LValue
 
     /// Accessing a field of an lvalue of struct type.
     /// This is equivalent to "(value).field = ...".
-    LValue access_field(Location loc, Field field) @nogc
+    LValue access_field(Location loc, Field field) nothrow @nogc
     {
         auto result = gcc_jit_lvalue_access_field(get_lvalue(),
                                                   loc.get_location(),
@@ -231,12 +216,12 @@ struct LValue
     }
 
     /// Ditto
-    LValue access_field(Field field) @nogc
+    LValue access_field(Field field) nothrow @nogc
     { return access_field(Location(), field); }
 
     /// Taking the address of an lvalue.
     /// This is equivalent to "&(value)".
-    RValue get_address(Location loc = Location()) @nogc
+    RValue get_address(Location loc = Location()) nothrow @nogc
     {
         auto result = gcc_jit_lvalue_get_address(get_lvalue(),
                                                  loc.get_location());
@@ -251,7 +236,7 @@ struct LValue
     }
 
     /// Ditto
-    LValue set_initializer(RValue init_value)
+    LValue set_initializer(RValue init_value) nothrow @nogc
     {
         auto result = gcc_jit_global_set_initializer_rvalue(get_lvalue(),
                                                             init_value.get_rvalue());

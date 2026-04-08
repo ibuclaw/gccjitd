@@ -35,7 +35,7 @@ struct Type
     alias __super this;
 
     ///
-    this(gcc_jit_type* type) @nogc
+    this(gcc_jit_type* type) nothrow @nogc
     {
         __super = JitObject(gcc_jit_type_as_object(type));
     }
@@ -48,35 +48,35 @@ struct Type
     }
 
     /// Given type T, get type T*.
-    Type get_pointer() @nogc
+    Type get_pointer() nothrow @nogc
     {
         auto result = gcc_jit_type_get_pointer(get_type());
         return Type(result);
     }
 
     /// Given type T, get type const T.
-    Type get_const() @nogc
+    Type get_const() nothrow @nogc
     {
         auto result = gcc_jit_type_get_const(get_type());
         return Type(result);
     }
 
     /// Given type T, get type volatile T.
-    Type get_volatile() @nogc
+    Type get_volatile() nothrow @nogc
     {
         auto result = gcc_jit_type_get_volatile(get_type());
         return Type(result);
     }
 
     /// Given type T, get type T __attribute__((aligned(alignment_in_bytes))).
-    Type get_aligned(size_t alignment_in_bytes) @nogc
+    Type get_aligned(size_t alignment_in_bytes) nothrow @nogc
     {
         auto result = gcc_jit_type_get_aligned(get_type(), alignment_in_bytes);
         return Type(result);
     }
 
     /// Given type T, get type T __attribute__((vector_size(sizeof(T) * num_units))).
-    Type get_vector(size_t num_units) @nogc
+    Type get_vector(size_t num_units) nothrow @nogc
     {
         auto result = gcc_jit_type_get_vector(get_type(), num_units);
         return Type(result);
@@ -95,7 +95,7 @@ struct Type
     }
 
     /// Return the element type of an array or null if it's not an array.
-    Type dyncast_array() @nogc
+    Type dyncast_array() nothrow @nogc
     {
         auto result = gcc_jit_type_dyncast_array(get_type());
         return result ? Type(result) : Type();
@@ -108,7 +108,7 @@ struct Type
     }
 
     /// Return the JIT.FunctionPtrType if it is one or null.
-    FunctionPtrType dyncast_function_ptr_type() @nogc
+    FunctionPtrType dyncast_function_ptr_type() nothrow @nogc
     {
         auto result = gcc_jit_type_dyncast_function_ptr_type(get_type());
         return FunctionPtrType(result);
@@ -121,21 +121,21 @@ struct Type
     }
 
     /// Returns the type pointer by the pointer type or null if it's not a pointer.
-    Type get_pointee() @nogc
+    Type get_pointee() nothrow @nogc
     {
         auto result = gcc_jit_type_is_pointer(get_type());
         return result ? Type(result) : Type();
     }
 
     /// Return the JIT.VectorType if it is one or null.
-    VectorType dyncast_vector() @nogc
+    VectorType dyncast_vector() nothrow @nogc
     {
         auto result = gcc_jit_type_dyncast_vector(get_type());
         return VectorType(result);
     }
 
     /// Return the JIT.Struct if it is one or null.
-    Struct is_struct() @nogc
+    Struct is_struct() nothrow @nogc
     {
         auto result = gcc_jit_type_is_struct(get_type());
         return result ? Struct(result) : Struct();
@@ -143,7 +143,7 @@ struct Type
 
     /// Return the unqualified type of this JIT.Type, removing `const`, `volatile`,
     /// and alignment qualifiers.
-    Type unqualified() @nogc
+    Type unqualified() nothrow @nogc
     {
         auto result = gcc_jit_type_unqualified(get_type());
         return Type(result);
@@ -163,7 +163,7 @@ struct Struct
     alias __super this;
 
     ///
-    this(gcc_jit_struct* agg) @nogc
+    this(gcc_jit_struct* agg) nothrow @nogc
     {
         __super = Type(gcc_jit_struct_as_type(agg));
     }
@@ -191,7 +191,7 @@ struct Struct
     { set_fields(Location(), fields); }
 
     /// Get a field by index.
-    Field get_field(size_t index) @nogc
+    Field get_field(size_t index) nothrow @nogc
     {
         auto result = gcc_jit_struct_get_field(get_struct(), index);
         return Field(result);
@@ -216,13 +216,13 @@ struct FunctionPtrType
     alias __super this;
 
     ///
-    this(gcc_jit_function_type* function_type) @nogc
+    this(gcc_jit_function_type* function_type) nothrow @nogc
     {
         __function_type = function_type;
     }
 
     /// Get function return type.
-    Type get_return_type() @nogc
+    Type get_return_type() nothrow @nogc
     {
         auto result = gcc_jit_function_type_get_return_type(__function_type);
         return Type(result);
@@ -235,7 +235,7 @@ struct FunctionPtrType
     }
 
     /// Get a parameter type by index.
-    Type get_param_type(size_t index) @nogc
+    Type get_param_type(size_t index) nothrow @nogc
     {
         auto result = gcc_jit_function_type_get_param_type(__function_type, index);
         return Type(result);
@@ -254,7 +254,7 @@ struct VectorType
     alias __super this;
 
     ///
-    this(gcc_jit_vector_type* vector_type) @nogc
+    this(gcc_jit_vector_type* vector_type) nothrow @nogc
     {
         __vector_type = vector_type;
     }
@@ -266,7 +266,7 @@ struct VectorType
     }
 
     /// Return the element type of this JIT.VectorType.
-    Type get_element_type()
+    Type get_element_type() nothrow @nogc
     {
         auto result = gcc_jit_vector_type_get_element_type(__vector_type);
         return Type(result);

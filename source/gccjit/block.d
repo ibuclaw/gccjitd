@@ -33,7 +33,7 @@ struct Block
     alias __super this;
 
     ///
-    this(gcc_jit_block* block) @nogc
+    this(gcc_jit_block* block) nothrow @nogc
     {
         __super = JitObject(gcc_jit_block_as_object(block));
     }
@@ -46,7 +46,7 @@ struct Block
     }
 
     /// Returns the JIT.Function this JIT.Block is within.
-    Function get_function() @nogc
+    Function get_function() nothrow @nogc
     {
         auto result = gcc_jit_block_get_function(get_block());
         return Function(result);
@@ -90,7 +90,7 @@ struct Block
 
     /// A way to add a function call to the body of a function being
     /// defined, with various number of args.
-    RValue add_call(Location loc, Function func, scope RValue[] args...) @nogc
+    RValue add_call(Location loc, Function func, scope RValue[] args...) nothrow @nogc
     {
         RValue rv = get_context().new_call(loc, func, args);
         add_eval(loc, rv);
@@ -98,7 +98,7 @@ struct Block
     }
 
     /// Ditto
-    RValue add_call(Function func, scope RValue[] args...) @nogc
+    RValue add_call(Function func, scope RValue[] args...) nothrow @nogc
     { return add_call(Location(), func, args); }
 
     /// Add a no-op textual comment to the internal representation of the code.
@@ -183,7 +183,7 @@ struct Block
     { return end_with_switch(Location(), expr, default_block, cases); }
 
     ///
-    ExtendedAsm add_extended_asm(Location loc, string asm_template) @nogc
+    ExtendedAsm add_extended_asm(Location loc, string asm_template) nothrow @nogc
     {
         auto result = asm_template.toCStringThen!((a)
             => gcc_jit_block_add_extended_asm(get_block(), loc.get_location(), a.ptr));
@@ -191,12 +191,12 @@ struct Block
     }
 
     /// Ditto
-    ExtendedAsm add_extended_asm(string asm_template) @nogc
+    ExtendedAsm add_extended_asm(string asm_template) nothrow @nogc
     { return add_extended_asm(Location(), asm_template); }
 
     ///
     ExtendedAsm end_with_extended_asm_goto(Location loc, string asm_template, scope Block[] goto_blocks,
-                                           Block fallthrough_block = Block()) @nogc
+                                           Block fallthrough_block = Block()) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -210,7 +210,7 @@ struct Block
 
     /// Ditto
     ExtendedAsm end_with_extended_asm_goto(string asm_template, scope Block[] goto_blocks,
-                                           Block fallthrough_block = Block()) @nogc
+                                           Block fallthrough_block = Block()) nothrow @nogc
     { return end_with_extended_asm_goto(Location(), asm_template, goto_blocks, fallthrough_block); }
 }
 
@@ -221,7 +221,7 @@ struct Case
     alias __super this;
 
     ///
-    this(gcc_jit_case* case_) @nogc
+    this(gcc_jit_case* case_) nothrow @nogc
     {
         __super = JitObject(gcc_jit_case_as_object(case_));
     }
@@ -241,7 +241,7 @@ struct ExtendedAsm
     alias __super this;
 
     ///
-    this(gcc_jit_extended_asm* extended_asm) @nogc
+    this(gcc_jit_extended_asm* extended_asm) nothrow @nogc
     {
         __super = JitObject(gcc_jit_extended_asm_as_object(extended_asm));
     }
