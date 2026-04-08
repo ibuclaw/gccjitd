@@ -18,6 +18,8 @@
 
 module gccjit.timer;
 
+package(gccjit):
+
 import gccjit.bindings;
 import gccjit.context;
 import gccjit.helpers;
@@ -31,68 +33,68 @@ struct Timer
     this(bool start_timer) nothrow @nogc
     {
         if (start_timer)
-            __start(this);
+            m_start(this);
     }
 
     ///
     this(gcc_jit_timer* timer) pure nothrow @nogc
     {
-        __timer = timer;
-        __constructed = true;
+        m_timer = timer;
+        m_constructed = true;
     }
 
     /// Returns the internal gcc_jit_timer object.
     gcc_jit_timer* get_timer() nothrow @nogc
     {
-        __start(this);
-        return __timer;
+        m_start(this);
+        return m_timer;
     }
 
     /// Push the given item onto the timing stack.
     void push(string item_name)() nothrow @nogc
     {
-        __start(this);
-        gcc_jit_timer_push(__timer, item_name.ptr);
+        m_start(this);
+        gcc_jit_timer_push(m_timer, item_name.ptr);
     }
 
     /// Pop the top item from the timing stack.
     void pop(string item_name)() nothrow @nogc
     {
-        __start(this);
-        gcc_jit_timer_pop(__timer, item_name.ptr);
+        m_start(this);
+        gcc_jit_timer_pop(m_timer, item_name.ptr);
     }
 
     /// Print timing information to the given stream about activity since
     /// the timer was started.
     void print(FILE* f_out) nothrow @nogc
     {
-        __start(this);
-        gcc_jit_timer_print(__timer, f_out);
+        m_start(this);
+        gcc_jit_timer_print(m_timer, f_out);
     }
 
     /// Release a JIT.Timer instance
     void release() nothrow @nogc
     {
-        __start(this);
-        gcc_jit_timer_release(__timer);
-        __timer = null;
+        m_start(this);
+        gcc_jit_timer_release(m_timer);
+        m_timer = null;
     }
 
 private:
-    gcc_jit_timer* __timer = null;
+    gcc_jit_timer* m_timer = null;
 
     // Internal handling of dealing with default construction
     // using a runtime-only value, as ideally we should start
     // timing the moment the object is created.
-    bool __constructed = false;
+    bool m_constructed = false;
 
     pragma(inline, true)
-    static void __start()(ref Timer t) nothrow @nogc
+    static void m_start()(ref Timer t) nothrow @nogc
     {
-        if (!t.__constructed)
+        if (!t.m_constructed)
         {
-            t.__timer = gcc_jit_timer_new();
-            t.__constructed = true;
+            t.m_timer = gcc_jit_timer_new();
+            t.m_constructed = true;
         }
     }
 
@@ -106,7 +108,7 @@ struct AutoTime(string item_name)
     ///
     this(Timer t) nothrow @nogc
     {
-        Timer.__start(t);
+        Timer.m_start(t);
         timer = t;
         timer.push!item_name();
     }

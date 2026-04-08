@@ -7,7 +7,8 @@ check: check-gccjitd \
 	check-dapi \
 	check-square \
 	check-sum-squares \
-	check-toy
+	check-toy \
+	check-unittests
 
 check-gccjitd:
 	dub test
@@ -31,6 +32,10 @@ check-sum-squares:
 check-toy:
 	dub test :toy -- test/toy/fact.toy
 
+check-unittests:
+	dub test :unittests
+	dub test :unittests --config=betterC
+
 # Build objects
 DUB_ARTEFACTS = \
 	    libgccjitd.a \
@@ -41,7 +46,9 @@ DUB_ARTEFACTS = \
 	    test/dapi/gccjitd_dapi \
 	    test/square/gccjitd_square \
 	    test/sum-squares/gccjitd_sum-squares \
-	    test/toy/gccjitd_toy
+	    test/toy/gccjitd_toy \
+	    test/unittests/gccjitd-unittests-test-betterC \
+	    test/unittests/gccjitd-unittests-test-library
 
 clean:
 	rm -vf $(DUB_ARTEFACTS)

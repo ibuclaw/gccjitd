@@ -23,7 +23,26 @@ import toy.ast;
 import gccjit;
 
 /// Internal backend value exposed via alias.
-alias BEValue = JIT.RValue;
+struct BEValue
+{
+    union
+    {
+        private JIT.RValue rvalue;
+        private JIT.LValue lvalue;
+    }
+    private bool islvalue;
+
+    alias rvalue this;
+
+    this(JIT.RValue value) { rvalue = value; islvalue = false; }
+    this(JIT.LValue value) { lvalue = value; islvalue = true;  }
+
+    void opAssign(JIT.RValue value) { rvalue = value; islvalue = false; }
+    void opAssign(JIT.LValue value) { lvalue = value; islvalue = true;  }
+
+    JIT.LValue opCast(T)() if (is(T == JIT.LValue)) { return (islvalue) ? lvalue : JIT.LValue(); }
+    bool opCast(T)() if (is(T == bool)) { return cast(bool)rvalue; }
+}
 
 /// Backend visitor class.
 class Backend
@@ -148,7 +167,7 @@ class Backend
             case "+": op = BinaryOp.Plus; break;
             case "-": op = BinaryOp.Minus; break;
         }
-        return this.context.new_binary_op(op, e2.get_type(), e1, e2);
+        return BEValue(this.context.new_binary_op(op, e2.get_type(), e1, e2));
     }
 
     BEValue compile(CmpExp ce)
@@ -166,26 +185,26 @@ class Backend
             case ">":   op = ComparisonOp.GreaterThan; break;
             case ">=":  op = ComparisonOp.GreaterThanEquals; break;
         }
-        return this.context.new_comparison(op, e1, e2);
+        return BEValue(this.context.new_comparison(op, e1, e2));
     }
 
     BEValue compile(AndExp ae)
     {
         JIT.RValue e1 = ae.e1.compile(this);
         JIT.RValue e2 = ae.e2.compile(this);
-        return this.context.new_logical_and(e2.get_type(), e1, e2);
+        return BEValue(this.context.new_logical_and(e2.get_type(), e1, e2));
     }
 
     BEValue compile(OrExp oe)
     {
         JIT.RValue e1 = oe.e1.compile(this);
         JIT.RValue e2 = oe.e2.compile(this);
-        return this.context.new_logical_or(e2.get_type(), e1, e2);
+        return BEValue(this.context.new_logical_or(e2.get_type(), e1, e2));
     }
 
     BEValue compile(NotExp ne)
     {
         JIT.RValue e1 = ne.e1.compile(this);
-        return this.context.new_logical_negate(e1.get_type(), e1);
+        return BEValue(this.context.new_logical_negate(e1.get_type(), e1));
     }
 }

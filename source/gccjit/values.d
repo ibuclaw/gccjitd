@@ -18,6 +18,8 @@
 
 module gccjit.values;
 
+package(gccjit):
+
 import gccjit.bindings;
 import gccjit.decls;
 import gccjit.flags;
@@ -29,26 +31,43 @@ import gccjit.types;
 /// Struct wrapper for gcc_jit_rvalue
 struct RValue
 {
-    JitObject __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_rvalue* m_rvalue = null;
+        JitObject m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_rvalue* rvalue) nothrow @nogc
+    this(gcc_jit_rvalue* rvalue) pure nothrow @nogc
     {
-        __super = JitObject(gcc_jit_rvalue_as_object(rvalue));
+        m_rvalue = rvalue;
     }
 
     /// Returns the internal gcc_jit_rvalue object.
-    gcc_jit_rvalue* get_rvalue() pure nothrow @nogc
+    inout(gcc_jit_rvalue)* get_rvalue() inout pure nothrow @nogc
     {
-        // Manual downcast.
-        return cast(gcc_jit_rvalue *)get_object();
+        return m_rvalue;
+    }
+
+    /// Returns true if this JIT.RValue has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_rvalue !is null;
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_rvalue_as_object(cast(gcc_jit_rvalue*)m_rvalue);
+        return typeof(return)(result);
     }
 
     /// Returns the JIT.Type of the rvalue.
     Type get_type() nothrow @nogc
     {
-        auto result = gcc_jit_rvalue_get_type(get_rvalue());
+        auto result = gcc_jit_rvalue_get_type(m_rvalue);
         return Type(result);
     }
 
@@ -56,7 +75,7 @@ struct RValue
     /// This is equivalent to "(value).field".
     RValue access_field(Location loc, Field field) nothrow @nogc
     {
-        auto result = gcc_jit_rvalue_access_field(get_rvalue(),
+        auto result = gcc_jit_rvalue_access_field(m_rvalue,
                                                   loc.get_location(),
                                                   field.get_field());
         return RValue(result);
@@ -70,7 +89,7 @@ struct RValue
     /// This is equivalent to "(*value).field".
     LValue dereference_field(Location loc, Field field) nothrow @nogc
     {
-        auto result = gcc_jit_rvalue_dereference_field(get_rvalue(),
+        auto result = gcc_jit_rvalue_dereference_field(m_rvalue,
                                                        loc.get_location(),
                                                        field.get_field());
         return LValue(result);
@@ -84,7 +103,7 @@ struct RValue
     /// This is equivalent to "*(value)".
     LValue dereference(Location loc = Location()) nothrow @nogc
     {
-        auto result = gcc_jit_rvalue_dereference(get_rvalue(),
+        auto result = gcc_jit_rvalue_dereference(m_rvalue,
                                                  loc.get_location());
         return LValue(result);
     }
@@ -111,7 +130,7 @@ struct RValue
     /// Given a JIT.RValue for a call created through JIT.Context.new_call,
     /// mark/clear the call as needing tail-call optimization.
     void set_require_tail_call(bool require_tail_call) nothrow @nogc @property
-    { gcc_jit_rvalue_set_bool_require_tail_call(get_rvalue(), require_tail_call); }
+    { gcc_jit_rvalue_set_bool_require_tail_call(m_rvalue, require_tail_call); }
 
     /// Overloaded operators, for those who want the most terse API
     /// (at the possible risk of being a little too magical).
@@ -189,27 +208,52 @@ struct RValue
 /// Struct wrapper for gcc_jit_lvalue
 struct LValue
 {
-    RValue __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_lvalue* m_lvalue = null;
+        RValue m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_lvalue* lvalue) nothrow @nogc
+    this(gcc_jit_lvalue* lvalue) pure nothrow @nogc
     {
-        __super = RValue(gcc_jit_lvalue_as_rvalue(lvalue));
+        m_lvalue = lvalue;
     }
 
     /// Returns the internal gcc_jit_lvalue object.
-    gcc_jit_lvalue* get_lvalue() pure nothrow @nogc
+    inout(gcc_jit_lvalue)* get_lvalue() inout pure nothrow @nogc
     {
-        // Manual downcast.
-        return cast(gcc_jit_lvalue *)get_object();
+        return m_lvalue;
+    }
+
+    /// Returns true if this JIT.LValue has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_lvalue !is null;
+    }
+
+    /// Upcast to the parent JIT.RValue.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == RValue))
+    {
+        auto result = gcc_jit_lvalue_as_rvalue(cast(gcc_jit_lvalue*)m_lvalue);
+        return typeof(return)(result);
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_lvalue_as_object(cast(gcc_jit_lvalue*)m_lvalue);
+        return typeof(return)(result);
     }
 
     /// Accessing a field of an lvalue of struct type.
     /// This is equivalent to "(value).field = ...".
     LValue access_field(Location loc, Field field) nothrow @nogc
     {
-        auto result = gcc_jit_lvalue_access_field(get_lvalue(),
+        auto result = gcc_jit_lvalue_access_field(m_lvalue,
                                                   loc.get_location(),
                                                   field.get_field());
         return LValue(result);
@@ -223,30 +267,28 @@ struct LValue
     /// This is equivalent to "&(value)".
     RValue get_address(Location loc = Location()) nothrow @nogc
     {
-        auto result = gcc_jit_lvalue_get_address(get_lvalue(),
-                                                 loc.get_location());
+        auto result = gcc_jit_lvalue_get_address(m_lvalue, loc.get_location());
         return RValue(result);
     }
 
     /// Set an initial value for a global.
     LValue set_initializer(scope const void* blob, size_t num_bytes) return nothrow @nogc
     {
-        gcc_jit_global_set_initializer(get_lvalue(), blob, num_bytes);
+        gcc_jit_global_set_initializer(m_lvalue, blob, num_bytes);
         return this;
     }
 
     /// Ditto
     LValue set_initializer(RValue init_value) nothrow @nogc
     {
-        auto result = gcc_jit_global_set_initializer_rvalue(get_lvalue(),
-                                                            init_value.get_rvalue());
+        auto result = gcc_jit_global_set_initializer_rvalue(m_lvalue, init_value.get_rvalue());
         return LValue(result);
     }
 
     /// Set the TLS model of a global variable.
     LValue set_tls_model(TlsModel model) return nothrow @nogc
     {
-        gcc_jit_lvalue_set_tls_model(get_lvalue(), model);
+        gcc_jit_lvalue_set_tls_model(m_lvalue, model);
         return this;
     }
 
@@ -254,7 +296,7 @@ struct LValue
     LValue set_link_section(string section_name) return nothrow @nogc
     {
         section_name.toCStringThen!((s)
-            => gcc_jit_lvalue_set_link_section(get_lvalue(), s.ptr));
+            => gcc_jit_lvalue_set_link_section(m_lvalue, s.ptr));
         return this;
     }
 
@@ -262,15 +304,15 @@ struct LValue
     LValue set_register_name(string reg_name) return nothrow @nogc
     {
         reg_name.toCStringThen!((r)
-            => gcc_jit_lvalue_set_register_name(get_lvalue(), r.ptr));
+            => gcc_jit_lvalue_set_register_name(m_lvalue, r.ptr));
         return this;
     }
 
     /// Set the alignment of a variable.
     void set_alignment(uint bytes) nothrow @nogc @property
-    { gcc_jit_lvalue_set_alignment(get_lvalue(), bytes); }
+    { gcc_jit_lvalue_set_alignment(m_lvalue, bytes); }
 
     /// Get the alignment of a variable
     uint get_alignment() nothrow @nogc
-    { return gcc_jit_lvalue_get_alignment(get_lvalue()); }
+    { return gcc_jit_lvalue_get_alignment(m_lvalue); }
 }

@@ -18,6 +18,8 @@
 
 module gccjit.location;
 
+package(gccjit):
+
 import gccjit.bindings;
 import gccjit.object;
 
@@ -26,19 +28,36 @@ import gccjit.object;
 /// locations in your language with statements in the JIT-compiled code.
 struct Location
 {
-    JitObject __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_location* m_location = null;
+        JitObject m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_location* loc) nothrow @nogc
+    this(gcc_jit_location* loc) pure nothrow @nogc
     {
-        __super = JitObject(gcc_jit_location_as_object(loc));
+        m_location = loc;
     }
 
     /// Returns the internal gcc_jit_location object.
-    gcc_jit_location* get_location() pure nothrow @nogc
+    inout(gcc_jit_location)* get_location() inout pure nothrow @nogc
     {
-        // Manual downcast.
-        return cast(gcc_jit_location *)get_object();
+        return m_location;
+    }
+
+    /// Returns true if this JIT.Location has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_location !is null;
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_location_as_object(cast(gcc_jit_location*)m_location);
+        return typeof(return)(result);
     }
 }

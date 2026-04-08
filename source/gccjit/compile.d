@@ -18,6 +18,8 @@
 
 module gccjit.compile;
 
+package(gccjit):
+
 import gccjit.bindings;
 import gccjit.helpers;
 
@@ -25,15 +27,15 @@ import gccjit.helpers;
 struct CompileResult
 {
     ///
-    this(gcc_jit_result* result) nothrow @nogc
+    this(gcc_jit_result* result) pure nothrow @nogc
     {
-        __result = result;
+        m_result = result;
     }
 
     /// Returns the internal gcc_jit_result object.
     gcc_jit_result* get_result() pure nothrow @nogc
     {
-        return __result;
+        return m_result;
     }
 
     /// Locate a given function within the built machine code.
@@ -42,7 +44,7 @@ struct CompileResult
     void* get_code(string name) nothrow @nogc
     {
         return name.toCStringThen!((n)
-            => gcc_jit_result_get_code(__result, n.ptr));
+            => gcc_jit_result_get_code(m_result, n.ptr));
     }
 
     /// Locate a given global within the built machine code.
@@ -51,16 +53,16 @@ struct CompileResult
     void* get_global(string name) nothrow @nogc
     {
         return name.toCStringThen!((n)
-            => gcc_jit_result_get_global(__result, n.ptr));
+            => gcc_jit_result_get_global(m_result, n.ptr));
     }
 
     /// Once we're done with the code, this unloads the built .so file.
     /// After this call, it's no longer valid to use this JIT.CompileResult.
     void release() nothrow @nogc
     {
-        gcc_jit_result_release(__result);
+        gcc_jit_result_release(m_result);
     }
 
 private:
-    gcc_jit_result* __result = null;
+    gcc_jit_result* m_result = null;
 }

@@ -18,6 +18,8 @@
 
 module gccjit.object;
 
+package(gccjit):
+
 import gccjit.bindings;
 import gccjit.context;
 import gccjit.helpers;
@@ -46,47 +48,35 @@ struct JitObject
     /// Return the context this JitObject is within.
     Context get_context() nothrow @nogc
     {
-        auto result = gcc_jit_object_get_context(__object);
+        auto result = gcc_jit_object_get_context(m_object);
         return Context(result);
     }
 
     /// Get a human-readable description of this object.
     string toString() nothrow @nogc
     {
-        return gcc_jit_object_get_debug_string(__object).toDString();
+        return gcc_jit_object_get_debug_string(m_object).toDString();
     }
 
     /// Returns true if this JitObject has a value.
     bool opCast(T : bool)() const nothrow @nogc
     {
-        return __object !is null;
-    }
-
-    /// Prevents `opCast` from disabling built-in conversions.
-    auto ref T opCast(T, this This)() const nothrow @nogc
-    if (is(This : T) || This.sizeof == T.sizeof)
-    {
-        static if (is(This : T))
-            // Implicit conversion
-            return this;
-        else
-            // Reinterpret - relaxed about up/down casting for now
-            return *cast(T*) &this;
+        return m_object !is null;
     }
 
 package(gccjit):
     // Constructors and get_object are hidden from public.
-    this(gcc_jit_object* obj) nothrow @nogc
+    this(gcc_jit_object* obj) pure nothrow @nogc
     {
-        __object = obj;
+        m_object = obj;
     }
 
-    gcc_jit_object* get_object() pure nothrow @nogc
+    inout(gcc_jit_object)* get_object() inout pure nothrow @nogc
     {
-        return __object;
+        return m_object;
     }
 
 private:
     // The actual gccjit object we interface with.
-    gcc_jit_object* __object = null;
+    gcc_jit_object* m_object = null;
 }

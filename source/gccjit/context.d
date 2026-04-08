@@ -18,6 +18,8 @@
 
 module gccjit.context;
 
+package(gccjit):
+
 import gccjit.bindings;
 import gccjit.block;
 import gccjit.compile;
@@ -45,9 +47,9 @@ import core.stdc.config : c_long;
 struct Context
 {
     ///
-    this(gcc_jit_context* context) nothrow @nogc
+    this(gcc_jit_context* context) pure nothrow @nogc
     {
-        __context = context;
+        m_context = context;
     }
 
     /// Acquire a JIT-compilation context.
@@ -64,22 +66,22 @@ struct Context
     /// before releasing the parent context.
     Context new_child_context() nothrow @nogc
     {
-        auto result = gcc_jit_context_new_child_context(__context);
+        auto result = gcc_jit_context_new_child_context(m_context);
         return Context(result);
     }
 
     /// Returns the internal gcc_jit_context object.
     gcc_jit_context* get_context() nothrow @nogc
     {
-        return __context;
+        return m_context;
     }
 
     /// Release the context.
     /// After this call, it's no longer valid to use this JIT.Context.
     void release() nothrow @nogc
     {
-        gcc_jit_context_release(__context);
-        __context = null;
+        gcc_jit_context_release(m_context);
+        m_context = null;
     }
 
     /// Calls into GCC and runs the build.  It can be called more than once on
@@ -88,7 +90,7 @@ struct Context
     ///     A wrapper around a .so file.
     CompileResult compile() nothrow @nogc
     {
-        auto result = gcc_jit_context_compile(__context);
+        auto result = gcc_jit_context_compile(m_context);
         return CompileResult(result);
     }
 
@@ -99,7 +101,7 @@ struct Context
     void compile(OutputKind kind, string path) nothrow @nogc
     {
         path.toCStringThen!((p)
-            => gcc_jit_context_compile_to_file(__context, kind, p.ptr));
+            => gcc_jit_context_compile_to_file(m_context, kind, p.ptr));
     }
 
     /// Dump a C-like representation describing what's been set up on the
@@ -110,39 +112,39 @@ struct Context
     void dump_to_file(string path, bool update_locations) nothrow @nogc
     {
         path.toCStringThen!((p)
-            => gcc_jit_context_dump_to_file(__context, p.ptr, update_locations));
+            => gcc_jit_context_dump_to_file(m_context, p.ptr, update_locations));
     }
 
     ///
     void set_logfile(FILE* logfile, int flags, int verbosity) nothrow @nogc
     {
-        gcc_jit_context_set_logfile(__context, logfile, flags, verbosity);
+        gcc_jit_context_set_logfile(m_context, logfile, flags, verbosity);
     }
 
     ///
     void dump_reproducer(string path) nothrow @nogc
     {
         path.toCStringThen!((p)
-            => gcc_jit_context_dump_reproducer_to_file(__context, p.ptr));
+            => gcc_jit_context_dump_reproducer_to_file(m_context, p.ptr));
     }
 
     deprecated("Use per option entrypoints rather than generic set_option")
     void set_option(StrOption opt, string value) nothrow @nogc
     {
         value.toCStringThen!((v)
-            => gcc_jit_context_set_str_option(__context, opt, v.ptr));
+            => gcc_jit_context_set_str_option(m_context, opt, v.ptr));
     }
 
     deprecated("Use per option entrypoints rather than generic set_option")
     void set_option(IntOption opt, int value) nothrow @nogc
     {
-        gcc_jit_context_set_int_option(__context, opt, value);
+        gcc_jit_context_set_int_option(m_context, opt, value);
     }
 
     deprecated("Use per option entrypoints rather than generic set_option")
     void set_option(BoolOption opt, bool value) nothrow @nogc
     {
-        gcc_jit_context_set_bool_option(__context, opt, value);
+        gcc_jit_context_set_bool_option(m_context, opt, value);
     }
 
     /// Sets the name of the program, for use as a prefix when printing error
@@ -150,7 +152,7 @@ struct Context
     void set_program_name(string name) nothrow @nogc @property
     {
         name.toCStringThen!((n)
-            => gcc_jit_context_set_str_option(__context, GCC_JIT_STR_OPTION_PROGNAME, n.ptr));
+            => gcc_jit_context_set_str_option(m_context, GCC_JIT_STR_OPTION_PROGNAME, n.ptr));
     }
 
     /// How much to optimize the code.
@@ -158,7 +160,7 @@ struct Context
     /// -O0 through -O3.
     /// The default value is 0 (unoptimized).
     void set_optimization_level(OptimizationLevel level) nothrow @nogc @property
-    { gcc_jit_context_set_int_option(__context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, level); }
+    { gcc_jit_context_set_int_option(m_context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, level); }
 
     /// If true, JIT.Context.compile() will attempt to do the right thing
     /// so that if you attach a debugger to the process, it will be able
@@ -167,29 +169,29 @@ struct Context
     /// location information for the code (by creating and passing in
     /// JIT.Location instances).
     void set_debug_info(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(__context, GCC_JIT_BOOL_OPTION_DEBUGINFO, value); }
+    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DEBUGINFO, value); }
 
     /// If true, JIT.Context.compile() will dump its initial "tree"
     /// representation of your code to stderr, before any optimizations.
     void set_dump_initial_tree(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(__context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, value); }
+    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, value); }
 
     /// If true, JIT.Context.compile() will dump its initial "gimple"
     /// representation of your code to stderr, before any optimizations
     /// are performed. The dump resembles C code.
     void set_dump_initial_gimple(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(__context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, value); }
+    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, value); }
 
     /// If true, JIT.Context.compile() will dump the final generated code
     /// to stderr, in the form of assembly language.
     void set_dump_generated_code(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(__context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, value); }
+    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, value); }
 
     /// If true, JIT.Context.compile() will print information to stderr
     /// on the actions it is performing, followed by a profile showing
     /// the time taken and memory usage of each phase.
     void set_dump_summary(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(__context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, value); }
+    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, value); }
 
     /// If true, JIT.Context.compile() will dump copious amounts of
     /// information on what it’s doing to various files within a
@@ -197,58 +199,58 @@ struct Context
     /// results. The files are intended to be human-readable, but the
     /// exact files and their formats are subject to change.
     void set_dump_everything(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(__context, GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING, value); }
+    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING, value); }
 
     /// If true, libgccjit will aggressively run its garbage collector,
     /// to shake out bugs (greatly slowing down the compile). This is
     /// likely to only be of interest to developers of the library.
     void set_selfcheck_gc(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(__context, GCC_JIT_BOOL_OPTION_SELFCHECK_GC, value); }
+    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_SELFCHECK_GC, value); }
 
     /// If true, the JIT.Context will not clean up intermediate files
     /// written to the filesystem, and will display their location on
     /// stderr.
     void set_keep_intermediates(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(__context, GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES, value); }
+    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES, value); }
 
     /// Controls whether libgccjit will issue an error about unreachable blocks
     /// within a function.
     void set_allow_unreachable_blocks(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_allow_unreachable_blocks(__context, value); }
+    { gcc_jit_context_set_bool_allow_unreachable_blocks(m_context, value); }
 
     /// Controls whether libgccjit will print errors to stderr.
     void set_print_errors_to_stderr(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_print_errors_to_stderr(__context, value); }
+    { gcc_jit_context_set_bool_print_errors_to_stderr(m_context, value); }
 
     /// Controls whether libgccjit will use an external executable for
     /// converting its generated assembler into other formats.
     void set_use_external_driver(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_use_external_driver(__context, value); }
+    { gcc_jit_context_set_bool_use_external_driver(m_context, value); }
 
     /// Add an arbitrary gcc command-line option to the context.
     void add_command_line_option(string optname) nothrow @nogc
     {
         optname.toCStringThen!((opt)
-            => gcc_jit_context_add_command_line_option(__context, opt.ptr));
+            => gcc_jit_context_add_command_line_option(m_context, opt.ptr));
     }
 
     /// Add an arbitrary gcc driver option to the context.
     void add_driver_option(string optname) nothrow @nogc
     {
         optname.toCStringThen!((opt)
-            => gcc_jit_context_add_driver_option(__context, opt.ptr));
+            => gcc_jit_context_add_driver_option(m_context, opt.ptr));
     }
 
     /// Associate a gcc_jit_timer instance with a context.
     void timer(Timer t) nothrow @nogc @property
     {
-        gcc_jit_context_set_timer(__context, t.get_timer());
+        gcc_jit_context_set_timer(m_context, t.get_timer());
     }
 
     /// Get the timer associated with a context (if any).
     Timer timer() nothrow @nogc
     {
-        auto result = gcc_jit_context_get_timer(__context);
+        auto result = gcc_jit_context_get_timer(m_context);
         return Timer(result);
     }
 
@@ -256,7 +258,7 @@ struct Context
     ///     The first error message that occurred when compiling the context.
     string get_first_error() nothrow @nogc
     {
-        return gcc_jit_context_get_first_error(__context).toDString();
+        return gcc_jit_context_get_first_error(m_context).toDString();
     }
 
     /// Make a JIT.Location representing a source location,
@@ -267,21 +269,21 @@ struct Context
     Location new_location(string filename, int line, int column) nothrow @nogc
     {
         auto result = filename.toCStringThen!((f)
-            => gcc_jit_context_new_location(__context, f.ptr, line, column));
+            => gcc_jit_context_new_location(m_context, f.ptr, line, column));
         return Location(result);
     }
 
     /// Build a JIT.Type from one of the types in CType.
     Type get_type(CType kind) nothrow @nogc
     {
-        auto result = gcc_jit_context_get_type(__context, kind);
+        auto result = gcc_jit_context_get_type(m_context, kind);
         return Type(result);
     }
 
     /// Build an integer type of a given size and signedness.
     Type get_int_type(int num_bytes, bool is_signed) nothrow @nogc
     {
-        auto result = gcc_jit_context_get_int_type(__context, num_bytes, is_signed);
+        auto result = gcc_jit_context_get_int_type(m_context, num_bytes, is_signed);
         return Type(result);
     }
 
@@ -299,7 +301,7 @@ struct Context
     /// Given type "T", build a new array type of "T[N]".
     Type new_array_type(Location loc, Type type, int dims) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_array_type(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_array_type(m_context, loc.get_location(),
                                                      type.get_type(), dims);
         return Type(result);
     }
@@ -320,7 +322,7 @@ struct Context
     Field new_field(Location loc, Type type, string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_new_field(__context, loc.get_location(),
+            => gcc_jit_context_new_field(m_context, loc.get_location(),
                                          type.get_type(), n.ptr));
         return Field(result);
     }
@@ -341,7 +343,7 @@ struct Context
     Field new_bitfield(Location loc, Type type, int width, string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_new_bitfield(__context, loc.get_location(),
+            => gcc_jit_context_new_bitfield(m_context, loc.get_location(),
                                          type.get_type(), width, n.ptr));
         return Field(result);
     }
@@ -364,7 +366,7 @@ struct Context
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_new_struct_type(__context, loc.get_location(), n.ptr,
+            => gcc_jit_context_new_struct_type(m_context, loc.get_location(), n.ptr,
                                                cast(int)fields.length,
                                                cast(gcc_jit_field**)fields.ptr));
         return Struct(result);
@@ -378,7 +380,7 @@ struct Context
     Struct new_opaque_struct_type(Location loc, string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_new_opaque_struct(__context, loc.get_location(), n.ptr));
+            => gcc_jit_context_new_opaque_struct(m_context, loc.get_location(), n.ptr));
         return Struct(result);
     }
 
@@ -392,7 +394,7 @@ struct Context
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_new_union_type(__context, loc.get_location(), n.ptr,
+            => gcc_jit_context_new_union_type(m_context, loc.get_location(), n.ptr,
                                               cast(int)fields.length,
                                               cast(gcc_jit_field**)fields.ptr));
         return Type(result);
@@ -408,7 +410,7 @@ struct Context
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
-        auto result = gcc_jit_context_new_function_ptr_type(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_function_ptr_type(m_context, loc.get_location(),
                                                             return_type.get_type(),
                                                             cast(int)param_types.length,
                                                             cast(gcc_jit_type**)param_types.ptr,
@@ -435,7 +437,7 @@ struct Context
     Parameter new_param(Location loc, Type type, string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_new_param(__context, loc.get_location(),
+            => gcc_jit_context_new_param(m_context, loc.get_location(),
                                          type.get_type(), n.ptr));
         return Parameter(result);
     }
@@ -459,7 +461,7 @@ struct Context
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_new_function(__context, loc.get_location(),
+            => gcc_jit_context_new_function(m_context, loc.get_location(),
                                             kind, return_type.get_type(), n.ptr,
                                             cast(int)params.length,
                                             cast(gcc_jit_param**)params.ptr,
@@ -486,7 +488,7 @@ struct Context
     Function get_builtin_function(string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_get_builtin_function(__context, n.ptr));
+            => gcc_jit_context_get_builtin_function(m_context, n.ptr));
         return Function(result);
     }
 
@@ -494,7 +496,7 @@ struct Context
     LValue new_global(Location loc, GlobalKind global_kind, Type type, string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
-            => gcc_jit_context_new_global(__context, loc.get_location(),
+            => gcc_jit_context_new_global(m_context, loc.get_location(),
                                           global_kind, type.get_type(), n.ptr));
         return LValue(result);
     }
@@ -515,7 +517,7 @@ struct Context
     /// as a JIT.RValue of that type.
     RValue new_rvalue(Type type, int value) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_rvalue_from_int(__context, type.get_type(), value);
+        auto result = gcc_jit_context_new_rvalue_from_int(m_context, type.get_type(), value);
         return RValue(result);
     }
 
@@ -526,7 +528,7 @@ struct Context
     /// Ditto
     RValue new_rvalue(Type type, long value) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_rvalue_from_long(__context, type.get_type(),
+        auto result = gcc_jit_context_new_rvalue_from_long(m_context, type.get_type(),
                                                            cast(c_long)value);
         return RValue(result);
     }
@@ -539,7 +541,7 @@ struct Context
     /// point constant as a JIT.RValue of that type.
     RValue new_rvalue(Type type, double value) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_rvalue_from_double(__context, type.get_type(), value);
+        auto result = gcc_jit_context_new_rvalue_from_double(m_context, type.get_type(), value);
         return RValue(result);
     }
 
@@ -551,7 +553,7 @@ struct Context
     /// JIT.RValue representing that address as a pointer of that type.
     RValue new_rvalue(Type type, void* value) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_rvalue_from_ptr(__context, type.get_type(), value);
+        auto result = gcc_jit_context_new_rvalue_from_ptr(m_context, type.get_type(), value);
         return RValue(result);
     }
 
@@ -565,7 +567,7 @@ struct Context
     RValue new_rvalue(string value) nothrow @nogc
     {
         auto result = value.toCStringThen!((v)
-            => gcc_jit_context_new_string_literal(__context, v.ptr));
+            => gcc_jit_context_new_string_literal(m_context, v.ptr));
         return RValue(result);
     }
 
@@ -575,7 +577,7 @@ struct Context
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
-        auto result = gcc_jit_context_new_rvalue_from_vector(__context, null,
+        auto result = gcc_jit_context_new_rvalue_from_vector(m_context, null,
                                                              vector_type.get_type(),
                                                              cast(int)elements.length,
                                                              cast(gcc_jit_rvalue**)elements.ptr);
@@ -586,7 +588,7 @@ struct Context
     /// JIT.RValue of that type.
     RValue new_rvalue_zero(Type type) nothrow @nogc
     {
-        auto result = gcc_jit_context_zero(__context, type.get_type());
+        auto result = gcc_jit_context_zero(m_context, type.get_type());
         return RValue(result);
     }
 
@@ -598,7 +600,7 @@ struct Context
     /// JIT.RValue of that type.
     RValue new_rvalue_one(Type type) nothrow @nogc
     {
-        auto result = gcc_jit_context_one(__context, type.get_type());
+        auto result = gcc_jit_context_one(m_context, type.get_type());
         return RValue(result);
     }
 
@@ -610,7 +612,7 @@ struct Context
     /// representing the NULL pointer of that type.
     RValue new_null(Type type) nothrow @nogc
     {
-        auto result = gcc_jit_context_null(__context, type.get_type());
+        auto result = gcc_jit_context_null(m_context, type.get_type());
         return RValue(result);
     }
 
@@ -652,7 +654,7 @@ struct Context
     ///     a    = The input expression.
     RValue new_unary_op(Location loc, UnaryOp op, Type type, RValue a) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_unary_op(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_unary_op(m_context, loc.get_location(),
                                                    op, type.get_type(),
                                                    a.get_rvalue());
         return RValue(result);
@@ -699,7 +701,7 @@ struct Context
     ///     b    = The second input expression.
     RValue new_binary_op(Location loc, BinaryOp op, Type type, RValue a, RValue b) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_binary_op(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_binary_op(m_context, loc.get_location(),
                                                     op, type.get_type(),
                                                     a.get_rvalue(),
                                                     b.get_rvalue());
@@ -818,7 +820,7 @@ struct Context
     ///     b    = The second input expression.
     RValue new_comparison(Location loc, ComparisonOp op, RValue a, RValue b) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_comparison(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_comparison(m_context, loc.get_location(),
                                                      op, a.get_rvalue(),
                                                      b.get_rvalue());
         return RValue(result);
@@ -883,7 +885,7 @@ struct Context
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
-        auto result = gcc_jit_context_new_call(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_call(m_context, loc.get_location(),
                                                func.get_function(),
                                                cast(int)args.length,
                                                cast(gcc_jit_rvalue**)args.ptr);
@@ -899,7 +901,7 @@ struct Context
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
-        auto result = gcc_jit_context_new_call_through_ptr(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_call_through_ptr(m_context, loc.get_location(),
                                                            ptr.get_rvalue(),
                                                            cast(int)args.length,
                                                            cast(gcc_jit_rvalue**)args.ptr);
@@ -915,7 +917,7 @@ struct Context
     /// int <=> float and int <=> bool.
     RValue new_cast(Location loc, RValue expr, Type type) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_cast(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_cast(m_context, loc.get_location(),
                                                expr.get_rvalue(), type.get_type());
         return RValue(result);
     }
@@ -939,7 +941,7 @@ struct Context
     ///     index = The index within the array.
     LValue new_array_access(Location loc, RValue ptr, RValue index) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_array_access(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_array_access(m_context, loc.get_location(),
                                                        ptr.get_rvalue(), index.get_rvalue());
         return LValue(result);
     }
@@ -951,7 +953,7 @@ struct Context
     /// Make a JIT.Case representing a case for use in a switch statement.
     Case new_case(RValue min_value, RValue max_value, Block dest_block) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_case(__context, min_value.get_rvalue(),
+        auto result = gcc_jit_context_new_case(m_context, min_value.get_rvalue(),
                                                max_value.get_rvalue(), dest_block.get_block());
         return Case(result);
     }
@@ -960,7 +962,7 @@ struct Context
     void add_top_level_asm(Location loc, string asm_stmts) nothrow @nogc
     {
         asm_stmts.toCStringThen!((s)
-            => gcc_jit_context_add_top_level_asm(__context, loc.get_location(), s.ptr));
+            => gcc_jit_context_add_top_level_asm(m_context, loc.get_location(), s.ptr));
     }
 
     /// Ditto
@@ -970,7 +972,7 @@ struct Context
     /// Reinterpret the JIT.RValue as another JIT.Type.
     RValue new_bitcast(Location loc, RValue rvalue, Type type) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_bitcast(__context, loc.get_location,
+        auto result = gcc_jit_context_new_bitcast(m_context, loc.get_location,
                                                   rvalue.get_rvalue(), type.get_type());
         return RValue(result);
     }
@@ -985,7 +987,7 @@ struct Context
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
-        auto result = gcc_jit_context_new_struct_constructor(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_struct_constructor(m_context, loc.get_location(),
                                                              type.get_type(),
                                                              values.length,
                                                              cast(gcc_jit_field**)fields.ptr,
@@ -1000,7 +1002,7 @@ struct Context
     /// Create a constructor for an union as a JIT.RValue.
     RValue new_union_constructor(Location loc, Type type, Field field, RValue value) nothrow @nogc
     {
-        auto result = gcc_jit_context_new_union_constructor(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_union_constructor(m_context, loc.get_location(),
                                                             type.get_type(), field.get_field(),
                                                             value.get_rvalue());
         return RValue(result);
@@ -1015,7 +1017,7 @@ struct Context
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
-        auto result = gcc_jit_context_new_array_constructor(__context, loc.get_location(),
+        auto result = gcc_jit_context_new_array_constructor(m_context, loc.get_location(),
                                                             type.get_type(),
                                                             values.length,
                                                             cast(gcc_jit_rvalue**)values.ptr);
@@ -1027,5 +1029,5 @@ struct Context
     { return new_array_constructor(Location(), type, values); }
 
 private:
-    gcc_jit_context* __context = null;
+    gcc_jit_context* m_context = null;
 }

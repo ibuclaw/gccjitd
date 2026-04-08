@@ -1,0 +1,22 @@
+{
+    "name": "unittests",
+    "description": "Part of the gccjitd testsuite",
+    "configurations": [{
+	"name": "library",
+	"dependencies": {
+	    "gccjitd": {"path": "../../"}
+	}
+    },{
+	"name": "betterC",
+	"buildOptions": ["betterC"],
+	"dflags-gdc": ["-fno-exceptions"],
+	"dependencies": {
+	    "gccjitd": {
+		"path": "../../",
+		"dflags-dmd": ["-betterC"],
+		"dflags-ldc": ["-betterC"],
+		"dflags-gdc": ["-fno-druntime", "-fno-exceptions"]
+	    }
+    	}
+    }]
+}

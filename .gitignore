@@ -10,3 +10,5 @@ test/dapi/gccjitd_dapi
 test/square/gccjitd_square
 test/sum-squares/gccjitd_sum-squares
 test/toy/gccjitd_toy
+test/unittests/gccjitd-unittests-test-betterC
+test/unittests/gccjitd-unittests-test-library

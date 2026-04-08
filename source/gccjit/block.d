@@ -18,6 +18,8 @@
 
 module gccjit.block;
 
+package(gccjit):
+
 import gccjit.bindings;
 import gccjit.decls;
 import gccjit.flags;
@@ -29,33 +31,50 @@ import gccjit.values;
 /// Struct wrapper for gcc_jit_block
 struct Block
 {
-    JitObject __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_block* m_block = null;
+        JitObject m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_block* block) nothrow @nogc
+    this(gcc_jit_block* block) pure nothrow @nogc
     {
-        __super = JitObject(gcc_jit_block_as_object(block));
+        m_block = block;
     }
 
     /// Returns the internal gcc_jit_block object.
-    gcc_jit_block* get_block() pure nothrow @nogc
+    inout(gcc_jit_block)* get_block() inout pure nothrow @nogc
     {
-        // Manual downcast.
-        return cast(gcc_jit_block *)get_object();
+        return m_block;
+    }
+
+    /// Returns true if this JIT.Block has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_block !is null;
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_block_as_object(cast(gcc_jit_block*)m_block);
+        return typeof(return)(result);
     }
 
     /// Returns the JIT.Function this JIT.Block is within.
     Function get_function() nothrow @nogc
     {
-        auto result = gcc_jit_block_get_function(get_block());
+        auto result = gcc_jit_block_get_function(m_block);
         return Function(result);
     }
 
     /// Add evaluation of an rvalue, discarding the result.
     void add_eval(Location loc, RValue rvalue) nothrow @nogc
     {
-        gcc_jit_block_add_eval(get_block(),
+        gcc_jit_block_add_eval(m_block,
                                loc.get_location(),
                                rvalue.get_rvalue());
     }
@@ -68,7 +87,7 @@ struct Block
     /// This is equivalent to "lvalue = rvalue".
     void add_assignment(Location loc, LValue lvalue, RValue rvalue) nothrow @nogc
     {
-        gcc_jit_block_add_assignment(get_block(), loc.get_location(),
+        gcc_jit_block_add_assignment(m_block, loc.get_location(),
                                      lvalue.get_lvalue(), rvalue.get_rvalue());
     }
 
@@ -80,7 +99,7 @@ struct Block
     /// This is equivalent to "lvalue op= rvalue".
     void add_assignment_op(Location loc, LValue lvalue, BinaryOp op, RValue rvalue) nothrow @nogc
     {
-        gcc_jit_block_add_assignment_op(get_block(), loc.get_location(),
+        gcc_jit_block_add_assignment_op(m_block, loc.get_location(),
                                         lvalue.get_lvalue(), op, rvalue.get_rvalue());
     }
 
@@ -107,7 +126,7 @@ struct Block
     void add_comment(Location loc, string text) nothrow @nogc
     {
         text.toCStringThen!((t)
-            => gcc_jit_block_add_comment(get_block(), loc.get_location(), t.ptr));
+            => gcc_jit_block_add_comment(m_block, loc.get_location(), t.ptr));
     }
 
     /// Ditto
@@ -118,7 +137,7 @@ struct Block
     /// result to the appropriate successor block.
     void end_with_conditional(Location loc, RValue val, Block on_true, Block on_false) nothrow @nogc
     {
-        gcc_jit_block_end_with_conditional(get_block(),
+        gcc_jit_block_end_with_conditional(m_block,
                                            loc.get_location(),
                                            val.get_rvalue(),
                                            on_true.get_block(),
@@ -133,7 +152,7 @@ struct Block
     /// This is equivalent to "goto target".
     void end_with_jump(Location loc, Block target) nothrow @nogc
     {
-        gcc_jit_block_end_with_jump(get_block(),
+        gcc_jit_block_end_with_jump(m_block,
                                     loc.get_location(),
                                     target.get_block());
     }
@@ -146,7 +165,7 @@ struct Block
     /// This is equivalent to "return rvalue".
     void end_with_return(Location loc, RValue rvalue) nothrow @nogc
     {
-        gcc_jit_block_end_with_return(get_block(),
+        gcc_jit_block_end_with_return(m_block,
                                       loc.get_location(),
                                       rvalue.get_rvalue());
     }
@@ -160,7 +179,7 @@ struct Block
     /// This is equivalent to "return".
     void end_with_return(Location loc = Location()) nothrow @nogc
     {
-        gcc_jit_block_end_with_void_return(get_block(),
+        gcc_jit_block_end_with_void_return(m_block,
                                            loc.get_location());
     }
 
@@ -170,7 +189,7 @@ struct Block
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
-        gcc_jit_block_end_with_switch(get_block(),
+        gcc_jit_block_end_with_switch(m_block,
                                       loc.get_location(),
                                       expr.get_rvalue(),
                                       default_block.get_block(),
@@ -186,7 +205,7 @@ struct Block
     ExtendedAsm add_extended_asm(Location loc, string asm_template) nothrow @nogc
     {
         auto result = asm_template.toCStringThen!((a)
-            => gcc_jit_block_add_extended_asm(get_block(), loc.get_location(), a.ptr));
+            => gcc_jit_block_add_extended_asm(m_block, loc.get_location(), a.ptr));
         return ExtendedAsm(result);
     }
 
@@ -201,7 +220,7 @@ struct Block
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
         auto result = asm_template.toCStringThen!((a)
-            => gcc_jit_block_end_with_extended_asm_goto(get_block(), loc.get_location(), a.ptr,
+            => gcc_jit_block_end_with_extended_asm_goto(m_block, loc.get_location(), a.ptr,
                                                         cast(int)goto_blocks.length,
                                                         cast(gcc_jit_block**)goto_blocks.ptr,
                                                         fallthrough_block.get_block()));
@@ -217,46 +236,87 @@ struct Block
 /// Struct wrapper for gcc_jit_case
 struct Case
 {
-    JitObject __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_case* m_case = null;
+        JitObject m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_case* case_) nothrow @nogc
+    this(gcc_jit_case* case_) pure nothrow @nogc
     {
-        __super = JitObject(gcc_jit_case_as_object(case_));
+        m_case = case_;
     }
 
     /// Returns the internal gcc_jit_case object.
-    gcc_jit_case* get_case() pure nothrow @nogc
+    inout(gcc_jit_case)* get_case() inout pure nothrow @nogc
     {
-        // Manual downcast.
-        return cast(gcc_jit_case *)get_object();
+        return m_case;
+    }
+
+    /// Returns true if this JIT.Case has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_case !is null;
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_case_as_object(cast(gcc_jit_case*)m_case);
+        return typeof(return)(result);
     }
 }
 
 /// Struct wrapper for gcc_jit_extended_asm
 struct ExtendedAsm
 {
-    JitObject __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_extended_asm* m_extended_asm = null;
+        JitObject m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_extended_asm* extended_asm) nothrow @nogc
+    this(gcc_jit_extended_asm* extended_asm) pure nothrow @nogc
     {
-        __super = JitObject(gcc_jit_extended_asm_as_object(extended_asm));
+        m_extended_asm = extended_asm;
+    }
+
+    /// Returns the internal gcc_jit_extended_asm object.
+    inout(gcc_jit_extended_asm)* get_extended_asm() inout pure nothrow @nogc
+    {
+        return m_extended_asm;
+    }
+
+    /// Returns true if this JIT.ExtendedAsm has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_extended_asm !is null;
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_extended_asm_as_object(cast(gcc_jit_extended_asm*)m_extended_asm);
+        return typeof(return)(result);
     }
 
     /// Set whether this JIT.ExtendedAsm statement has side-effects.
     ExtendedAsm set_volatile_flag(bool flag) return nothrow @nogc @property
     {
-        gcc_jit_extended_asm_set_volatile_flag(get_extended_asm(), flag);
+        gcc_jit_extended_asm_set_volatile_flag(m_extended_asm, flag);
         return this;
     }
 
     /// Set whether this JIT.ExtendedAsm statement is inlinable.
     ExtendedAsm set_inline_flag(bool flag) return nothrow @nogc @property
     {
-        gcc_jit_extended_asm_set_inline_flag(get_extended_asm(), flag);
+        gcc_jit_extended_asm_set_inline_flag(m_extended_asm, flag);
         return this;
     }
 
@@ -266,7 +326,7 @@ struct ExtendedAsm
     {
         asm_symbolic_name.toCStringThen!((a)
             => constraint.toCStringThen!((c)
-                => gcc_jit_extended_asm_add_output_operand(get_extended_asm(), a.ptr, c.ptr,
+                => gcc_jit_extended_asm_add_output_operand(m_extended_asm, a.ptr, c.ptr,
                                                            dest.get_lvalue())));
         return this;
     }
@@ -275,7 +335,7 @@ struct ExtendedAsm
     ExtendedAsm add_output_operand(string constraint, LValue dest) return nothrow @nogc
     {
         constraint.toCStringThen!((c)
-            => gcc_jit_extended_asm_add_output_operand(get_extended_asm(), null, c.ptr,
+            => gcc_jit_extended_asm_add_output_operand(m_extended_asm, null, c.ptr,
                                                        dest.get_lvalue()));
         return this;
     }
@@ -286,7 +346,7 @@ struct ExtendedAsm
     {
         asm_symbolic_name.toCStringThen!((a)
             => constraint.toCStringThen!((c)
-                => gcc_jit_extended_asm_add_input_operand(get_extended_asm(), a.ptr, c.ptr,
+                => gcc_jit_extended_asm_add_input_operand(m_extended_asm, a.ptr, c.ptr,
                                                           src.get_rvalue())));
         return this;
     }
@@ -295,7 +355,7 @@ struct ExtendedAsm
     ExtendedAsm add_input_operand(string constraint, RValue dest) return nothrow @nogc
     {
         constraint.toCStringThen!((c)
-            => gcc_jit_extended_asm_add_input_operand(get_extended_asm(), null, c.ptr,
+            => gcc_jit_extended_asm_add_input_operand(m_extended_asm, null, c.ptr,
                                                       dest.get_rvalue()));
         return this;
     }
@@ -304,14 +364,7 @@ struct ExtendedAsm
     ExtendedAsm add_input_operand(string victim) return nothrow @nogc
     {
         victim.toCStringThen!((v)
-            => gcc_jit_extended_asm_add_clobber(get_extended_asm(), v.ptr));
+            => gcc_jit_extended_asm_add_clobber(m_extended_asm, v.ptr));
         return this;
-    }
-
-    /// Returns the internal gcc_jit_extended_asm object.
-    gcc_jit_extended_asm* get_extended_asm() pure nothrow @nogc
-    {
-        // Manual downcast.
-        return cast(gcc_jit_extended_asm *)get_object();
     }
 }

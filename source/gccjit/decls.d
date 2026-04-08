@@ -18,6 +18,8 @@
 
 module gccjit.decls;
 
+package(gccjit):
+
 import gccjit.bindings;
 import gccjit.block;
 import gccjit.helpers;
@@ -29,53 +31,87 @@ import gccjit.values;
 /// Struct wrapper for gcc_jit_field
 struct Field
 {
-    JitObject __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_field* m_field = null;
+        JitObject m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_field* field) nothrow @nogc
+    this(gcc_jit_field* field) pure nothrow @nogc
     {
-        __super = JitObject(gcc_jit_field_as_object(field));
+        m_field = field;
     }
 
     /// Returns the internal gcc_jit_field object.
-    gcc_jit_field* get_field() pure nothrow @nogc
+    inout(gcc_jit_field)* get_field() inout pure nothrow @nogc
     {
-        // Manual downcast.
-        return cast(gcc_jit_field *)get_object();
+        return m_field;
+    }
+
+    /// Returns true if this JIT.Field has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_field !is null;
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_field_as_object(cast(gcc_jit_field*)m_field);
+        return typeof(return)(result);
     }
 }
 
 /// Struct wrapper for gcc_jit_function
 struct Function
 {
-    JitObject __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_function* m_function = null;
+        JitObject m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_function* func) nothrow @nogc
+    this(gcc_jit_function* func) pure nothrow @nogc
     {
-        __super = JitObject(gcc_jit_function_as_object(func));
+        m_function = func;
     }
 
     /// Returns the internal gcc_jit_function object.
     gcc_jit_function* get_function() pure nothrow @nogc
     {
-        // Manual downcast.
-        return cast(gcc_jit_function *)get_object();
+        return m_function;
+    }
+
+    /// Returns true if this JIT.Function has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_function !is null;
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_function_as_object(cast(gcc_jit_function*)m_function);
+        return typeof(return)(result);
     }
 
     /// Dump function to dot file.
     void dump_to_dot(string path) nothrow @nogc
     {
         path.toCStringThen!((p)
-            => gcc_jit_function_dump_to_dot(get_function(), p.ptr));
+            => gcc_jit_function_dump_to_dot(m_function, p.ptr));
     }
 
     /// Get a specific parameter of a function by index.
     Parameter get_param(int index) nothrow @nogc
     {
-        auto result = gcc_jit_function_get_param(get_function(), index);
+        auto result = gcc_jit_function_get_param(m_function, index);
         return Parameter(result);
     }
 
@@ -84,7 +120,7 @@ struct Function
     /// show up in dumps of the internal representation, and in error messages.
     Block new_block() nothrow @nogc
     {
-        auto result = gcc_jit_function_new_block(get_function(), null);
+        auto result = gcc_jit_function_new_block(m_function, null);
         return Block(result);
     }
 
@@ -92,7 +128,7 @@ struct Function
     Block new_block(string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
-            => gcc_jit_function_new_block(get_function(), n.ptr));
+            => gcc_jit_function_new_block(m_function, n.ptr));
         return Block(result);
     }
 
@@ -100,7 +136,7 @@ struct Function
     LValue new_local(Location loc, Type type, string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
-            => gcc_jit_function_new_local(get_function(),
+            => gcc_jit_function_new_local(m_function,
                                           loc.get_location(),
                                           type.get_type(), n.ptr));
         return LValue(result);
@@ -113,21 +149,21 @@ struct Function
     /// Return the address of the function.
     RValue get_address(Location loc = Location()) nothrow @nogc
     {
-        auto result = gcc_jit_function_get_address(get_function(), loc.get_location());
+        auto result = gcc_jit_function_get_address(m_function, loc.get_location());
         return RValue(result);
     }
 
     /// Get the return type of the function.
     Type get_return_type() nothrow @nogc
     {
-        auto result = gcc_jit_function_get_return_type(get_function());
+        auto result = gcc_jit_function_get_return_type(m_function);
         return Type(result);
     }
 
     /// Get the number of parameters of the function.
     size_t get_param_count() nothrow @nogc
     {
-        return gcc_jit_function_get_param_count(get_function());
+        return gcc_jit_function_get_param_count(m_function);
     }
 
     /// A series of overloaded call operators with various numbers of arguments
@@ -155,19 +191,52 @@ struct Function
 /// Struct wrapper for gcc_jit_param
 struct Parameter
 {
-    LValue __super;
-    alias __super this;
+    union
+    {
+        private gcc_jit_param* m_parameter = null;
+        LValue m_super;
+    }
+    alias m_super this;
 
     ///
-    this(gcc_jit_param* param) nothrow @nogc
+    this(gcc_jit_param* param) pure nothrow @nogc
     {
-        __super = LValue(gcc_jit_param_as_lvalue(param));
+        m_parameter = param;
     }
 
     /// Returns the internal gcc_jit_param object.
     gcc_jit_param* get_param() pure nothrow @nogc
     {
-        // Manual downcast.
-        return cast(gcc_jit_param *)get_object();
+        return m_parameter;
+    }
+
+    /// Returns true if this JIT.Parameter has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_parameter !is null;
+    }
+
+    /// Upcast to the parent JIT.LValue.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == LValue))
+    {
+        auto result = gcc_jit_param_as_lvalue(cast(gcc_jit_param*)m_parameter);
+        return typeof(return)(result);
+    }
+
+    /// Upcast to the parent JIT.RValue.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == RValue))
+    {
+        auto result = gcc_jit_param_as_rvalue(cast(gcc_jit_param*)m_parameter);
+        return typeof(return)(result);
+    }
+
+    /// Upcast to the parent JIT.Object.
+    auto ref T opCast(T)() const nothrow @nogc
+    if (is(T == JitObject))
+    {
+        auto result = gcc_jit_param_as_object(cast(gcc_jit_param*)m_parameter);
+        return typeof(return)(result);
     }
 }

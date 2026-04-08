@@ -18,6 +18,8 @@
 
 module gccjit.version_;
 
+package(gccjit):
+
 import gccjit.bindings;
 
 /// Struct wrapper for gcc_jit_version API

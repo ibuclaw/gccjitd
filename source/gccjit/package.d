@@ -18,7 +18,7 @@
 
 module gccjit;
 
-import gccjit.bindings;
+public import gccjit.bindings;
 
 /// D API
 struct JIT
@@ -48,10 +48,18 @@ struct JIT
     alias Type = gccjit.types.Type;
     ///
     alias Struct = gccjit.types.Struct;
+    ///
+    alias FunctionPtrType = gccjit.types.FunctionPtrType;
+    ///
+    alias VectorType = gccjit.types.VectorType;
 
     import gccjit.block;
     ///
     alias Block = gccjit.block.Block;
+    ///
+    alias Case = gccjit.block.Case;
+    ///
+    alias ExtendedAsm = gccjit.block.ExtendedAsm;
 
     import gccjit.values;
     ///
