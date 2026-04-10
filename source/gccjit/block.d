@@ -109,12 +109,20 @@ struct Block
 
     /// A way to add a function call to the body of a function being
     /// defined, with various number of args.
-    RValue add_call(Location loc, Function func, scope RValue[] args...) nothrow @nogc
+    RValue add_call(Location loc, Function func, scope RValue[] args) nothrow @nogc
     {
         RValue rv = get_context().new_call(loc, func, args);
         add_eval(loc, rv);
         return rv;
     }
+
+    /// Ditto
+    RValue add_call(Function func, scope RValue[] args) nothrow @nogc
+    { return add_call(Location(), func, args); }
+
+    /// Ditto
+    RValue add_call(Location loc, Function func, scope RValue[] args...) nothrow @nogc
+    { return add_call(loc, func, args); }
 
     /// Ditto
     RValue add_call(Function func, scope RValue[] args...) nothrow @nogc
@@ -185,7 +193,7 @@ struct Block
 
     ///
     void end_with_switch(Location loc, RValue expr, Block default_block,
-                         scope Case[] cases...) nothrow @nogc
+                         scope Case[] cases) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -196,6 +204,15 @@ struct Block
                                       cast(int)cases.length,
                                       cast(gcc_jit_case**)cases.ptr);
     }
+
+    /// Ditto
+    void end_with_switch(RValue expr, Block default_block, scope Case[] cases) nothrow @nogc
+    { return end_with_switch(Location(), expr, default_block, cases); }
+
+    /// Ditto
+    void end_with_switch(Location loc, RValue expr, Block default_block,
+                         scope Case[] cases...) nothrow @nogc
+    { return end_with_switch(loc, expr, default_block, cases); }
 
     /// Ditto
     void end_with_switch(RValue expr, Block default_block, scope Case[] cases...) nothrow @nogc

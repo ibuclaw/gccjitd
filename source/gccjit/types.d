@@ -237,7 +237,7 @@ struct Struct
 
     /// Populate the fields of a formerly-opaque struct type.
     /// This can only be called once on a given struct type.
-    void set_fields(Location loc, Field[] fields...) nothrow @nogc
+    void set_fields(Location loc, Field[] fields) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -245,6 +245,14 @@ struct Struct
                                   cast(int)fields.length,
                                   cast(gcc_jit_field**)fields.ptr);
     }
+
+    /// Ditto
+    void set_fields(Field[] fields) nothrow @nogc
+    { set_fields(Location(), fields); }
+
+    /// Ditto
+    void set_fields(Location loc, Field[] fields...) nothrow @nogc
+    { set_fields(loc, fields); }
 
     /// Ditto
     void set_fields(Field[] fields...) nothrow @nogc

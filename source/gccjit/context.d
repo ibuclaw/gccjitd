@@ -361,7 +361,7 @@ struct Context
     { return new_bitfield(Location(), get_type(kind), width, name); }
 
     /// Create a struct type from an array of fields.
-    Struct new_struct_type(Location loc, string name, scope Field[] fields...) nothrow @nogc
+    Struct new_struct_type(Location loc, string name, scope Field[] fields) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -371,6 +371,14 @@ struct Context
                                                cast(gcc_jit_field**)fields.ptr));
         return Struct(result);
     }
+
+    /// Ditto
+    Struct new_struct_type(string name, scope Field[] fields) nothrow @nogc
+    { return new_struct_type(Location(), name, fields); }
+
+    /// Ditto
+    Struct new_struct_type(Location loc, string name, scope Field[] fields...) nothrow @nogc
+    { return new_struct_type(loc, name, fields); }
 
     /// Ditto
     Struct new_struct_type(string name, scope Field[] fields...) nothrow @nogc
@@ -389,7 +397,7 @@ struct Context
     { return new_opaque_struct_type(Location(), name); }
 
     /// Create a union type from an array of fields.
-    Type new_union_type(Location loc, string name, scope Field[] fields...) nothrow @nogc
+    Type new_union_type(Location loc, string name, scope Field[] fields) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -401,12 +409,20 @@ struct Context
     }
 
     /// Ditto
+    Type new_union_type(string name, scope Field[] fields) nothrow @nogc
+    { return new_union_type(Location(), name, fields); }
+
+    /// Ditto
+    Type new_union_type(Location loc, string name, scope Field[] fields...) nothrow @nogc
+    { return new_union_type(loc, name, fields); }
+
+    /// Ditto
     Type new_union_type(string name, scope Field[] fields...) nothrow @nogc
     { return new_union_type(Location(), name, fields); }
 
     /// Create a function type.
     Type new_function_type(Location loc, Type return_type,
-                           bool is_variadic, scope Type[] param_types...) nothrow @nogc
+                           bool is_variadic, scope Type[] param_types) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -417,6 +433,26 @@ struct Context
                                                             is_variadic);
         return Type(result);
     }
+
+    /// Ditto
+    Type new_function_type(Type return_type, bool is_variadic,
+                           scope Type[] param_types) nothrow @nogc
+    { return new_function_type(Location(), return_type, is_variadic, param_types); }
+
+    /// Ditto
+    Type new_function_type(Location loc, CType return_kind,
+                           bool is_variadic, scope Type[] param_types) nothrow @nogc
+    { return new_function_type(loc, get_type(return_kind), is_variadic, param_types); }
+
+    /// Ditto
+    Type new_function_type(CType return_kind, bool is_variadic,
+                           scope Type[] param_types) nothrow @nogc
+    { return new_function_type(Location(), get_type(return_kind), is_variadic, param_types); }
+
+    /// Ditto
+    Type new_function_type(Location loc, Type return_type,
+                           bool is_variadic, scope Type[] param_types...) nothrow @nogc
+    { return new_function_type(loc, return_type, is_variadic, param_types); }
 
     /// Ditto
     Type new_function_type(Type return_type, bool is_variadic,
@@ -456,7 +492,7 @@ struct Context
 
     /// Create a function.
     Function new_function(Location loc, FunctionType kind, Type return_type,
-                          string name, bool is_variadic, scope Parameter[] params...) nothrow @nogc
+                          string name, bool is_variadic, scope Parameter[] params) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -468,6 +504,26 @@ struct Context
                                             is_variadic));
         return Function(result);
     }
+
+    /// Ditto
+    Function new_function(FunctionType kind, Type return_type,
+                          string name, bool is_variadic, scope Parameter[] params) nothrow @nogc
+    { return new_function(Location(), kind, return_type, name, is_variadic, params); }
+
+    /// Ditto
+    Function new_function(Location loc, FunctionType kind, CType return_kind,
+                          string name, bool is_variadic, scope Parameter[] params) nothrow @nogc
+    { return new_function(loc, kind, get_type(return_kind), name, is_variadic, params); }
+
+    /// Ditto
+    Function new_function(FunctionType kind, CType return_kind,
+                          string name, bool is_variadic, scope Parameter[] params) nothrow @nogc
+    { return new_function(Location(), kind, get_type(return_kind), name, is_variadic, params); }
+
+    /// Ditto
+    Function new_function(Location loc, FunctionType kind, Type return_type,
+                          string name, bool is_variadic, scope Parameter[] params...) nothrow @nogc
+    { return new_function(loc, kind, return_type, name, is_variadic, params); }
 
     /// Ditto
     Function new_function(FunctionType kind, Type return_type,
@@ -573,7 +629,7 @@ struct Context
 
     /// Given a JIT.Type, which must be a vector type, build a vector rvalue
     /// from an array of JIT.RValue elements.
-    RValue new_rvalue(Type vector_type, scope RValue[] elements...) nothrow @nogc
+    RValue new_rvalue(Type vector_type, scope RValue[] elements) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -583,6 +639,10 @@ struct Context
                                                              cast(gcc_jit_rvalue**)elements.ptr);
         return RValue(result);
     }
+
+    /// Ditto
+    RValue new_rvalue(Type vector_type, scope RValue[] elements...) nothrow @nogc
+    { return new_rvalue(vector_type, elements); }
 
     /// Given a JIT.Type, which must be a numeric type, get the constant 0 as a
     /// JIT.RValue of that type.
@@ -881,7 +941,7 @@ struct Context
     { return new_comparison(Location(), ComparisonOp.GreaterThanEquals, a, b); }
 
     /// The most general way of creating a function call.
-    RValue new_call(Location loc, Function func, scope RValue[] args...) nothrow @nogc
+    RValue new_call(Location loc, Function func, scope RValue[] args) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -893,11 +953,19 @@ struct Context
     }
 
     /// Ditto
+    RValue new_call(Function func, scope RValue[] args) nothrow @nogc
+    { return new_call(Location(), func, args); }
+
+    /// Ditto
+    RValue new_call(Location loc, Function func, scope RValue[] args...) nothrow @nogc
+    { return new_call(loc, func, args); }
+
+    /// Ditto
     RValue new_call(Function func, scope RValue[] args...) nothrow @nogc
     { return new_call(Location(), func, args); }
 
     /// Calling a function through a pointer.
-    RValue new_call(Location loc, RValue ptr, scope RValue[] args...) nothrow @nogc
+    RValue new_call(Location loc, RValue ptr, scope RValue[] args) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -907,6 +975,14 @@ struct Context
                                                            cast(gcc_jit_rvalue**)args.ptr);
         return RValue(result);
     }
+
+    /// Ditto
+    RValue new_call(RValue ptr, scope RValue[] args) nothrow @nogc
+    { return new_call(Location(), ptr, args); }
+
+    /// Ditto
+    RValue new_call(Location loc, RValue ptr, scope RValue[] args...) nothrow @nogc
+    { return new_call(loc, ptr, args); }
 
     /// Ditto
     RValue new_call(RValue ptr, scope RValue[] args...) nothrow @nogc
@@ -1013,7 +1089,7 @@ struct Context
     { return new_union_constructor(Location(), type, field, value); }
 
     /// Create a constructor for an array as a JIT.RValue.
-    RValue new_array_constructor(Location loc, Type type, scope RValue[] values...) nothrow @nogc
+    RValue new_array_constructor(Location loc, Type type, scope RValue[] values) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -1023,6 +1099,14 @@ struct Context
                                                             cast(gcc_jit_rvalue**)values.ptr);
         return RValue(result);
     }
+
+    /// Ditto
+    RValue new_array_constructor(Type type, scope RValue[] values) nothrow @nogc
+    { return new_array_constructor(Location(), type, values); }
+
+    /// Ditto
+    RValue new_array_constructor(Location loc, Type type, scope RValue[] values...) nothrow @nogc
+    { return new_array_constructor(loc, type, values); }
 
     /// Ditto
     RValue new_array_constructor(Type type, scope RValue[] values...) nothrow @nogc
