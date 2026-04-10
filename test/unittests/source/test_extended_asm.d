@@ -20,9 +20,9 @@ nothrow @nogc unittest
     auto ctxt = JIT.Context.acquire();
     scope(exit) ctxt.release();
 
-    auto fun = ctxt.new_function(FunctionType.Exported, CType.Int, "fun", false);
-    auto block = fun.new_block("asm block");
-    auto extasm = block.add_extended_asm("instruction");
+    auto extasm = ctxt.new_function(FunctionType.Exported, CType.Int, "fun", false)
+                    .new_block("asm block")
+                    .add_extended_asm("instruction");
     JIT.Object obj = extasm;
 
     assert(extasm.get_context() is obj.get_context());

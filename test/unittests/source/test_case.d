@@ -20,8 +20,8 @@ nothrow @nogc unittest
     auto ctxt = JIT.Context.acquire();
     scope(exit) ctxt.release();
 
-    auto fun = ctxt.new_function(FunctionType.Exported, CType.Int, "fun", false);
-    auto block = fun.new_block("case block");
+    auto block = ctxt.new_function(FunctionType.Exported, CType.Int, "fun", false)
+                    .new_block("case block");
     auto caseval = ctxt.new_rvalue_one(CType.Int);
 
     auto cs = ctxt.new_case(caseval, caseval, block);

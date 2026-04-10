@@ -23,12 +23,11 @@ void main()
                                                  "printf", true, param_format);
 
     JIT.Parameter param_name = ctxt.new_param(CType.ConstCharPtr, "name");
-    JIT.Function func = ctxt.new_function(FunctionType.Exported, CType.Void,
-                                          "hello_fn", false, param_name);
 
-    JIT.Block block = func.new_block("initial");
-    block.add_eval(ctxt.new_call(printf_func, ctxt.new_rvalue("hello %s\n"), param_name));
-    block.end_with_return();
+    ctxt.new_function(FunctionType.Exported, CType.Void, "hello_fn", false, param_name)
+        .new_block("initial")
+        .add_eval(ctxt.new_call(printf_func, ctxt.new_rvalue("hello %s\n"), param_name))
+        .end_with_return();
 
     // OK, we're done populating the context.
     // The next line actually calls into GCC and runs the build, all

@@ -53,12 +53,10 @@ JIT.CompileResult create_fn()
     JIT.Block after_loop_block = fn.new_block("after_loop");
 
     // sum = 0
-    entry_block.add_assignment(local_sum, ctxt.new_rvalue_zero(CType.Int));
-
+    entry_block.add_assignment(local_sum, ctxt.new_rvalue_zero(CType.Int))
     // i = 0
-    entry_block.add_assignment(local_i, ctxt.new_rvalue_zero(CType.Int));
-
-    entry_block.end_with_jump(cond_block);
+               .add_assignment(local_i, ctxt.new_rvalue_zero(CType.Int))
+               .end_with_jump(cond_block);
 
     // while (i < n)
     cond_block.end_with_conditional(ctxt.new_lt(local_i, param_n),
@@ -67,13 +65,11 @@ JIT.CompileResult create_fn()
     // sum += i * i
     loop_block.add_assignment_op(local_sum, BinaryOp.Plus,
                                  ctxt.new_mult(ctxt.get_type(CType.Int),
-                                               local_i, local_i));
-
+                                               local_i, local_i))
     // i++
-    loop_block.add_assignment_op(local_i, BinaryOp.Plus, ctxt.new_rvalue_one(CType.Int));
-
+              .add_assignment_op(local_i, BinaryOp.Plus, ctxt.new_rvalue_one(CType.Int))
     // goto cond_block
-    loop_block.end_with_jump(cond_block);
+              .end_with_jump(cond_block);
 
     // return sum
     after_loop_block.end_with_return(local_sum);

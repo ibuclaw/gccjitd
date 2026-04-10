@@ -30,15 +30,13 @@ JIT.CompileResult create_fn()
     // Create parameter "i"
     JIT.Parameter param_i = ctxt.new_param(CType.Int, "i");
     // Create the function
-    JIT.Function fn = ctxt.new_function(FunctionType.Exported, CType.Int,
-                                        "square", false, param_i);
-
+    ctxt.new_function(FunctionType.Exported, CType.Int,
+                      "square", false, param_i)
     // Create a basic block within the function
-    JIT.Block block = fn.new_block("entry");
-
+       .new_block("entry")
     // This basic block is relatively simple
-    block.end_with_return(ctxt.new_mult(ctxt.get_type(CType.Int),
-                                        param_i, param_i));
+       .end_with_return(ctxt.new_mult(ctxt.get_type(CType.Int),
+                                      param_i, param_i));
 
     // Having populated the context, compile it
     JIT.CompileResult result = ctxt.compile();

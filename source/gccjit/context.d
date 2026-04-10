@@ -98,10 +98,11 @@ struct Context
     /// Params:
     ///     kind = What of output file to write.
     ///     path = Location of file to write to.
-    void compile(OutputKind kind, string path) nothrow @nogc
+    Context compile(OutputKind kind, string path) return nothrow @nogc
     {
         path.toCStringThen!((p)
             => gcc_jit_context_compile_to_file(m_context, kind, p.ptr));
+        return this;
     }
 
     /// Dump a C-like representation describing what's been set up on the
@@ -109,58 +110,68 @@ struct Context
     /// Params:
     ///     path             = Location of file to write to.
     ///     update_locations = If true, then also write JIT.Location information.
-    void dump_to_file(string path, bool update_locations) nothrow @nogc
+    Context dump_to_file(string path, bool update_locations) return nothrow @nogc
     {
         path.toCStringThen!((p)
             => gcc_jit_context_dump_to_file(m_context, p.ptr, update_locations));
+        return this;
     }
 
     ///
-    void set_logfile(FILE* logfile, int flags, int verbosity) nothrow @nogc
+    Context set_logfile(FILE* logfile, int flags, int verbosity) return nothrow @nogc
     {
         gcc_jit_context_set_logfile(m_context, logfile, flags, verbosity);
+        return this;
     }
 
     ///
-    void dump_reproducer(string path) nothrow @nogc
+    Context dump_reproducer(string path) return nothrow @nogc
     {
         path.toCStringThen!((p)
             => gcc_jit_context_dump_reproducer_to_file(m_context, p.ptr));
+        return this;
     }
 
     deprecated("Use per option entrypoints rather than generic set_option")
-    void set_option(StrOption opt, string value) nothrow @nogc
+    Context set_option(StrOption opt, string value) return nothrow @nogc
     {
         value.toCStringThen!((v)
             => gcc_jit_context_set_str_option(m_context, opt, v.ptr));
+        return this;
     }
 
     deprecated("Use per option entrypoints rather than generic set_option")
-    void set_option(IntOption opt, int value) nothrow @nogc
+    Context set_option(IntOption opt, int value) return nothrow @nogc
     {
         gcc_jit_context_set_int_option(m_context, opt, value);
+        return this;
     }
 
     deprecated("Use per option entrypoints rather than generic set_option")
-    void set_option(BoolOption opt, bool value) nothrow @nogc
+    Context set_option(BoolOption opt, bool value) return nothrow @nogc
     {
         gcc_jit_context_set_bool_option(m_context, opt, value);
+        return this;
     }
 
     /// Sets the name of the program, for use as a prefix when printing error
     /// messages to stderr. If null, or default, "libgccjit.so" is used.
-    void set_program_name(string name) nothrow @nogc @property
+    Context set_program_name(string name) return nothrow @nogc @property
     {
         name.toCStringThen!((n)
             => gcc_jit_context_set_str_option(m_context, GCC_JIT_STR_OPTION_PROGNAME, n.ptr));
+        return this;
     }
 
     /// How much to optimize the code.
     /// Valid values are 0-3, corresponding to GCC's command-line options
     /// -O0 through -O3.
     /// The default value is 0 (unoptimized).
-    void set_optimization_level(OptimizationLevel level) nothrow @nogc @property
-    { gcc_jit_context_set_int_option(m_context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, level); }
+    Context set_optimization_level(OptimizationLevel level) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_int_option(m_context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, level);
+        return this;
+    }
 
     /// If true, JIT.Context.compile() will attempt to do the right thing
     /// so that if you attach a debugger to the process, it will be able
@@ -168,83 +179,119 @@ struct Context
     /// Note that you can’t step through code unless you set up source
     /// location information for the code (by creating and passing in
     /// JIT.Location instances).
-    void set_debug_info(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DEBUGINFO, value); }
+    Context set_debug_info(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DEBUGINFO, value);
+        return this;
+    }
 
     /// If true, JIT.Context.compile() will dump its initial "tree"
     /// representation of your code to stderr, before any optimizations.
-    void set_dump_initial_tree(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, value); }
+    Context set_dump_initial_tree(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, value);
+        return this;
+    }
 
     /// If true, JIT.Context.compile() will dump its initial "gimple"
     /// representation of your code to stderr, before any optimizations
     /// are performed. The dump resembles C code.
-    void set_dump_initial_gimple(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, value); }
+    Context set_dump_initial_gimple(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, value);
+        return this;
+    }
 
     /// If true, JIT.Context.compile() will dump the final generated code
     /// to stderr, in the form of assembly language.
-    void set_dump_generated_code(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, value); }
+    Context set_dump_generated_code(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, value);
+        return this;
+    }
 
     /// If true, JIT.Context.compile() will print information to stderr
     /// on the actions it is performing, followed by a profile showing
     /// the time taken and memory usage of each phase.
-    void set_dump_summary(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, value); }
+    Context set_dump_summary(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, value);
+        return this;
+    }
 
     /// If true, JIT.Context.compile() will dump copious amounts of
     /// information on what it’s doing to various files within a
     /// temporary directory. Use `set_keep_intermediates` to see the
     /// results. The files are intended to be human-readable, but the
     /// exact files and their formats are subject to change.
-    void set_dump_everything(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING, value); }
+    Context set_dump_everything(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING, value);
+        return this;
+    }
 
     /// If true, libgccjit will aggressively run its garbage collector,
     /// to shake out bugs (greatly slowing down the compile). This is
     /// likely to only be of interest to developers of the library.
-    void set_selfcheck_gc(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_SELFCHECK_GC, value); }
+    Context set_selfcheck_gc(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_SELFCHECK_GC, value);
+        return this;
+    }
 
     /// If true, the JIT.Context will not clean up intermediate files
     /// written to the filesystem, and will display their location on
     /// stderr.
-    void set_keep_intermediates(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES, value); }
+    Context set_keep_intermediates(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_option(m_context, GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES, value);
+        return this;
+    }
 
     /// Controls whether libgccjit will issue an error about unreachable blocks
     /// within a function.
-    void set_allow_unreachable_blocks(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_allow_unreachable_blocks(m_context, value); }
+    Context set_allow_unreachable_blocks(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_allow_unreachable_blocks(m_context, value);
+        return this;
+    }
 
     /// Controls whether libgccjit will print errors to stderr.
-    void set_print_errors_to_stderr(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_print_errors_to_stderr(m_context, value); }
+    Context set_print_errors_to_stderr(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_print_errors_to_stderr(m_context, value);
+        return this;
+    }
 
     /// Controls whether libgccjit will use an external executable for
     /// converting its generated assembler into other formats.
-    void set_use_external_driver(bool value) nothrow @nogc @property
-    { gcc_jit_context_set_bool_use_external_driver(m_context, value); }
+    Context set_use_external_driver(bool value) return nothrow @nogc @property
+    {
+        gcc_jit_context_set_bool_use_external_driver(m_context, value);
+        return this;
+    }
 
     /// Add an arbitrary gcc command-line option to the context.
-    void add_command_line_option(string optname) nothrow @nogc
+    Context add_command_line_option(string optname) return nothrow @nogc
     {
         optname.toCStringThen!((opt)
             => gcc_jit_context_add_command_line_option(m_context, opt.ptr));
+        return this;
     }
 
     /// Add an arbitrary gcc driver option to the context.
-    void add_driver_option(string optname) nothrow @nogc
+    Context add_driver_option(string optname) return nothrow @nogc
     {
         optname.toCStringThen!((opt)
             => gcc_jit_context_add_driver_option(m_context, opt.ptr));
+        return this;
     }
 
     /// Associate a gcc_jit_timer instance with a context.
-    void timer(Timer t) nothrow @nogc @property
+    Context timer(Timer t) return nothrow @nogc @property
     {
         gcc_jit_context_set_timer(m_context, t.get_timer());
+        return this;
     }
 
     /// Get the timer associated with a context (if any).
@@ -1035,14 +1082,15 @@ struct Context
     }
 
     /// Add top-level asm statement to the context.
-    void add_top_level_asm(Location loc, string asm_stmts) nothrow @nogc
+    Context add_top_level_asm(Location loc, string asm_stmts) return nothrow @nogc
     {
         asm_stmts.toCStringThen!((s)
             => gcc_jit_context_add_top_level_asm(m_context, loc.get_location(), s.ptr));
+        return this;
     }
 
     /// Ditto
-    void add_top_level_asm(string asm_stmts) nothrow @nogc
+    Context add_top_level_asm(string asm_stmts) return nothrow @nogc
     { return add_top_level_asm(Location(), asm_stmts); }
 
     /// Reinterpret the JIT.RValue as another JIT.Type.

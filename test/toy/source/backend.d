@@ -94,7 +94,7 @@ class Backend
         JIT.Block condblock = this.func.new_block();
         JIT.Block exitblock = this.func.new_block();
         JIT.Block trueblock = this.func.new_block();
-        JIT.Block falseblock = ifs.elsebody ? this.func.new_block() : JIT.Block.init;
+        JIT.Block falseblock = ifs.elsebody ? this.func.new_block() : JIT.Block();
 
         this.block.end_with_jump(condblock);
         this.block = condblock;

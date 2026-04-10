@@ -102,10 +102,11 @@ struct Function
     }
 
     /// Dump function to dot file.
-    void dump_to_dot(string path) nothrow @nogc
+    Function dump_to_dot(string path) return nothrow @nogc
     {
         path.toCStringThen!((p)
             => gcc_jit_function_dump_to_dot(m_function, p.ptr));
+        return this;
     }
 
     /// Get a specific parameter of a function by index.

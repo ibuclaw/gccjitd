@@ -72,39 +72,43 @@ struct Block
     }
 
     /// Add evaluation of an rvalue, discarding the result.
-    void add_eval(Location loc, RValue rvalue) nothrow @nogc
+    Block add_eval(Location loc, RValue rvalue) return nothrow @nogc
     {
         gcc_jit_block_add_eval(m_block,
                                loc.get_location(),
                                rvalue.get_rvalue());
+        return this;
     }
 
     /// Ditto
-    void add_eval(RValue rvalue) nothrow @nogc
+    Block add_eval(RValue rvalue) return nothrow @nogc
     { return add_eval(Location(), rvalue); }
 
     /// Add evaluation of an rvalue, assigning the result to the given lvalue.
     /// This is equivalent to "lvalue = rvalue".
-    void add_assignment(Location loc, LValue lvalue, RValue rvalue) nothrow @nogc
+    Block add_assignment(Location loc, LValue lvalue, RValue rvalue) return nothrow @nogc
     {
         gcc_jit_block_add_assignment(m_block, loc.get_location(),
                                      lvalue.get_lvalue(), rvalue.get_rvalue());
+        return this;
     }
 
     /// Ditto
-    void add_assignment(LValue lvalue, RValue rvalue) nothrow @nogc
+    Block add_assignment(LValue lvalue, RValue rvalue) return nothrow @nogc
     { return add_assignment(Location(), lvalue, rvalue); }
 
     /// Add evaluation of an rvalue, using the result to modify an lvalue.
     /// This is equivalent to "lvalue op= rvalue".
-    void add_assignment_op(Location loc, LValue lvalue, BinaryOp op, RValue rvalue) nothrow @nogc
+    Block add_assignment_op(Location loc, LValue lvalue, BinaryOp op,
+                            RValue rvalue) return nothrow @nogc
     {
         gcc_jit_block_add_assignment_op(m_block, loc.get_location(),
                                         lvalue.get_lvalue(), op, rvalue.get_rvalue());
+        return this;
     }
 
     /// Ditto
-    void add_assignment_op(LValue lvalue, BinaryOp op, RValue rvalue) nothrow @nogc
+    Block add_assignment_op(LValue lvalue, BinaryOp op, RValue rvalue) return nothrow @nogc
     { return add_assignment_op(Location(), lvalue, op, rvalue); }
 
     /// A way to add a function call to the body of a function being
@@ -131,69 +135,75 @@ struct Block
     /// Add a no-op textual comment to the internal representation of the code.
     /// It will be optimized away, but visible in the dumps seens via
     /// `set_dump_initial_tree` and `set_dump_initial_gimple`.
-    void add_comment(Location loc, string text) nothrow @nogc
+    Block add_comment(Location loc, string text) return nothrow @nogc
     {
         text.toCStringThen!((t)
             => gcc_jit_block_add_comment(m_block, loc.get_location(), t.ptr));
+        return this;
     }
 
     /// Ditto
-    void add_comment(string text) nothrow @nogc
+    Block add_comment(string text) return nothrow @nogc
     { return add_comment(Location(), text); }
 
     /// Terminate a block by adding evaluation of an rvalue, branching on the
     /// result to the appropriate successor block.
-    void end_with_conditional(Location loc, RValue val, Block on_true, Block on_false) nothrow @nogc
+    Block end_with_conditional(Location loc, RValue val,
+                               Block on_true, Block on_false) return nothrow @nogc
     {
         gcc_jit_block_end_with_conditional(m_block,
                                            loc.get_location(),
                                            val.get_rvalue(),
                                            on_true.get_block(),
                                            on_false.get_block());
+        return this;
     }
 
     /// Ditto
-    void end_with_conditional(RValue val, Block on_true, Block on_false) nothrow @nogc
+    Block end_with_conditional(RValue val, Block on_true, Block on_false) return nothrow @nogc
     { return end_with_conditional(Location(), val, on_true, on_false); }
 
     /// Terminate a block by adding a jump to the given target block.
     /// This is equivalent to "goto target".
-    void end_with_jump(Location loc, Block target) nothrow @nogc
+    Block end_with_jump(Location loc, Block target) return nothrow @nogc
     {
         gcc_jit_block_end_with_jump(m_block,
                                     loc.get_location(),
                                     target.get_block());
+        return this;
     }
 
     /// Ditto
-    void end_with_jump(Block target) nothrow @nogc
+    Block end_with_jump(Block target) return nothrow @nogc
     { return end_with_jump(Location(), target); }
 
     /// Terminate a block by adding evaluation of an rvalue, returning the value.
     /// This is equivalent to "return rvalue".
-    void end_with_return(Location loc, RValue rvalue) nothrow @nogc
+    Block end_with_return(Location loc, RValue rvalue) return nothrow @nogc
     {
         gcc_jit_block_end_with_return(m_block,
                                       loc.get_location(),
                                       rvalue.get_rvalue());
+        return this;
     }
 
     /// Ditto
-    void end_with_return(RValue rvalue) nothrow @nogc
+    Block end_with_return(RValue rvalue) return nothrow @nogc
     { return end_with_return(Location(), rvalue); }
 
     /// Terminate a block by adding a valueless return, for use within a
     /// function with "void" return type.
     /// This is equivalent to "return".
-    void end_with_return(Location loc = Location()) nothrow @nogc
+    Block end_with_return(Location loc = Location()) return nothrow @nogc
     {
         gcc_jit_block_end_with_void_return(m_block,
                                            loc.get_location());
+        return this;
     }
 
     ///
-    void end_with_switch(Location loc, RValue expr, Block default_block,
-                         scope Case[] cases) nothrow @nogc
+    Block end_with_switch(Location loc, RValue expr, Block default_block,
+                          scope Case[] cases) return nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -203,19 +213,22 @@ struct Block
                                       default_block.get_block(),
                                       cast(int)cases.length,
                                       cast(gcc_jit_case**)cases.ptr);
+        return this;
     }
 
     /// Ditto
-    void end_with_switch(RValue expr, Block default_block, scope Case[] cases) nothrow @nogc
+    Block end_with_switch(RValue expr, Block default_block,
+                          scope Case[] cases) return nothrow @nogc
     { return end_with_switch(Location(), expr, default_block, cases); }
 
     /// Ditto
-    void end_with_switch(Location loc, RValue expr, Block default_block,
-                         scope Case[] cases...) nothrow @nogc
+    Block end_with_switch(Location loc, RValue expr, Block default_block,
+                          scope Case[] cases...) return nothrow @nogc
     { return end_with_switch(loc, expr, default_block, cases); }
 
     /// Ditto
-    void end_with_switch(RValue expr, Block default_block, scope Case[] cases...) nothrow @nogc
+    Block end_with_switch(RValue expr, Block default_block,
+                          scope Case[] cases...) return nothrow @nogc
     { return end_with_switch(Location(), expr, default_block, cases); }
 
     ///

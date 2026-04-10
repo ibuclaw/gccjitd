@@ -129,8 +129,11 @@ struct RValue
 
     /// Given a JIT.RValue for a call created through JIT.Context.new_call,
     /// mark/clear the call as needing tail-call optimization.
-    void set_require_tail_call(bool require_tail_call) nothrow @nogc @property
-    { gcc_jit_rvalue_set_bool_require_tail_call(m_rvalue, require_tail_call); }
+    RValue set_require_tail_call(bool require_tail_call) return nothrow @nogc @property
+    {
+        gcc_jit_rvalue_set_bool_require_tail_call(m_rvalue, require_tail_call);
+        return this;
+    }
 
     /// Overloaded operators, for those who want the most terse API
     /// (at the possible risk of being a little too magical).
@@ -309,8 +312,11 @@ struct LValue
     }
 
     /// Set the alignment of a variable.
-    void set_alignment(uint bytes) nothrow @nogc @property
-    { gcc_jit_lvalue_set_alignment(m_lvalue, bytes); }
+    LValue set_alignment(uint bytes) return nothrow @nogc @property
+    {
+        gcc_jit_lvalue_set_alignment(m_lvalue, bytes);
+        return this;
+    }
 
     /// Get the alignment of a variable
     uint get_alignment() nothrow @nogc
