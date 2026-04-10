@@ -206,7 +206,7 @@ enum : gcc_jit_str_option
        messages to stderr.  If NULL, or default, "libgccjit.so" is used.  */
     GCC_JIT_STR_OPTION_PROGNAME,
 
-    GCC_JIT_NUM_STR_OPTIONS
+    GCC_JIT_NUM_STR_OPTIONS,
 }
 
 /** Options taking int values. */
@@ -220,7 +220,7 @@ enum : gcc_jit_int_option
        The default value is 0 (unoptimized).  */
     GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL,
 
-    GCC_JIT_NUM_INT_OPTIONS
+    GCC_JIT_NUM_INT_OPTIONS,
 }
 
 /** Options taking boolean values.
@@ -277,7 +277,7 @@ enum : gcc_jit_bool_option
        their location on stderr.  */
     GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES,
 
-    GCC_JIT_NUM_BOOL_OPTIONS
+    GCC_JIT_NUM_BOOL_OPTIONS,
 }
 
 /** Set a string option on the given context.
@@ -398,7 +398,7 @@ enum : gcc_jit_output_kind
     GCC_JIT_OUTPUT_KIND_DYNAMIC_LIBRARY,
 
     /** Compile the context to an executable.  */
-    GCC_JIT_OUTPUT_KIND_EXECUTABLE
+    GCC_JIT_OUTPUT_KIND_EXECUTABLE,
 }
 
 /** Compile the context to a file of the given kind.
@@ -741,7 +741,7 @@ enum : gcc_jit_function_kind
        Inlining will only occur when the optimization level is
        above 0; when optimization is off, this is essentially the
        same as GCC_JIT_FUNCTION_INTERNAL.  */
-    GCC_JIT_FUNCTION_ALWAYS_INLINE
+    GCC_JIT_FUNCTION_ALWAYS_INLINE,
 }
 
 /** Thread local storage model.  */
@@ -799,18 +799,18 @@ gcc_jit_function *gcc_jit_block_get_function(gcc_jit_block *block);
 alias gcc_jit_global_kind = uint;
 enum : gcc_jit_global_kind
 {
-  /** Global is defined by the client code and visible
-     by name outside of this JIT context via gcc_jit_result_get_global.  */
-  GCC_JIT_GLOBAL_EXPORTED,
+    /** Global is defined by the client code and visible
+       by name outside of this JIT context via gcc_jit_result_get_global.  */
+    GCC_JIT_GLOBAL_EXPORTED,
 
-  /** Global is defined by the client code, but is invisible
-     outside of this JIT context.  Analogous to a "static" global.  */
-  GCC_JIT_GLOBAL_INTERNAL,
+    /** Global is defined by the client code, but is invisible
+      outside of this JIT context.  Analogous to a "static" global.  */
+    GCC_JIT_GLOBAL_INTERNAL,
 
-  /** Global is not defined by the client code; we're merely
-     referring to it.  Analogous to using an "extern" global from a
-     header file.  */
-  GCC_JIT_GLOBAL_IMPORTED
+    /** Global is not defined by the client code; we're merely
+      referring to it.  Analogous to using an "extern" global from a
+      header file.  */
+    GCC_JIT_GLOBAL_IMPORTED,
 }
 
 gcc_jit_lvalue *gcc_jit_context_new_global(gcc_jit_context *ctxt,
@@ -1113,7 +1113,7 @@ enum : gcc_jit_binary_op
     /** Right shift; analogous to:
        (EXPR_A) >> (EXPR_B)
        in C.  */
-    GCC_JIT_BINARY_OP_RSHIFT
+    GCC_JIT_BINARY_OP_RSHIFT,
 }
 
 gcc_jit_rvalue *gcc_jit_context_new_binary_op(gcc_jit_context *ctxt,
@@ -1144,7 +1144,7 @@ enum : gcc_jit_comparison
     GCC_JIT_COMPARISON_GT,
 
     /** (EXPR_A) >= (EXPR_B).  */
-    GCC_JIT_COMPARISON_GE
+    GCC_JIT_COMPARISON_GE,
 }
 
 gcc_jit_rvalue *gcc_jit_context_new_comparison(gcc_jit_context *ctxt,
@@ -1769,22 +1769,22 @@ gcc_jit_type *gcc_jit_type_unqualified(gcc_jit_type *type);
 alias gcc_jit_fn_attribute = uint;
 enum : gcc_jit_fn_attribute
 {
-  GCC_JIT_FN_ATTRIBUTE_ALIAS,
-  GCC_JIT_FN_ATTRIBUTE_ALWAYS_INLINE,
-  GCC_JIT_FN_ATTRIBUTE_INLINE,
-  GCC_JIT_FN_ATTRIBUTE_NOINLINE,
-  GCC_JIT_FN_ATTRIBUTE_TARGET,
-  GCC_JIT_FN_ATTRIBUTE_USED,
-  GCC_JIT_FN_ATTRIBUTE_VISIBILITY,
-  GCC_JIT_FN_ATTRIBUTE_COLD,
-  GCC_JIT_FN_ATTRIBUTE_RETURNS_TWICE,
-  GCC_JIT_FN_ATTRIBUTE_PURE,
-  GCC_JIT_FN_ATTRIBUTE_CONST,
-  GCC_JIT_FN_ATTRIBUTE_WEAK,
-  GCC_JIT_FN_ATTRIBUTE_NONNULL,
+    GCC_JIT_FN_ATTRIBUTE_ALIAS,
+    GCC_JIT_FN_ATTRIBUTE_ALWAYS_INLINE,
+    GCC_JIT_FN_ATTRIBUTE_INLINE,
+    GCC_JIT_FN_ATTRIBUTE_NOINLINE,
+    GCC_JIT_FN_ATTRIBUTE_TARGET,
+    GCC_JIT_FN_ATTRIBUTE_USED,
+    GCC_JIT_FN_ATTRIBUTE_VISIBILITY,
+    GCC_JIT_FN_ATTRIBUTE_COLD,
+    GCC_JIT_FN_ATTRIBUTE_RETURNS_TWICE,
+    GCC_JIT_FN_ATTRIBUTE_PURE,
+    GCC_JIT_FN_ATTRIBUTE_CONST,
+    GCC_JIT_FN_ATTRIBUTE_WEAK,
+    GCC_JIT_FN_ATTRIBUTE_NONNULL,
 
-  /** Maximum value of this enum, should always be last. */
-  GCC_JIT_FN_ATTRIBUTE_MAX,
+    /** Maximum value of this enum, should always be last. */
+    GCC_JIT_FN_ATTRIBUTE_MAX,
 };
 
 /** Add an attribute to a function.  */
@@ -1804,10 +1804,10 @@ void gcc_jit_function_add_integer_array_attribute(gcc_jit_function *func,
 alias gcc_jit_variable_attribute = uint;
 enum : gcc_jit_variable_attribute
 {
-  GCC_JIT_VARIABLE_ATTRIBUTE_VISIBILITY,
+    GCC_JIT_VARIABLE_ATTRIBUTE_VISIBILITY,
 
-  /** Maximum value of this enum, should always be last. */
-  GCC_JIT_VARIABLE_ATTRIBUTE_MAX,
+    /** Maximum value of this enum, should always be last. */
+    GCC_JIT_VARIABLE_ATTRIBUTE_MAX,
 };
 
 /** Add a string attribute to a variable.  */
