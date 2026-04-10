@@ -167,6 +167,33 @@ struct Function
         return gcc_jit_function_get_param_count(m_function);
     }
 
+    /// Add an attribute to a JIT.Function.
+    Function add_attribute(FnAttribute attribute) return nothrow @nogc
+    {
+        gcc_jit_function_add_attribute(m_function, attribute);
+        return this;
+    }
+
+    /// Ditto
+    Function add_attribute(FnAttribute attribute, string value) return nothrow @nogc
+    {
+        value.toCStringThen!((v)
+            => gcc_jit_function_add_string_attribute(m_function, attribute, v.ptr));
+        return this;
+    }
+
+    /// Ditto
+    Function add_attribute(FnAttribute attribute, scope int[] values) return nothrow @nogc
+    {
+        gcc_jit_function_add_integer_array_attribute(m_function, attribute,
+                                                     values.ptr, values.length);
+        return this;
+    }
+
+    /// Ditto
+    Function add_attribute(FnAttribute attribute, scope int[] values...) return nothrow @nogc
+    { return add_attribute(attribute, values); }
+
     /// A series of overloaded call operators with various numbers of arguments
     /// for a very terse way of creating a call to this function.  The call
     /// is created within the same context as the function itself, which may

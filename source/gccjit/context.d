@@ -1160,6 +1160,13 @@ struct Context
     RValue new_array_constructor(Type type, scope RValue[] values...) nothrow @nogc
     { return new_array_constructor(Location(), type, values); }
 
+    /// Generate a JIT.RValue that is equal to the size of JIT.Type.
+    RValue new_sizeof(Type type) nothrow @nogc
+    {
+        auto result = gcc_jit_context_new_sizeof(m_context, type.get_type());
+        return RValue(result);
+    }
+
 private:
     gcc_jit_context* m_context = null;
 }

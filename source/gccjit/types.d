@@ -117,6 +117,13 @@ struct Type
         return Type(result);
     }
 
+    /// Given type T, get type restrict T.
+    Type get_restrict() nothrow @nogc
+    {
+        auto result = gcc_jit_type_get_restrict(m_type);
+        return Type(result);
+    }
+
     /// Returns true if the given JIT.Type is compatible with this JIT.Type.
     bool is_compatible_with(Type type) nothrow @nogc
     {

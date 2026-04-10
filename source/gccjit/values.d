@@ -321,4 +321,12 @@ struct LValue
     /// Get the alignment of a variable
     uint get_alignment() nothrow @nogc
     { return gcc_jit_lvalue_get_alignment(m_lvalue); }
+
+    /// Add an attribute to a variable.
+    LValue add_attribute(VarAttribute attribute, string value) return nothrow @nogc
+    {
+        value.toCStringThen!((v)
+            => gcc_jit_lvalue_add_string_attribute(m_lvalue, attribute, v.ptr));
+        return this;
+    }
 }

@@ -295,3 +295,27 @@ enum TlsModel : gcc_jit_tls_model
     InitialExec = GCC_JIT_TLS_MODEL_INITIAL_EXEC,
     LocalExec = GCC_JIT_TLS_MODEL_LOCAL_EXEC,
 }
+
+/// Function attributes
+enum FnAttribute
+{
+    Alias = GCC_JIT_FN_ATTRIBUTE_ALIAS,
+    AlwaysInline = GCC_JIT_FN_ATTRIBUTE_ALWAYS_INLINE,
+    Inline = GCC_JIT_FN_ATTRIBUTE_INLINE,
+    NoInline = GCC_JIT_FN_ATTRIBUTE_NOINLINE,
+    Target = GCC_JIT_FN_ATTRIBUTE_TARGET,
+    Used = GCC_JIT_FN_ATTRIBUTE_USED,
+    Visibility = GCC_JIT_FN_ATTRIBUTE_VISIBILITY,
+    Cold = GCC_JIT_FN_ATTRIBUTE_COLD,
+    ReturnsTwice = GCC_JIT_FN_ATTRIBUTE_RETURNS_TWICE,
+    Pure = GCC_JIT_FN_ATTRIBUTE_PURE,
+    Const = GCC_JIT_FN_ATTRIBUTE_CONST,
+    Weak = GCC_JIT_FN_ATTRIBUTE_WEAK,
+    NonNull = GCC_JIT_FN_ATTRIBUTE_NONNULL,
+}
+
+/// Variable attributes
+enum VarAttribute
+{
+    Visibility = GCC_JIT_VARIABLE_ATTRIBUTE_VISIBILITY,
+}

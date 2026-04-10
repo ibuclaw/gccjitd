@@ -55,8 +55,11 @@ nothrow:
   22: Add support for register variables.
   23: Add libgccjit option for hiding stderr logs.
   24: Add support for aligned variables.
+  25: Add support for restrict types.
+  26: Add support for function attributes.
+  27: Add support for sizeof expression.
  */
-enum LIBGCCJIT_ABI = 24;
+enum LIBGCCJIT_ABI = 27;
 
 /**********************************************************************
  Data structures.
@@ -605,6 +608,11 @@ gcc_jit_type *gcc_jit_type_get_const(gcc_jit_type *type);
 /** Given type "T", get type "volatile T".  */
 gcc_jit_type *gcc_jit_type_get_volatile(gcc_jit_type *type);
 
+/** Given type "T", get type "restrict T".
+   This API entrypoint was added in LIBGCCJIT_ABI_25
+*/
+gcc_jit_type *gcc_jit_type_get_restrict(gcc_jit_type *type);
+
 /** Given types LTYPE and RTYPE, return non-zero if they are compatible.
    This API entrypoint was added in LIBGCCJIT_ABI_20
 */
@@ -996,6 +1004,14 @@ gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_ptr(gcc_jit_context *ctxt,
 
 gcc_jit_rvalue *gcc_jit_context_null(gcc_jit_context *ctxt,
                                      gcc_jit_type *pointer_type);
+
+/** Generates an rvalue that is equal to the size of type.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_27
+*/
+
+gcc_jit_rvalue *gcc_jit_context_new_sizeof(gcc_jit_context *ctxt,
+                                           gcc_jit_type *type);
 
 /** String literals. */
 gcc_jit_rvalue *gcc_jit_context_new_string_literal(gcc_jit_context *ctxt,
@@ -1696,55 +1712,105 @@ void gcc_jit_context_add_top_level_asm(gcc_jit_context *ctxt,
                                        gcc_jit_location *loc,
                                        scope const char *asm_stmts);
 
-/* Reflection functions to get the number of parameters, return type of
+/** Reflection functions to get the number of parameters, return type of
    a function and whether a type is a bool from the C API.
 
    This API entrypoint was added in LIBGCCJIT_ABI_16
 */
-/* Get the return type of a function.  */
+/** Get the return type of a function.  */
 gcc_jit_type *gcc_jit_function_get_return_type(gcc_jit_function *func);
 
-/* Get the number of params of a function.  */
+/** Get the number of params of a function.  */
 size_t gcc_jit_function_get_param_count(gcc_jit_function *func);
 
-/* Get the element type of an array type or NULL if it's not an array.  */
+/** Get the element type of an array type or NULL if it's not an array.  */
 gcc_jit_type *gcc_jit_type_dyncast_array(gcc_jit_type *type);
 
-/* Return non-zero if the type is a bool.  */
+/** Return non-zero if the type is a bool.  */
 int gcc_jit_type_is_bool(gcc_jit_type *type);
 
-/* Return the function type if it is one or NULL.  */
+/** Return the function type if it is one or NULL.  */
 gcc_jit_function_type *gcc_jit_type_dyncast_function_ptr_type(gcc_jit_type *type);
 
-/* Given a function type, return its return type.  */
+/** Given a function type, return its return type.  */
 gcc_jit_type *gcc_jit_function_type_get_return_type(gcc_jit_function_type *function_type);
 
-/* Given a function type, return its number of parameters.  */
+/** Given a function type, return its number of parameters.  */
 size_t gcc_jit_function_type_get_param_count(gcc_jit_function_type *function_type);
 
-/* Given a function type, return the type of the specified parameter.  */
+/** Given a function type, return the type of the specified parameter.  */
 gcc_jit_type *gcc_jit_function_type_get_param_type(gcc_jit_function_type *function_type,
                                                    size_t index);
 
-/* Return non-zero if the type is an integral.  */
+/** Return non-zero if the type is an integral.  */
 int gcc_jit_type_is_integral(gcc_jit_type *type);
 
-/* Return the type pointed by the pointer type or NULL if it's not a
+/** Return the type pointed by the pointer type or NULL if it's not a
  * pointer.  */
 gcc_jit_type *gcc_jit_type_is_pointer(gcc_jit_type *type);
 
-/* Given a type, return a dynamic cast to a vector type or NULL.  */
+/** Given a type, return a dynamic cast to a vector type or NULL.  */
 gcc_jit_vector_type *gcc_jit_type_dyncast_vector(gcc_jit_type *type);
 
-/* Given a type, return a dynamic cast to a struct type or NULL.  */
+/** Given a type, return a dynamic cast to a struct type or NULL.  */
 gcc_jit_struct *gcc_jit_type_is_struct(gcc_jit_type *type);
 
-/* Given a vector type, return the number of units it contains.  */
+/** Given a vector type, return the number of units it contains.  */
 size_t gcc_jit_vector_type_get_num_units(gcc_jit_vector_type *vector_type);
 
-/* Given a vector type, return the type of its elements.  */
+/** Given a vector type, return the type of its elements.  */
 gcc_jit_type *gcc_jit_vector_type_get_element_type(gcc_jit_vector_type *vector_type);
 
-/* Given a type, return the unqualified type, removing "const", "volatile"
+/** Given a type, return the unqualified type, removing "const", "volatile"
  * and alignment qualifiers.  */
 gcc_jit_type *gcc_jit_type_unqualified(gcc_jit_type *type);
+
+/** Function attributes.  */
+alias gcc_jit_fn_attribute = uint;
+enum : gcc_jit_fn_attribute
+{
+  GCC_JIT_FN_ATTRIBUTE_ALIAS,
+  GCC_JIT_FN_ATTRIBUTE_ALWAYS_INLINE,
+  GCC_JIT_FN_ATTRIBUTE_INLINE,
+  GCC_JIT_FN_ATTRIBUTE_NOINLINE,
+  GCC_JIT_FN_ATTRIBUTE_TARGET,
+  GCC_JIT_FN_ATTRIBUTE_USED,
+  GCC_JIT_FN_ATTRIBUTE_VISIBILITY,
+  GCC_JIT_FN_ATTRIBUTE_COLD,
+  GCC_JIT_FN_ATTRIBUTE_RETURNS_TWICE,
+  GCC_JIT_FN_ATTRIBUTE_PURE,
+  GCC_JIT_FN_ATTRIBUTE_CONST,
+  GCC_JIT_FN_ATTRIBUTE_WEAK,
+  GCC_JIT_FN_ATTRIBUTE_NONNULL,
+
+  /** Maximum value of this enum, should always be last. */
+  GCC_JIT_FN_ATTRIBUTE_MAX,
+};
+
+/** Add an attribute to a function.  */
+void gcc_jit_function_add_attribute(gcc_jit_function *func,
+                                    gcc_jit_fn_attribute attribute);
+
+void gcc_jit_function_add_string_attribute(gcc_jit_function *func,
+                                           gcc_jit_fn_attribute attribute,
+                                           scope const char* value);
+
+void gcc_jit_function_add_integer_array_attribute(gcc_jit_function *func,
+                                                  gcc_jit_fn_attribute attribute,
+                                                  scope const int* value,
+                                                  size_t length);
+
+/** Variable attributes.  */
+alias gcc_jit_variable_attribute = uint;
+enum : gcc_jit_variable_attribute
+{
+  GCC_JIT_VARIABLE_ATTRIBUTE_VISIBILITY,
+
+  /** Maximum value of this enum, should always be last. */
+  GCC_JIT_VARIABLE_ATTRIBUTE_MAX,
+};
+
+/** Add a string attribute to a variable.  */
+void gcc_jit_lvalue_add_string_attribute(gcc_jit_lvalue *variable,
+                                         gcc_jit_variable_attribute attribute,
+                                         scope const char* value);
