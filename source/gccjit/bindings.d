@@ -58,8 +58,36 @@ nothrow:
   25: Add support for restrict types.
   26: Add support for function attributes.
   27: Add support for sizeof expression.
+
+  This variable is initialized during run-time construction, so that client
+  code can programatically check the libgccjit version using
+  ```
+  if (LIBGCCJIT_ABI >= 16)
+    return gcc_jit_type_is_integral(type); // OK, symbol present in version
+  else
+    return gcc_jit_type_is_integral(type); // Missing, will result in abort().
+  ```
+  There also exists the entry point `gcc_jit_version_major`, which is analogous
+  to __GNUC__ in C code, but this is only present when LIBGCCJIT_ABI >= 13.
  */
-enum LIBGCCJIT_ABI = 27;
+immutable int LIBGCCJIT_ABI;
+
+/* API compatibility is achieved by extending the API rather than changing it.
+   For ABI compatiblity, we avoid bumping the SONAME, and instead use symbol
+   versioning to tag each symbol, so that a binary linked against libgccjit.so
+   is tagged according to the symbols that it uses.
+
+   Note: libgccjit.so is *always* linked in, on ELF systems this means we can
+   test for which symbols are available using the handle from `dlopen(null)`.
+   Should this not be the case on other platforms, these are the names of the
+   shared library on each supported system.
+*/
+version (Windows)
+    private enum LIBGCCJIT_LIB = "libgccjit-0.dll";
+else version (OSX)
+    private enum LIBGCCJIT_LIB = "libgccjit.0.dylib";
+else
+    private enum LIBGCCJIT_LIB = "libgccjit.so.0";
 
 /**********************************************************************
  Data structures.
@@ -301,80 +329,6 @@ void gcc_jit_context_set_bool_option(gcc_jit_context *ctxt,
                                      gcc_jit_bool_option opt,
                                      int value);
 
-/** Options added after the initial release of libgccjit.
-   These are handled by providing an entrypoint per option,
-   rather than by extending the enum gcc_jit_*_option,
-   so that client code that use these new options can be identified
-   from binary metadata.  */
-
-/** By default, libgccjit will issue an error about unreachable blocks
-   within a function.
-
-   This option can be used to disable that error.
-
-   This entrypoint was added in LIBGCCJIT_ABI_2
-*/
-
-void gcc_jit_context_set_bool_allow_unreachable_blocks(gcc_jit_context *ctxt,
-                                                       int bool_value);
-
-/** By default, libgccjit will print errors to stderr.
-
-   This option can be used to disable the printing.
-
-   This entrypoint was added in LIBGCCJIT_ABI_23
-*/
-
-void gcc_jit_context_set_bool_print_errors_to_stderr(gcc_jit_context *ctxt,
-                                                     int enabled);
-
-/** Implementation detail:
-   libgccjit internally generates assembler, and uses "driver" code
-   for converting it to other formats (e.g. shared libraries).
-
-   By default, libgccjit will use an embedded copy of the driver
-   code.
-
-   This option can be used to instead invoke an external driver executable
-   as a subprocess.
-
-   This entrypoint was added in LIBGCCJIT_ABI_5; you can test for
-   its presence using
-     #ifdef LIBGCCJIT_HAVE_gcc_jit_context_set_bool_use_external_driver
-*/
-
-void gcc_jit_context_set_bool_use_external_driver(gcc_jit_context *ctxt,
-                                                  int bool_value);
-
-/** Add an arbitrary gcc command-line option to the context.
-   The context takes a copy of the string, so the
-   (const char *) optname is not needed anymore after the call
-   returns.
-
-   Note that only some options are likely to be meaningful; there is no
-   "frontend" within libgccjit, so typically only those affecting
-   optimization and code-generation are likely to be useful.
-
-   This entrypoint was added in LIBGCCJIT_ABI_1
-*/
-
-void gcc_jit_context_add_command_line_option(gcc_jit_context *ctxt,
-                                             scope const char *optname);
-
-/** Add an arbitrary gcc driver option to the context.
-   The context takes a copy of the string, so the
-   (const char *) optname is not needed anymore after the call
-   returns.
-
-   Note that only some options are likely to be meaningful; there is no
-   "frontend" within libgccjit, so typically only those affecting
-   assembler and linker are likely to be useful.
-
-   This entrypoint was added in LIBGCCJIT_ABI_11
-*/
-void gcc_jit_context_add_driver_option(gcc_jit_context *ctxt,
-                                       scope const char *optname);
-
 /** Compile the context to in-memory machine code.
 
    This can be called more that once on a given context,
@@ -608,22 +562,6 @@ gcc_jit_type *gcc_jit_type_get_const(gcc_jit_type *type);
 /** Given type "T", get type "volatile T".  */
 gcc_jit_type *gcc_jit_type_get_volatile(gcc_jit_type *type);
 
-/** Given type "T", get type "restrict T".
-   This API entrypoint was added in LIBGCCJIT_ABI_25
-*/
-gcc_jit_type *gcc_jit_type_get_restrict(gcc_jit_type *type);
-
-/** Given types LTYPE and RTYPE, return non-zero if they are compatible.
-   This API entrypoint was added in LIBGCCJIT_ABI_20
-*/
-int gcc_jit_compatible_types(gcc_jit_type *ltype,
-                             gcc_jit_type *rtype);
-
-/** Given type "T", get its size.
-   This API entrypoint was added in LIBGCCJIT_ABI_20
-*/
-ptrdiff_t gcc_jit_type_get_size(gcc_jit_type *type);
-
 /** Given type "T", get type "T[N]" (for a constant N).  */
 gcc_jit_type *gcc_jit_context_new_array_type(gcc_jit_context *ctxt,
                                              gcc_jit_location *loc,
@@ -637,16 +575,6 @@ gcc_jit_field *gcc_jit_context_new_field(gcc_jit_context *ctxt,
                                          gcc_jit_location *loc,
                                          gcc_jit_type *type,
                                          scope const char *name);
-
-/** Create a bit field, for use within a struct or union.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_12
-*/
-gcc_jit_field *gcc_jit_context_new_bitfield(gcc_jit_context *ctxt,
-                                            gcc_jit_location *loc,
-                                            gcc_jit_type *type,
-                                            int width,
-                                            scope const char *name);
 
 /** Upcasting from field to object.  */
 gcc_jit_object *gcc_jit_field_as_object(gcc_jit_field *field);
@@ -675,11 +603,13 @@ void gcc_jit_struct_set_fields(gcc_jit_struct *struct_type,
                                gcc_jit_field **fields);
 
 /** Get a field by index.  */
-gcc_jit_field *gcc_jit_struct_get_field(gcc_jit_struct *struct_type,
-                                        size_t index);
+alias gcc_jit_struct_get_field = c_gcc_jit_struct_get_field;
+gcc_jit_field *function(gcc_jit_struct *struct_type,
+                        size_t index) c_gcc_jit_struct_get_field;
 
 /** Get the number of fields.  */
-size_t gcc_jit_struct_get_field_count(gcc_jit_struct *struct_type);
+alias gcc_jit_struct_get_field_count = c_gcc_jit_struct_get_field_count;
+size_t function(gcc_jit_struct *struct_type) c_gcc_jit_struct_get_field_count;
 
 /** Unions work similarly to structs.  */
 gcc_jit_type *gcc_jit_context_new_union_type(gcc_jit_context *ctxt,
@@ -819,155 +749,6 @@ gcc_jit_lvalue *gcc_jit_context_new_global(gcc_jit_context *ctxt,
                                            gcc_jit_type *type,
                                            scope const char *name);
 
-/** Create a constructor for a struct as an rvalue.
-
-   Returns NULL on error.  The two parameter arrays are copied and
-   do not have to outlive the context.
-
-   `type` specifies what the constructor will build and has to be
-   a struct.
-
-   `num_values` specifies the number of elements in `values`.
-
-   `fields` need to have the same length as `values`, or be NULL.
-
-   If `fields` is null, the values are applied in definition order.
-
-   Otherwise, each field in `fields` specifies which field in the struct to
-   set to the corresponding value in `values`.  `fields` and `values`
-   are paired by index.
-
-   Each value has to have the same unqualified type as the field
-   it is applied to.
-
-   A NULL value element  in `values` is a shorthand for zero initialization
-   of the corresponding field.
-
-   The fields in `fields` have to be in definition order, but there
-   can be gaps.  Any field in the struct that is not specified in
-   `fields` will be zeroed.
-
-   The fields in `fields` need to be the same objects that were used
-   to create the struct.
-
-   If `num_values` is 0, the array parameters will be
-   ignored and zero initialization will be used.
-
-   The constructor rvalue can be used for assignment to locals.
-   It can be used to initialize global variables with
-   gcc_jit_global_set_initializer_rvalue.  It can also be used as a
-   temporary value for function calls and return values.
-
-   The constructor can contain nested constructors.
-
-   This entrypoint was added in LIBGCCJIT_ABI_19
-*/
-
-gcc_jit_rvalue *gcc_jit_context_new_struct_constructor(gcc_jit_context *ctxt,
-                                                       gcc_jit_location *loc,
-                                                       gcc_jit_type *type,
-                                                       size_t num_values,
-                                                       gcc_jit_field **fields,
-                                                       gcc_jit_rvalue **values);
-
-/** Create a constructor for a union as an rvalue.
-
-   Returns NULL on error.
-
-   `type` specifies what the constructor will build and has to be
-   an union.
-
-   `field` specifies which field to set.  If it is NULL, the first
-   field in the union will be set.  `field` need to be the same
-   object that were used to create the union.
-
-   `value` specifies what value to set the corresponding field to.
-   If `value` is NULL, zero initialization will be used.
-
-   Each value has to have the same unqualified type as the field
-   it is applied to.
-
-   `field` need to be the same objects that were used
-   to create the union.
-
-   The constructor rvalue can be used for assignment to locals.
-   It can be used to initialize global variables with
-   gcc_jit_global_set_initializer_rvalue.  It can also be used as a
-   temporary value for function calls and return values.
-
-   The constructor can contain nested constructors.
-
-   This entrypoint was added in LIBGCCJIT_ABI_19
-*/
-
-gcc_jit_rvalue *gcc_jit_context_new_union_constructor(gcc_jit_context *ctxt,
-                                                      gcc_jit_location *loc,
-                                                      gcc_jit_type *type,
-                                                      gcc_jit_field *field,
-                                                      gcc_jit_rvalue *value);
-
-/** Create a constructor for an array as an rvalue.
-
-   Returns NULL on error.  `values` are copied and
-   do not have to outlive the context.
-
-   `type` specifies what the constructor will build and has to be
-   an array.
-
-   `num_values` specifies the number of elements in `values` and
-   it can't have more elements than the array type.
-
-   Each value in `values` sets the corresponding value in the array.
-   If the array type itself has more elements than `values`, the
-   left-over elements will be zeroed.
-
-   Each value in `values` need to be the same unqualified type as the
-   array type's element type.
-
-   If `num_values` is 0, the `values` parameter will be
-   ignored and zero initialization will be used.
-
-   Note that a string literal rvalue can't be used to construct a char
-   array.  It needs one rvalue for each char.
-
-   This entrypoint was added in LIBGCCJIT_ABI_19
-*/
-
-gcc_jit_rvalue *gcc_jit_context_new_array_constructor(gcc_jit_context *ctxt,
-                                                      gcc_jit_location *loc,
-                                                      gcc_jit_type *type,
-                                                      size_t num_values,
-                                                      gcc_jit_rvalue **values);
-
-/** Set the initial value of a global of any type with an rvalue.
-
-   The rvalue needs to be a constant expression, e.g. no function calls.
-
-   The global can't have the 'kind' GCC_JIT_GLOBAL_IMPORTED.
-
-   Use together with gcc_jit_context_new_constructor () to
-   initialize structs, unions and arrays.
-
-   On success, returns the 'global' parameter unchanged.  Otherwise, NULL.
-
-   'values' is copied and does not have to outlive the context.
-
-   This entrypoint was added in LIBGCCJIT_ABI_19
-*/
-
-gcc_jit_lvalue *gcc_jit_global_set_initializer_rvalue(gcc_jit_lvalue *global,
-                                                      gcc_jit_rvalue *init_value);
-
-/** Set an initial value for a global, which must be an array of
-   integral type.  Return the global itself.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_14
-*/
-
-gcc_jit_lvalue *gcc_jit_global_set_initializer (gcc_jit_lvalue *global,
-                                                scope const void *blob,
-                                                size_t num_bytes);
-
 /** Upcasting.  */
 gcc_jit_object *gcc_jit_lvalue_as_object(gcc_jit_lvalue *lvalue);
 
@@ -1004,14 +785,6 @@ gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_ptr(gcc_jit_context *ctxt,
 
 gcc_jit_rvalue *gcc_jit_context_null(gcc_jit_context *ctxt,
                                      gcc_jit_type *pointer_type);
-
-/** Generates an rvalue that is equal to the size of type.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_27
-*/
-
-gcc_jit_rvalue *gcc_jit_context_new_sizeof(gcc_jit_context *ctxt,
-                                           gcc_jit_type *type);
 
 /** String literals. */
 gcc_jit_rvalue *gcc_jit_context_new_string_literal(gcc_jit_context *ctxt,
@@ -1176,35 +949,6 @@ gcc_jit_rvalue *gcc_jit_context_new_cast(gcc_jit_context *ctxt,
                                          gcc_jit_rvalue *rvalue,
                                          gcc_jit_type *type);
 
-/** Reinterpret a value as another type.
-
-   The types must be of the same size.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_21
-*/
-gcc_jit_rvalue *gcc_jit_context_new_bitcast(gcc_jit_context *ctxt,
-                                            gcc_jit_location *loc,
-                                            gcc_jit_rvalue *rvalue,
-                                            gcc_jit_type *type);
-
-/** Set the alignment of a variable.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_24
-*/
-void gcc_jit_lvalue_set_alignment(gcc_jit_lvalue *lvalue,
-                                  uint bytes);
-
-/** Get the alignment of a variable.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_24
-*/
-uint gcc_jit_lvalue_get_alignment(gcc_jit_lvalue *lvalue);
-
-gcc_jit_lvalue *gcc_jit_context_new_array_access(gcc_jit_context *ctxt,
-                                                 gcc_jit_location *loc,
-                                                 gcc_jit_rvalue *ptr,
-                                                 gcc_jit_rvalue *index);
-
 /** Field access is provided separately for both lvalues and rvalues.  */
 
 /** Accessing a field of an lvalue of struct type, analogous to:
@@ -1239,29 +983,6 @@ gcc_jit_lvalue *gcc_jit_rvalue_dereference(gcc_jit_rvalue *rvalue,
    in C.  */
 gcc_jit_rvalue *gcc_jit_lvalue_get_address(gcc_jit_lvalue *lvalue,
                                            gcc_jit_location *loc);
-
-/** Set the thread-local storage model of a global variable
-
-   This API entrypoint was added in LIBGCCJIT_ABI_17
-*/
-void gcc_jit_lvalue_set_tls_model(gcc_jit_lvalue *lvalue,
-                                  gcc_jit_tls_model model);
-
-/** Set the link section of a global variable; analogous to:
-     __attribute__((section(".section_name")))
-   in C.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_18
-*/
-void gcc_jit_lvalue_set_link_section(gcc_jit_lvalue *lvalue,
-                                     scope const char *section_name);
-
-/** Make this variable a register variable and set its register name.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_22
-*/
-void gcc_jit_lvalue_set_register_name(gcc_jit_lvalue *lvalue,
-                                      scope const char *reg_name);
 
 gcc_jit_lvalue *gcc_jit_function_new_local(gcc_jit_function *func,
                                            gcc_jit_location *loc,
@@ -1369,65 +1090,6 @@ void gcc_jit_block_end_with_return(gcc_jit_block *block,
 void gcc_jit_block_end_with_void_return(gcc_jit_block *block,
                                         gcc_jit_location *loc);
 
-/** Create a new gcc_jit_case instance for use in a switch statement.
-   min_value and max_value must be constants of integer type.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_3
-*/
-gcc_jit_case *gcc_jit_context_new_case(gcc_jit_context *ctxt,
-                                       gcc_jit_rvalue *min_value,
-                                       gcc_jit_rvalue *max_value,
-                                       gcc_jit_block *dest_block);
-
-/** Upcasting from case to object.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_3
-*/
-
-gcc_jit_object *gcc_jit_case_as_object(gcc_jit_case *case_);
-
-/** Terminate a block by adding evalation of an rvalue, then performing
-   a multiway branch.
-
-   This is roughly equivalent to this C code:
-
-     switch (expr)
-       {
-       default:
-         goto default_block;
-
-       case C0.min_value ... C0.max_value:
-         goto C0.dest_block;
-
-       case C1.min_value ... C1.max_value:
-         goto C1.dest_block;
-
-       ...etc...
-
-       case C[N - 1].min_value ... C[N - 1].max_value:
-         goto C[N - 1].dest_block;
-     }
-
-   block, expr, default_block and cases must all be non-NULL.
-
-   expr must be of the same integer type as all of the min_value
-   and max_value within the cases.
-
-   num_cases must be >= 0.
-
-   The ranges of the cases must not overlap (or have duplicate
-   values).
-
-   This API entrypoint was added in LIBGCCJIT_ABI_3
-*/
-
-void gcc_jit_block_end_with_switch(gcc_jit_block *block,
-                                   gcc_jit_location *loc,
-                                   gcc_jit_rvalue *expr,
-                                   gcc_jit_block *default_block,
-                                   int num_cases,
-                                   gcc_jit_case **cases);
-
 /**********************************************************************
  Nested contexts.
  **********************************************************************/
@@ -1521,250 +1183,6 @@ void gcc_jit_context_enable_dump(gcc_jit_context *ctxt,
 
 struct gcc_jit_timer;
 
-/** Create a gcc_jit_timer instance, and start timing.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_4
-*/
-gcc_jit_timer *gcc_jit_timer_new();
-
-/** Release a gcc_jit_timer instance.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_4
-*/
-void gcc_jit_timer_release(gcc_jit_timer *timer);
-
-/** Associate a gcc_jit_timer instance with a context.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_4
-*/
-void gcc_jit_context_set_timer(gcc_jit_context *ctxt,
-                               gcc_jit_timer *timer);
-
-/** Get the timer associated with a context (if any).
-
-   This API entrypoint was added in LIBGCCJIT_ABI_4
-*/
-
-gcc_jit_timer *gcc_jit_context_get_timer(gcc_jit_context *ctxt);
-
-/** Push the given item onto the timing stack.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_4
-*/
-
-void gcc_jit_timer_push(gcc_jit_timer *timer,
-                        scope const char *item_name);
-
-/** Pop the top item from the timing stack.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_4
-*/
-
-void gcc_jit_timer_pop(gcc_jit_timer *timer,
-                       scope const char *item_name);
-
-/** Print timing information to the given stream about activity since
-   the timer was started.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_4
-*/
-
-void gcc_jit_timer_print(gcc_jit_timer *timer,
-                         FILE *f_out);
-
-/** Mark/clear a call as needing tail-call optimization.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_6
-*/
-void gcc_jit_rvalue_set_bool_require_tail_call(gcc_jit_rvalue *call,
-                                               int require_tail_call);
-
-/** Given type "T", get type:
-
-     T __attribute__ ((aligned (ALIGNMENT_IN_BYTES)))
-
-   The alignment must be a power of two.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_7
-*/
-gcc_jit_type *gcc_jit_type_get_aligned(gcc_jit_type *type,
-                                       size_t alignment_in_bytes);
-
-/** Given type "T", get type:
-
-     T  __attribute__ ((vector_size (sizeof(T) * num_units))
-
-   T must be integral/floating point; num_units must be a power of two.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_8
-*/
-gcc_jit_type *gcc_jit_type_get_vector(gcc_jit_type *type, size_t num_units);
-
-/** Get the address of a function as an rvalue, of function pointer
-   type.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_9
-*/
-gcc_jit_rvalue *gcc_jit_function_get_address(gcc_jit_function *fn,
-                                             gcc_jit_location *loc);
-
-/** Build a vector rvalue from an array of elements.
-
-   "vec_type" should be a vector type, created using gcc_jit_type_get_vector.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_10
-*/
-gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_vector(gcc_jit_context *ctxt,
-                                                       gcc_jit_location *loc,
-                                                       gcc_jit_type *vec_type,
-                                                       size_t num_elements,
-                                                       gcc_jit_rvalue **elements);
-
-/** Functions to retrieve libgccjit version.
-   Analogous to __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__ in C code.
-
-   These API entrypoints were added in LIBGCCJIT_ABI_13
- */
-int gcc_jit_version_major();
-int gcc_jit_version_minor();
-int gcc_jit_version_patchlevel();
-
-/**********************************************************************
- Asm support.
- **********************************************************************/
-
-/** Functions for adding inline assembler code, analogous to GCC's
-   "extended asm" syntax.
-
-   See https://gcc.gnu.org/onlinedocs/gcc/Using-Assembly-Language-with-C.html
-
-   These API entrypoints were added in LIBGCCJIT_ABI_15
-*/
-
-/** Create a gcc_jit_extended_asm for an extended asm statement
-   with no control flow (i.e. without the goto qualifier).
-
-   The asm_template parameter  corresponds to the AssemblerTemplate
-   within C's extended asm syntax.  It must be non-NULL.  */
-
-gcc_jit_extended_asm *gcc_jit_block_add_extended_asm(gcc_jit_block *block,
-                                                     gcc_jit_location *loc,
-                                                     scope const char *asm_template);
-
-/** Create a gcc_jit_extended_asm for an extended asm statement
-   that may perform jumps, and use it to terminate the given block.
-   This is equivalent to the "goto" qualifier in C's extended asm
-   syntax.  */
-
-gcc_jit_extended_asm *gcc_jit_block_end_with_extended_asm_goto(gcc_jit_block *block,
-                                                               gcc_jit_location *loc,
-                                                               scope const char *asm_template,
-                                                               int num_goto_blocks,
-                                                               gcc_jit_block **goto_blocks,
-                                                               gcc_jit_block *fallthrough_block);
-
-/** Upcasting from extended asm to object.  */
-
-gcc_jit_object *gcc_jit_extended_asm_as_object(gcc_jit_extended_asm *ext_asm);
-
-/** Set whether the gcc_jit_extended_asm has side-effects, equivalent to
-   the "volatile" qualifier in C's extended asm syntax.  */
-
-void gcc_jit_extended_asm_set_volatile_flag(gcc_jit_extended_asm *ext_asm,
-                                            int flag);
-
-/** Set the equivalent of the "inline" qualifier in C's extended asm
-   syntax.  */
-
-void gcc_jit_extended_asm_set_inline_flag(gcc_jit_extended_asm *ext_asm,
-                                          int flag);
-
-/** Add an output operand to the extended asm statement.
-   "asm_symbolic_name" can be NULL.
-   "constraint" and "dest" must be non-NULL.
-   This function can't be called on an "asm goto" as such instructions
-   can't have outputs  */
-
-void gcc_jit_extended_asm_add_output_operand(gcc_jit_extended_asm *ext_asm,
-                                             scope const char *asm_symbolic_name,
-                                             scope const char *constraint,
-                                             gcc_jit_lvalue *dest);
-
-/** Add an input operand to the extended asm statement.
-   "asm_symbolic_name" can be NULL.
-   "constraint" and "src" must be non-NULL.  */
-
-void gcc_jit_extended_asm_add_input_operand(gcc_jit_extended_asm *ext_asm,
-                                            scope const char *asm_symbolic_name,
-                                            scope const char *constraint,
-                                            gcc_jit_rvalue *src);
-
-/** Add "victim" to the list of registers clobbered by the extended
-   asm statement.  It must be non-NULL.  */
-
-void gcc_jit_extended_asm_add_clobber(gcc_jit_extended_asm *ext_asm,
-                                      scope const char *victim);
-
-/** Add "asm_stmts", a set of top-level asm statements, analogous to
-   those created by GCC's "basic" asm syntax in C at file scope.  */
-
-void gcc_jit_context_add_top_level_asm(gcc_jit_context *ctxt,
-                                       gcc_jit_location *loc,
-                                       scope const char *asm_stmts);
-
-/** Reflection functions to get the number of parameters, return type of
-   a function and whether a type is a bool from the C API.
-
-   This API entrypoint was added in LIBGCCJIT_ABI_16
-*/
-/** Get the return type of a function.  */
-gcc_jit_type *gcc_jit_function_get_return_type(gcc_jit_function *func);
-
-/** Get the number of params of a function.  */
-size_t gcc_jit_function_get_param_count(gcc_jit_function *func);
-
-/** Get the element type of an array type or NULL if it's not an array.  */
-gcc_jit_type *gcc_jit_type_dyncast_array(gcc_jit_type *type);
-
-/** Return non-zero if the type is a bool.  */
-int gcc_jit_type_is_bool(gcc_jit_type *type);
-
-/** Return the function type if it is one or NULL.  */
-gcc_jit_function_type *gcc_jit_type_dyncast_function_ptr_type(gcc_jit_type *type);
-
-/** Given a function type, return its return type.  */
-gcc_jit_type *gcc_jit_function_type_get_return_type(gcc_jit_function_type *function_type);
-
-/** Given a function type, return its number of parameters.  */
-size_t gcc_jit_function_type_get_param_count(gcc_jit_function_type *function_type);
-
-/** Given a function type, return the type of the specified parameter.  */
-gcc_jit_type *gcc_jit_function_type_get_param_type(gcc_jit_function_type *function_type,
-                                                   size_t index);
-
-/** Return non-zero if the type is an integral.  */
-int gcc_jit_type_is_integral(gcc_jit_type *type);
-
-/** Return the type pointed by the pointer type or NULL if it's not a
- * pointer.  */
-gcc_jit_type *gcc_jit_type_is_pointer(gcc_jit_type *type);
-
-/** Given a type, return a dynamic cast to a vector type or NULL.  */
-gcc_jit_vector_type *gcc_jit_type_dyncast_vector(gcc_jit_type *type);
-
-/** Given a type, return a dynamic cast to a struct type or NULL.  */
-gcc_jit_struct *gcc_jit_type_is_struct(gcc_jit_type *type);
-
-/** Given a vector type, return the number of units it contains.  */
-size_t gcc_jit_vector_type_get_num_units(gcc_jit_vector_type *vector_type);
-
-/** Given a vector type, return the type of its elements.  */
-gcc_jit_type *gcc_jit_vector_type_get_element_type(gcc_jit_vector_type *vector_type);
-
-/** Given a type, return the unqualified type, removing "const", "volatile"
- * and alignment qualifiers.  */
-gcc_jit_type *gcc_jit_type_unqualified(gcc_jit_type *type);
-
 /** Function attributes.  */
 alias gcc_jit_fn_attribute = uint;
 enum : gcc_jit_fn_attribute
@@ -1787,19 +1205,6 @@ enum : gcc_jit_fn_attribute
     GCC_JIT_FN_ATTRIBUTE_MAX,
 };
 
-/** Add an attribute to a function.  */
-void gcc_jit_function_add_attribute(gcc_jit_function *func,
-                                    gcc_jit_fn_attribute attribute);
-
-void gcc_jit_function_add_string_attribute(gcc_jit_function *func,
-                                           gcc_jit_fn_attribute attribute,
-                                           scope const char* value);
-
-void gcc_jit_function_add_integer_array_attribute(gcc_jit_function *func,
-                                                  gcc_jit_fn_attribute attribute,
-                                                  scope const int* value,
-                                                  size_t length);
-
 /** Variable attributes.  */
 alias gcc_jit_variable_attribute = uint;
 enum : gcc_jit_variable_attribute
@@ -1810,7 +1215,949 @@ enum : gcc_jit_variable_attribute
     GCC_JIT_VARIABLE_ATTRIBUTE_MAX,
 };
 
-/** Add a string attribute to a variable.  */
-void gcc_jit_lvalue_add_string_attribute(gcc_jit_lvalue *variable,
-                                         gcc_jit_variable_attribute attribute,
-                                         scope const char* value);
+__gshared {
+
+/** Add an arbitrary gcc command-line option to the context.
+   The context takes a copy of the string, so the
+   (const char *) optname is not needed anymore after the call
+   returns.
+
+   Note that only some options are likely to be meaningful; there is no
+   "frontend" within libgccjit, so typically only those affecting
+   optimization and code-generation are likely to be useful.
+
+   This entrypoint was added in LIBGCCJIT_ABI_1
+*/
+alias gcc_jit_context_add_command_line_option = c_gcc_jit_context_add_command_line_option;
+void function(gcc_jit_context *ctxt,
+              scope const char *optname) c_gcc_jit_context_add_command_line_option;
+
+/** Options added after the initial release of libgccjit.
+   These are handled by providing an entrypoint per option,
+   rather than by extending the enum gcc_jit_*_option,
+   so that client code that use these new options can be identified
+   from binary metadata.  */
+
+/** By default, libgccjit will issue an error about unreachable blocks
+   within a function.
+
+   This option can be used to disable that error.
+
+   This entrypoint was added in LIBGCCJIT_ABI_2
+*/
+alias gcc_jit_context_set_bool_allow_unreachable_blocks = c_gcc_jit_context_set_bool_allow_unreachable_blocks;
+void function(gcc_jit_context *ctxt,
+              int bool_value) c_gcc_jit_context_set_bool_allow_unreachable_blocks;
+
+/** Create a new gcc_jit_case instance for use in a switch statement.
+   min_value and max_value must be constants of integer type.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_3
+*/
+alias gcc_jit_context_new_case = c_gcc_jit_context_new_case;
+gcc_jit_case *function(gcc_jit_context *ctxt,
+                       gcc_jit_rvalue *min_value,
+                       gcc_jit_rvalue *max_value,
+                       gcc_jit_block *dest_block) c_gcc_jit_context_new_case;
+
+/** Upcasting from case to object.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_3
+*/
+alias gcc_jit_case_as_object = c_gcc_jit_case_as_object;
+gcc_jit_object *function(gcc_jit_case *case_) c_gcc_jit_case_as_object;
+
+/** Terminate a block by adding evalation of an rvalue, then performing
+   a multiway branch.
+
+   This is roughly equivalent to this C code:
+
+     switch (expr)
+       {
+       default:
+         goto default_block;
+
+       case C0.min_value ... C0.max_value:
+         goto C0.dest_block;
+
+       case C1.min_value ... C1.max_value:
+         goto C1.dest_block;
+
+       ...etc...
+
+       case C[N - 1].min_value ... C[N - 1].max_value:
+         goto C[N - 1].dest_block;
+     }
+
+   block, expr, default_block and cases must all be non-NULL.
+
+   expr must be of the same integer type as all of the min_value
+   and max_value within the cases.
+
+   num_cases must be >= 0.
+
+   The ranges of the cases must not overlap (or have duplicate
+   values).
+
+   This API entrypoint was added in LIBGCCJIT_ABI_3
+*/
+alias gcc_jit_block_end_with_switch = c_gcc_jit_block_end_with_switch;
+void function(gcc_jit_block *block,
+              gcc_jit_location *loc,
+              gcc_jit_rvalue *expr,
+              gcc_jit_block *default_block,
+              int num_cases,
+              gcc_jit_case **cases) c_gcc_jit_block_end_with_switch;
+
+/** Create a gcc_jit_timer instance, and start timing.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+alias gcc_jit_timer_new = c_gcc_jit_timer_new;
+gcc_jit_timer *function() c_gcc_jit_timer_new;
+
+/** Release a gcc_jit_timer instance.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+alias gcc_jit_timer_release = c_gcc_jit_timer_release;
+void function(gcc_jit_timer *timer) c_gcc_jit_timer_release;
+
+/** Associate a gcc_jit_timer instance with a context.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+alias gcc_jit_context_set_timer = c_gcc_jit_context_set_timer;
+void function(gcc_jit_context *ctxt,
+              gcc_jit_timer *timer) c_gcc_jit_context_set_timer;
+
+/** Get the timer associated with a context (if any).
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+alias gcc_jit_context_get_timer = c_gcc_jit_context_get_timer;
+gcc_jit_timer *function(gcc_jit_context *ctxt) c_gcc_jit_context_get_timer;
+
+/** Push the given item onto the timing stack.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+alias gcc_jit_timer_push = c_gcc_jit_timer_push;
+void function(gcc_jit_timer *timer,
+              scope const char *item_name) c_gcc_jit_timer_push;
+
+/** Pop the top item from the timing stack.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+alias gcc_jit_timer_pop = c_gcc_jit_timer_pop;
+void function(gcc_jit_timer *timer,
+              scope const char *item_name) c_gcc_jit_timer_pop;
+
+/** Print timing information to the given stream about activity since
+   the timer was started.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_4
+*/
+alias gcc_jit_timer_print = c_gcc_jit_timer_print;
+void function(gcc_jit_timer *timer,
+              FILE *f_out) c_gcc_jit_timer_print;
+
+/** Implementation detail:
+   libgccjit internally generates assembler, and uses "driver" code
+   for converting it to other formats (e.g. shared libraries).
+
+   By default, libgccjit will use an embedded copy of the driver
+   code.
+
+   This option can be used to instead invoke an external driver executable
+   as a subprocess.
+
+   This entrypoint was added in LIBGCCJIT_ABI_5
+*/
+alias gcc_jit_context_set_bool_use_external_driver = c_gcc_jit_context_set_bool_use_external_driver;
+void function(gcc_jit_context *ctxt,
+              int bool_value) c_gcc_jit_context_set_bool_use_external_driver;
+
+/** Mark/clear a call as needing tail-call optimization.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_6
+*/
+alias gcc_jit_rvalue_set_bool_require_tail_call = c_gcc_jit_rvalue_set_bool_require_tail_call;
+void function(gcc_jit_rvalue *call,
+              int require_tail_call) c_gcc_jit_rvalue_set_bool_require_tail_call;
+
+/** Given type "T", get type:
+
+     T __attribute__ ((aligned (ALIGNMENT_IN_BYTES)))
+
+   The alignment must be a power of two.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_7
+*/
+alias gcc_jit_type_get_aligned = c_gcc_jit_type_get_aligned;
+gcc_jit_type *function(gcc_jit_type *type,
+                       size_t alignment_in_bytes) c_gcc_jit_type_get_aligned;
+
+/** Given type "T", get type:
+
+     T  __attribute__ ((vector_size (sizeof(T) * num_units))
+
+   T must be integral/floating point; num_units must be a power of two.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_8
+*/
+alias gcc_jit_type_get_vector = c_gcc_jit_type_get_vector;
+gcc_jit_type *function(gcc_jit_type *type, size_t num_units) c_gcc_jit_type_get_vector;
+
+/** Get the address of a function as an rvalue, of function pointer
+   type.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_9
+*/
+alias gcc_jit_function_get_address = c_gcc_jit_function_get_address;
+gcc_jit_rvalue *function(gcc_jit_function *fn,
+                         gcc_jit_location *loc) c_gcc_jit_function_get_address;
+
+/** Build a vector rvalue from an array of elements.
+
+   "vec_type" should be a vector type, created using gcc_jit_type_get_vector.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_10
+*/
+alias gcc_jit_context_new_rvalue_from_vector = c_gcc_jit_context_new_rvalue_from_vector;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_location *loc,
+                         gcc_jit_type *vec_type,
+                         size_t num_elements,
+                         gcc_jit_rvalue **elements) c_gcc_jit_context_new_rvalue_from_vector;
+
+/** Add an arbitrary gcc driver option to the context.
+   The context takes a copy of the string, so the
+   (const char *) optname is not needed anymore after the call
+   returns.
+
+   Note that only some options are likely to be meaningful; there is no
+   "frontend" within libgccjit, so typically only those affecting
+   assembler and linker are likely to be useful.
+
+   This entrypoint was added in LIBGCCJIT_ABI_11
+*/
+alias gcc_jit_context_add_driver_option = c_gcc_jit_context_add_driver_option;
+void function(gcc_jit_context *ctxt,
+              scope const char *optname) c_gcc_jit_context_add_driver_option;
+
+/** Create a bit field, for use within a struct or union.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_12
+*/
+alias gcc_jit_context_new_bitfield = c_gcc_jit_context_new_bitfield;
+gcc_jit_field *function(gcc_jit_context *ctxt,
+                        gcc_jit_location *loc,
+                        gcc_jit_type *type,
+                        int width,
+                        scope const char *name) c_gcc_jit_context_new_bitfield;
+
+/** Functions to retrieve libgccjit version.
+   Analogous to __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__ in C code.
+
+   These API entrypoints were added in LIBGCCJIT_ABI_13
+ */
+int function() c_gcc_jit_version_major;
+int function() c_gcc_jit_version_minor;
+int function() c_gcc_jit_version_patchlevel;
+alias gcc_jit_version_major = c_gcc_jit_version_major;
+alias gcc_jit_version_minor = c_gcc_jit_version_minor;
+alias gcc_jit_version_patchlevel = c_gcc_jit_version_patchlevel;
+
+/** Set an initial value for a global, which must be an array of
+   integral type.  Return the global itself.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_14
+*/
+alias gcc_jit_global_set_initializer = c_gcc_jit_global_set_initializer;
+gcc_jit_lvalue *function(gcc_jit_lvalue *global,
+                         scope const void *blob,
+                         size_t num_bytes) c_gcc_jit_global_set_initializer;
+
+/**********************************************************************
+ Asm support.
+ **********************************************************************/
+
+/** Functions for adding inline assembler code, analogous to GCC's
+   "extended asm" syntax.
+
+   See https://gcc.gnu.org/onlinedocs/gcc/Using-Assembly-Language-with-C.html
+
+   These API entrypoints were added in LIBGCCJIT_ABI_15
+*/
+
+/** Create a gcc_jit_extended_asm for an extended asm statement
+   with no control flow (i.e. without the goto qualifier).
+
+   The asm_template parameter  corresponds to the AssemblerTemplate
+   within C's extended asm syntax.  It must be non-NULL.  */
+alias gcc_jit_block_add_extended_asm = c_gcc_jit_block_add_extended_asm;
+gcc_jit_extended_asm *function(gcc_jit_block *block,
+                               gcc_jit_location *loc,
+                               scope const char *asm_template) c_gcc_jit_block_add_extended_asm;
+
+/** Create a gcc_jit_extended_asm for an extended asm statement
+   that may perform jumps, and use it to terminate the given block.
+   This is equivalent to the "goto" qualifier in C's extended asm
+   syntax.  */
+alias gcc_jit_block_end_with_extended_asm_goto = c_gcc_jit_block_end_with_extended_asm_goto;
+gcc_jit_extended_asm *function(gcc_jit_block *block,
+                               gcc_jit_location *loc,
+                               scope const char *asm_template,
+                               int num_goto_blocks,
+                               gcc_jit_block **goto_blocks,
+                               gcc_jit_block *fallthrough_block) c_gcc_jit_block_end_with_extended_asm_goto;
+
+/** Upcasting from extended asm to object.  */
+alias gcc_jit_extended_asm_as_object = c_gcc_jit_extended_asm_as_object;
+gcc_jit_object *function(gcc_jit_extended_asm *ext_asm) c_gcc_jit_extended_asm_as_object;
+
+/** Set whether the gcc_jit_extended_asm has side-effects, equivalent to
+   the "volatile" qualifier in C's extended asm syntax.  */
+alias gcc_jit_extended_asm_set_volatile_flag = c_gcc_jit_extended_asm_set_volatile_flag;
+void function(gcc_jit_extended_asm *ext_asm,
+              int flag) c_gcc_jit_extended_asm_set_volatile_flag;
+
+/** Set the equivalent of the "inline" qualifier in C's extended asm
+   syntax.  */
+alias gcc_jit_extended_asm_set_inline_flag = c_gcc_jit_extended_asm_set_inline_flag;
+void function(gcc_jit_extended_asm *ext_asm,
+              int flag) c_gcc_jit_extended_asm_set_inline_flag;
+
+/** Add an output operand to the extended asm statement.
+   "asm_symbolic_name" can be NULL.
+   "constraint" and "dest" must be non-NULL.
+   This function can't be called on an "asm goto" as such instructions
+   can't have outputs  */
+alias gcc_jit_extended_asm_add_output_operand = c_gcc_jit_extended_asm_add_output_operand;
+void function(gcc_jit_extended_asm *ext_asm,
+              scope const char *asm_symbolic_name,
+              scope const char *constraint,
+              gcc_jit_lvalue *dest) c_gcc_jit_extended_asm_add_output_operand;
+
+/** Add an input operand to the extended asm statement.
+   "asm_symbolic_name" can be NULL.
+   "constraint" and "src" must be non-NULL.  */
+alias gcc_jit_extended_asm_add_input_operand = c_gcc_jit_extended_asm_add_input_operand;
+void function(gcc_jit_extended_asm *ext_asm,
+              scope const char *asm_symbolic_name,
+              scope const char *constraint,
+              gcc_jit_rvalue *src) c_gcc_jit_extended_asm_add_input_operand;
+
+/** Add "victim" to the list of registers clobbered by the extended
+   asm statement.  It must be non-NULL.  */
+alias gcc_jit_extended_asm_add_clobber = c_gcc_jit_extended_asm_add_clobber;
+void function(gcc_jit_extended_asm *ext_asm,
+              scope const char *victim) c_gcc_jit_extended_asm_add_clobber;
+
+/** Add "asm_stmts", a set of top-level asm statements, analogous to
+   those created by GCC's "basic" asm syntax in C at file scope.  */
+alias gcc_jit_context_add_top_level_asm = c_gcc_jit_context_add_top_level_asm;
+void function(gcc_jit_context *ctxt,
+              gcc_jit_location *loc,
+              scope const char *asm_stmts) c_gcc_jit_context_add_top_level_asm;
+
+/** Reflection functions to get the number of parameters, return type of
+   a function and whether a type is a bool from the C API.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_16
+*/
+/** Get the return type of a function.  */
+alias gcc_jit_function_get_return_type = c_gcc_jit_function_get_return_type;
+gcc_jit_type *function(gcc_jit_function *func) c_gcc_jit_function_get_return_type;
+
+/** Get the number of params of a function.  */
+alias gcc_jit_function_get_param_count = c_gcc_jit_function_get_param_count;
+size_t function(gcc_jit_function *func) c_gcc_jit_function_get_param_count;
+
+/** Get the element type of an array type or NULL if it's not an array.  */
+alias gcc_jit_type_dyncast_array = c_gcc_jit_type_dyncast_array;
+gcc_jit_type *function(gcc_jit_type *type) c_gcc_jit_type_dyncast_array;
+
+/** Return non-zero if the type is a bool.  */
+alias gcc_jit_type_is_bool = c_gcc_jit_type_is_bool;
+int function(gcc_jit_type *type) c_gcc_jit_type_is_bool;
+
+/** Return the function type if it is one or NULL.  */
+alias gcc_jit_type_dyncast_function_ptr_type = c_gcc_jit_type_dyncast_function_ptr_type;
+gcc_jit_function_type *function(gcc_jit_type *type) c_gcc_jit_type_dyncast_function_ptr_type;
+
+/** Given a function type, return its return type.  */
+alias gcc_jit_function_type_get_return_type = c_gcc_jit_function_type_get_return_type;
+gcc_jit_type *function(gcc_jit_function_type *function_type) c_gcc_jit_function_type_get_return_type;
+
+/** Given a function type, return its number of parameters.  */
+alias gcc_jit_function_type_get_param_count = c_gcc_jit_function_type_get_param_count;
+size_t function(gcc_jit_function_type *function_type) c_gcc_jit_function_type_get_param_count;
+
+/** Given a function type, return the type of the specified parameter.  */
+alias gcc_jit_function_type_get_param_type = c_gcc_jit_function_type_get_param_type;
+gcc_jit_type *function(gcc_jit_function_type *function_type,
+                       size_t index) c_gcc_jit_function_type_get_param_type;
+
+/** Return non-zero if the type is an integral.  */
+alias gcc_jit_type_is_integral = c_gcc_jit_type_is_integral;
+int function(gcc_jit_type *type) c_gcc_jit_type_is_integral;
+
+/** Return the type pointed by the pointer type or NULL if it's not a
+ * pointer.  */
+alias gcc_jit_type_is_pointer = c_gcc_jit_type_is_pointer;
+gcc_jit_type *function(gcc_jit_type *type) c_gcc_jit_type_is_pointer;
+
+/** Given a type, return a dynamic cast to a vector type or NULL.  */
+alias gcc_jit_type_dyncast_vector = c_gcc_jit_type_dyncast_vector;
+gcc_jit_vector_type *function(gcc_jit_type *type) c_gcc_jit_type_dyncast_vector;
+
+/** Given a type, return a dynamic cast to a struct type or NULL.  */
+alias gcc_jit_type_is_struct = c_gcc_jit_type_is_struct;
+gcc_jit_struct *function(gcc_jit_type *type) c_gcc_jit_type_is_struct;
+
+/** Given a vector type, return the number of units it contains.  */
+alias gcc_jit_vector_type_get_num_units = c_gcc_jit_vector_type_get_num_units;
+size_t function(gcc_jit_vector_type *vector_type) c_gcc_jit_vector_type_get_num_units;
+
+/** Given a vector type, return the type of its elements.  */
+alias gcc_jit_vector_type_get_element_type = c_gcc_jit_vector_type_get_element_type;
+gcc_jit_type *function(gcc_jit_vector_type *vector_type) c_gcc_jit_vector_type_get_element_type;
+
+/** Given a type, return the unqualified type, removing "const", "volatile"
+ * and alignment qualifiers.  */
+alias gcc_jit_type_unqualified = c_gcc_jit_type_unqualified;
+gcc_jit_type *function(gcc_jit_type *type) c_gcc_jit_type_unqualified;
+
+/** Set the thread-local storage model of a global variable
+
+   This API entrypoint was added in LIBGCCJIT_ABI_17
+*/
+alias gcc_jit_lvalue_set_tls_model = c_gcc_jit_lvalue_set_tls_model;
+void function(gcc_jit_lvalue *lvalue,
+              gcc_jit_tls_model model) c_gcc_jit_lvalue_set_tls_model;
+
+/** Set the link section of a global variable; analogous to:
+     __attribute__((section(".section_name")))
+   in C.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_18
+*/
+alias gcc_jit_lvalue_set_link_section = c_gcc_jit_lvalue_set_link_section;
+void function(gcc_jit_lvalue *lvalue,
+              scope const char *section_name) c_gcc_jit_lvalue_set_link_section;
+
+/** Create a constructor for a struct as an rvalue.
+
+   Returns NULL on error.  The two parameter arrays are copied and
+   do not have to outlive the context.
+
+   `type` specifies what the constructor will build and has to be
+   a struct.
+
+   `num_values` specifies the number of elements in `values`.
+
+   `fields` need to have the same length as `values`, or be NULL.
+
+   If `fields` is null, the values are applied in definition order.
+
+   Otherwise, each field in `fields` specifies which field in the struct to
+   set to the corresponding value in `values`.  `fields` and `values`
+   are paired by index.
+
+   Each value has to have the same unqualified type as the field
+   it is applied to.
+
+   A NULL value element  in `values` is a shorthand for zero initialization
+   of the corresponding field.
+
+   The fields in `fields` have to be in definition order, but there
+   can be gaps.  Any field in the struct that is not specified in
+   `fields` will be zeroed.
+
+   The fields in `fields` need to be the same objects that were used
+   to create the struct.
+
+   If `num_values` is 0, the array parameters will be
+   ignored and zero initialization will be used.
+
+   The constructor rvalue can be used for assignment to locals.
+   It can be used to initialize global variables with
+   gcc_jit_global_set_initializer_rvalue.  It can also be used as a
+   temporary value for function calls and return values.
+
+   The constructor can contain nested constructors.
+
+   This entrypoint was added in LIBGCCJIT_ABI_19
+*/
+alias gcc_jit_context_new_struct_constructor = c_gcc_jit_context_new_struct_constructor;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_location *loc,
+                         gcc_jit_type *type,
+                         size_t num_values,
+                         gcc_jit_field **fields,
+                         gcc_jit_rvalue **values) c_gcc_jit_context_new_struct_constructor;
+
+/** Create a constructor for a union as an rvalue.
+
+   Returns NULL on error.
+
+   `type` specifies what the constructor will build and has to be
+   an union.
+
+   `field` specifies which field to set.  If it is NULL, the first
+   field in the union will be set.  `field` need to be the same
+   object that were used to create the union.
+
+   `value` specifies what value to set the corresponding field to.
+   If `value` is NULL, zero initialization will be used.
+
+   Each value has to have the same unqualified type as the field
+   it is applied to.
+
+   `field` need to be the same objects that were used
+   to create the union.
+
+   The constructor rvalue can be used for assignment to locals.
+   It can be used to initialize global variables with
+   gcc_jit_global_set_initializer_rvalue.  It can also be used as a
+   temporary value for function calls and return values.
+
+   The constructor can contain nested constructors.
+
+   This entrypoint was added in LIBGCCJIT_ABI_19
+*/
+alias gcc_jit_context_new_union_constructor = c_gcc_jit_context_new_union_constructor;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_location *loc,
+                         gcc_jit_type *type,
+                         gcc_jit_field *field,
+                         gcc_jit_rvalue *value) c_gcc_jit_context_new_union_constructor;
+
+/** Create a constructor for an array as an rvalue.
+
+   Returns NULL on error.  `values` are copied and
+   do not have to outlive the context.
+
+   `type` specifies what the constructor will build and has to be
+   an array.
+
+   `num_values` specifies the number of elements in `values` and
+   it can't have more elements than the array type.
+
+   Each value in `values` sets the corresponding value in the array.
+   If the array type itself has more elements than `values`, the
+   left-over elements will be zeroed.
+
+   Each value in `values` need to be the same unqualified type as the
+   array type's element type.
+
+   If `num_values` is 0, the `values` parameter will be
+   ignored and zero initialization will be used.
+
+   Note that a string literal rvalue can't be used to construct a char
+   array.  It needs one rvalue for each char.
+
+   This entrypoint was added in LIBGCCJIT_ABI_19
+*/
+alias gcc_jit_context_new_array_constructor = c_gcc_jit_context_new_array_constructor;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_location *loc,
+                         gcc_jit_type *type,
+                         size_t num_values,
+                         gcc_jit_rvalue **values) c_gcc_jit_context_new_array_constructor;
+
+/** Set the initial value of a global of any type with an rvalue.
+
+   The rvalue needs to be a constant expression, e.g. no function calls.
+
+   The global can't have the 'kind' GCC_JIT_GLOBAL_IMPORTED.
+
+   Use together with gcc_jit_context_new_constructor () to
+   initialize structs, unions and arrays.
+
+   On success, returns the 'global' parameter unchanged.  Otherwise, NULL.
+
+   'values' is copied and does not have to outlive the context.
+
+   This entrypoint was added in LIBGCCJIT_ABI_19
+*/
+alias gcc_jit_global_set_initializer_rvalue = c_gcc_jit_global_set_initializer_rvalue;
+gcc_jit_lvalue *function(gcc_jit_lvalue *global,
+                         gcc_jit_rvalue *init_value) c_gcc_jit_global_set_initializer_rvalue;
+
+/** Given types LTYPE and RTYPE, return non-zero if they are compatible.
+   This API entrypoint was added in LIBGCCJIT_ABI_20
+*/
+alias gcc_jit_compatible_types = c_gcc_jit_compatible_types;
+int function(gcc_jit_type *ltype,
+             gcc_jit_type *rtype) c_gcc_jit_compatible_types;
+
+/** Given type "T", get its size.
+   This API entrypoint was added in LIBGCCJIT_ABI_20
+*/
+alias gcc_jit_type_get_size = c_gcc_jit_type_get_size;
+ptrdiff_t function(gcc_jit_type *type) c_gcc_jit_type_get_size;
+
+/** Reinterpret a value as another type.
+
+   The types must be of the same size.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_21
+*/
+alias gcc_jit_context_new_bitcast = c_gcc_jit_context_new_bitcast;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_location *loc,
+                         gcc_jit_rvalue *rvalue,
+                         gcc_jit_type *type) c_gcc_jit_context_new_bitcast;
+
+/** Make this variable a register variable and set its register name.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_22
+*/
+alias gcc_jit_lvalue_set_register_name = c_gcc_jit_lvalue_set_register_name;
+void function(gcc_jit_lvalue *lvalue,
+              scope const char *reg_name) c_gcc_jit_lvalue_set_register_name;
+
+/** By default, libgccjit will print errors to stderr.
+
+   This option can be used to disable the printing.
+
+   This entrypoint was added in LIBGCCJIT_ABI_23
+*/
+alias gcc_jit_context_set_bool_print_errors_to_stderr = c_gcc_jit_context_set_bool_print_errors_to_stderr;
+void function(gcc_jit_context *ctxt,
+              int enabled) c_gcc_jit_context_set_bool_print_errors_to_stderr;
+
+/** Set the alignment of a variable.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_24
+*/
+alias gcc_jit_lvalue_set_alignment = c_gcc_jit_lvalue_set_alignment;
+void function(gcc_jit_lvalue *lvalue,
+              uint bytes) c_gcc_jit_lvalue_set_alignment;
+
+/** Get the alignment of a variable.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_24
+*/
+alias gcc_jit_lvalue_get_alignment = c_gcc_jit_lvalue_get_alignment;
+uint function(gcc_jit_lvalue *lvalue) c_gcc_jit_lvalue_get_alignment;
+
+gcc_jit_lvalue *gcc_jit_context_new_array_access(gcc_jit_context *ctxt,
+                                                 gcc_jit_location *loc,
+                                                 gcc_jit_rvalue *ptr,
+                                                 gcc_jit_rvalue *index);
+
+/** Given type "T", get type "restrict T".
+   This API entrypoint was added in LIBGCCJIT_ABI_25
+*/
+alias gcc_jit_type_get_restrict = c_gcc_jit_type_get_restrict;
+gcc_jit_type *function(gcc_jit_type *type) c_gcc_jit_type_get_restrict;
+
+/** Add an attribute to a function.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_26
+*/
+alias gcc_jit_function_add_attribute = c_gcc_jit_function_add_attribute;
+void function(gcc_jit_function *func,
+              gcc_jit_fn_attribute attribute) c_gcc_jit_function_add_attribute;
+
+alias gcc_jit_function_add_string_attribute = c_gcc_jit_function_add_string_attribute;
+void function(gcc_jit_function *func,
+              gcc_jit_fn_attribute attribute,
+              scope const char* value) c_gcc_jit_function_add_string_attribute;
+
+alias gcc_jit_function_add_integer_array_attribute = c_gcc_jit_function_add_integer_array_attribute;
+void function(gcc_jit_function *func,
+              gcc_jit_fn_attribute attribute,
+              scope const int* value,
+              size_t length) c_gcc_jit_function_add_integer_array_attribute;
+
+/** Add a string attribute to a variable.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_26
+*/
+alias gcc_jit_lvalue_add_string_attribute = c_gcc_jit_lvalue_add_string_attribute;
+void function(gcc_jit_lvalue *variable,
+              gcc_jit_variable_attribute attribute,
+              scope const char* value) c_gcc_jit_lvalue_add_string_attribute;
+
+/** Generates an rvalue that is equal to the size of type.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_27
+*/
+alias gcc_jit_context_new_sizeof = c_gcc_jit_context_new_sizeof;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_type *type) c_gcc_jit_context_new_sizeof;
+
+} /* __gshared  */
+
+extern(D):
+private:
+
+version (D_BetterC)
+{
+    /* Friendly for building without D runtime, but requires modern compiler.  */
+    pragma(crt_constructor)
+    void shared_static_this()
+    {
+        mixin(LoadLibGccjit);
+    }
+}
+else
+{
+    /* Set all function pointers before D main.  */
+    shared static this()
+    {
+        mixin(LoadLibGccjit);
+    }
+}
+
+/* Loads all versioned symbols added to libgccjit after LIBGCCJIT_ABI_0.  */
+enum LoadLibGccjit =
+q{
+    /* LIBGCCJIT_ABI_0 (always linked in).  */
+    LIBGCCJIT_ABI = 0;
+
+    version (Windows)
+    {
+        import core.sys.windows.winbase : GetModuleHandleA, GetProcAddress;
+        alias dlsym = GetProcAddress;
+        auto handle = GetModuleHandleA(null);
+    }
+    else
+    {
+        import core.sys.posix.dlfcn : dlopen, dlsym, RTLD_LAZY;
+        auto handle = dlopen(null, RTLD_LAZY);
+    }
+    if (handle is null)
+        return;
+
+    bool link(void** func, string symbol)
+    {
+        if (auto sym = dlsym(handle, symbol.ptr))
+        {
+            *func = sym;
+            return true;
+        }
+        else
+        {
+            import gccjit.helpers  : abort;
+            *func = &abort!"Attempt to execute an unresolved gccjit function";
+            return false;
+        }
+    }
+
+    /* LIBGCCJIT_ABI_1  */
+    if (!link(cast(void**)&gcc_jit_context_add_command_line_option,
+              "gcc_jit_context_add_command_line_option"))
+        return;
+    LIBGCCJIT_ABI = 1;
+
+    /* LIBGCCJIT_ABI_2  */
+    if (!link(cast(void**)&gcc_jit_context_set_bool_allow_unreachable_blocks,
+              "gcc_jit_context_set_bool_allow_unreachable_blocks"))
+        return;
+    LIBGCCJIT_ABI = 2;
+
+    /* LIBGCCJIT_ABI_3  */
+    if (!link(cast(void**)&gcc_jit_block_end_with_switch, "gcc_jit_block_end_with_switch")
+        || !link(cast(void**)&gcc_jit_case_as_object, "gcc_jit_case_as_object")
+        || !link(cast(void**)&gcc_jit_context_new_case, "gcc_jit_context_new_case"))
+        return;
+    LIBGCCJIT_ABI = 3;
+
+    /* LIBGCCJIT_ABI_4  */
+    if (!link(cast(void**)&gcc_jit_context_get_timer, "gcc_jit_context_get_timer")
+        || !link(cast(void**)&gcc_jit_context_set_timer, "gcc_jit_context_set_timer")
+        || !link(cast(void**)&gcc_jit_timer_new, "gcc_jit_timer_new")
+        || !link(cast(void**)&gcc_jit_timer_release, "gcc_jit_timer_release")
+        || !link(cast(void**)&gcc_jit_timer_push, "gcc_jit_timer_push")
+        || !link(cast(void**)&gcc_jit_timer_pop, "gcc_jit_timer_pop")
+        || !link(cast(void**)&gcc_jit_timer_print, "gcc_jit_timer_print"))
+        return;
+    LIBGCCJIT_ABI = 4;
+
+    /* LIBGCCJIT_ABI_5  */
+    if (!link(cast(void**)&gcc_jit_context_set_bool_use_external_driver,
+              "gcc_jit_context_set_bool_use_external_driver"))
+        return;
+    LIBGCCJIT_ABI = 5;
+
+    /* LIBGCCJIT_ABI_6  */
+    if (!link(cast(void**)&gcc_jit_rvalue_set_bool_require_tail_call,
+              "gcc_jit_rvalue_set_bool_require_tail_call"))
+        return;
+    LIBGCCJIT_ABI = 6;
+
+    /* LIBGCCJIT_ABI_7  */
+    if (!link(cast(void**)&gcc_jit_type_get_aligned, "gcc_jit_type_get_aligned"))
+        return;
+    LIBGCCJIT_ABI = 7;
+
+    /* LIBGCCJIT_ABI_8  */
+    if (!link(cast(void**)&gcc_jit_type_get_vector, "gcc_jit_type_get_vector"))
+        return;
+    LIBGCCJIT_ABI = 8;
+
+    /* LIBGCCJIT_ABI_9  */
+    if (!link(cast(void**)&gcc_jit_function_get_address, "gcc_jit_function_get_address"))
+        return;
+    LIBGCCJIT_ABI = 9;
+
+    /* LIBGCCJIT_ABI_10  */
+    if (!link(cast(void**)&gcc_jit_context_new_rvalue_from_vector,
+              "gcc_jit_context_new_rvalue_from_vector"))
+        return;
+    LIBGCCJIT_ABI = 10;
+
+    /* LIBGCCJIT_ABI_11  */
+    if (!link(cast(void**)&gcc_jit_context_add_driver_option,
+              "gcc_jit_context_add_driver_option"))
+        return;
+    LIBGCCJIT_ABI = 11;
+
+    /* LIBGCCJIT_ABI_12  */
+    if (!link(cast(void**)&gcc_jit_context_new_bitfield, "gcc_jit_context_new_bitfield"))
+        return;
+    LIBGCCJIT_ABI = 12;
+
+    /* LIBGCCJIT_ABI_13  */
+    if (!link(cast(void**)&gcc_jit_version_major, "gcc_jit_version_major")
+        || !link(cast(void**)&gcc_jit_version_minor, "gcc_jit_version_minor")
+        || !link(cast(void**)&gcc_jit_version_patchlevel, "gcc_jit_version_patchlevel"))
+        return;
+    LIBGCCJIT_ABI = 13;
+
+    /* LIBGCCJIT_ABI_14  */
+    if (!link(cast(void**)&gcc_jit_global_set_initializer, "gcc_jit_global_set_initializer"))
+        return;
+    LIBGCCJIT_ABI = 14;
+
+    /* LIBGCCJIT_ABI_15  */
+    if (!link(cast(void**)&gcc_jit_block_add_extended_asm,
+              "gcc_jit_block_add_extended_asm")
+        || !link(cast(void**)&gcc_jit_block_end_with_extended_asm_goto,
+                 "gcc_jit_block_end_with_extended_asm_goto")
+        || !link(cast(void**)&gcc_jit_extended_asm_as_object,
+                 "gcc_jit_extended_asm_as_object")
+        || !link(cast(void**)&gcc_jit_extended_asm_set_volatile_flag,
+                 "gcc_jit_extended_asm_set_volatile_flag")
+        || !link(cast(void**)&gcc_jit_extended_asm_set_inline_flag,
+                 "gcc_jit_extended_asm_set_inline_flag")
+        || !link(cast(void**)&gcc_jit_extended_asm_add_output_operand,
+                 "gcc_jit_extended_asm_add_output_operand")
+        || !link(cast(void**)&gcc_jit_extended_asm_add_input_operand,
+                 "gcc_jit_extended_asm_add_input_operand")
+        || !link(cast(void**)&gcc_jit_extended_asm_add_clobber,
+                 "gcc_jit_extended_asm_add_clobber")
+        || !link(cast(void**)&gcc_jit_context_add_top_level_asm,
+                 "gcc_jit_context_add_top_level_asm"))
+        return;
+    LIBGCCJIT_ABI = 15;
+
+    /* LIBGCCJIT_ABI_16  */
+    if (!link(cast(void**)&gcc_jit_function_get_return_type,
+              "gcc_jit_function_get_return_type")
+        || !link(cast(void**)&gcc_jit_function_get_param_count,
+                 "gcc_jit_function_get_param_count")
+        || !link(cast(void**)&gcc_jit_function_type_get_return_type,
+                 "gcc_jit_function_type_get_return_type")
+        || !link(cast(void**)&gcc_jit_function_type_get_param_count,
+                 "gcc_jit_function_type_get_param_count")
+        || !link(cast(void**)&gcc_jit_function_type_get_param_type,
+                 "gcc_jit_function_type_get_param_type")
+        || !link(cast(void**)&gcc_jit_type_dyncast_function_ptr_type,
+                 "gcc_jit_type_dyncast_function_ptr_type")
+        || !link(cast(void**)&gcc_jit_vector_type_get_element_type,
+                 "gcc_jit_vector_type_get_element_type")
+        || !link(cast(void**)&gcc_jit_vector_type_get_num_units,
+                 "gcc_jit_vector_type_get_num_units")
+        || !link(cast(void**)&gcc_jit_type_unqualified, "gcc_jit_type_unqualified")
+        || !link(cast(void**)&gcc_jit_type_dyncast_array, "gcc_jit_type_dyncast_array")
+        || !link(cast(void**)&gcc_jit_type_is_bool, "gcc_jit_type_is_bool")
+        || !link(cast(void**)&gcc_jit_type_is_integral, "gcc_jit_type_is_integral")
+        || !link(cast(void**)&gcc_jit_type_is_pointer, "gcc_jit_type_is_pointer")
+        || !link(cast(void**)&gcc_jit_type_dyncast_vector, "gcc_jit_type_dyncast_vector")
+        || !link(cast(void**)&gcc_jit_struct_get_field, "gcc_jit_struct_get_field")
+        || !link(cast(void**)&gcc_jit_type_is_struct, "gcc_jit_type_is_struct")
+        || !link(cast(void**)&gcc_jit_struct_get_field_count, "gcc_jit_struct_get_field_count"))
+        return;
+    LIBGCCJIT_ABI = 16;
+
+    /* LIBGCCJIT_ABI_17  */
+    if (!link(cast(void**)&gcc_jit_lvalue_set_tls_model, "gcc_jit_lvalue_set_tls_model"))
+        return;
+    LIBGCCJIT_ABI = 17;
+
+    /* LIBGCCJIT_ABI_18  */
+    if (!link(cast(void**)&gcc_jit_lvalue_set_link_section, "gcc_jit_lvalue_set_link_section"))
+        return;
+    LIBGCCJIT_ABI = 18;
+
+    /* LIBGCCJIT_ABI_19  */
+    if (!link(cast(void**)&gcc_jit_context_new_array_constructor,
+              "gcc_jit_context_new_array_constructor")
+        || !link(cast(void**)&gcc_jit_context_new_struct_constructor,
+                 "gcc_jit_context_new_struct_constructor")
+        || !link(cast(void**)&gcc_jit_context_new_union_constructor,
+                 "gcc_jit_context_new_union_constructor")
+        || !link(cast(void**)&gcc_jit_global_set_initializer_rvalue,
+                 "gcc_jit_global_set_initializer_rvalue"))
+        return;
+    LIBGCCJIT_ABI = 19;
+
+
+    /* LIBGCCJIT_ABI_20  */
+    if (!link(cast(void**)&gcc_jit_compatible_types, "gcc_jit_compatible_types")
+        || !link(cast(void**)&gcc_jit_type_get_size, "gcc_jit_type_get_size"))
+        return;
+    LIBGCCJIT_ABI = 20;
+
+    /* LIBGCCJIT_ABI_21  */
+    if (!link(cast(void**)&gcc_jit_context_new_bitcast, "gcc_jit_context_new_bitcast"))
+        return;
+    LIBGCCJIT_ABI = 21;
+
+    /* LIBGCCJIT_ABI_22  */
+    if (!link(cast(void**)&gcc_jit_lvalue_set_register_name, "gcc_jit_lvalue_set_register_name"))
+        return;
+    LIBGCCJIT_ABI = 22;
+
+    /* LIBGCCJIT_ABI_23  */
+    if (!link(cast(void**)&gcc_jit_context_set_bool_print_errors_to_stderr,
+              "gcc_jit_context_set_bool_print_errors_to_stderr"))
+        return;
+    LIBGCCJIT_ABI = 23;
+
+    /* LIBGCCJIT_ABI_24  */
+    if (!link(cast(void**)&gcc_jit_lvalue_set_alignment, "gcc_jit_lvalue_set_alignment")
+        || !link(cast(void**)&gcc_jit_lvalue_get_alignment, "gcc_jit_lvalue_get_alignment"))
+        return;
+    LIBGCCJIT_ABI = 24;
+
+    /* LIBGCCJIT_ABI_25  */
+    if (!link(cast(void**)&gcc_jit_type_get_restrict, "gcc_jit_type_get_restrict"))
+        return;
+    LIBGCCJIT_ABI = 25;
+
+    /* LIBGCCJIT_ABI_26  */
+    if (!link(cast(void**)&gcc_jit_function_add_attribute,
+              "gcc_jit_function_add_attribute")
+        || !link(cast(void**)&gcc_jit_function_add_string_attribute,
+                 "gcc_jit_function_add_string_attribute")
+        || !link(cast(void**)&gcc_jit_lvalue_add_string_attribute,
+                 "gcc_jit_lvalue_add_string_attribute")
+        || !link(cast(void**)&gcc_jit_function_add_integer_array_attribute,
+                 "gcc_jit_function_add_integer_array_attribute"))
+        return;
+    LIBGCCJIT_ABI = 26;
+
+    /* LIBGCCJIT_ABI_27  */
+    if (!link(cast(void**)&gcc_jit_context_new_sizeof, "gcc_jit_context_new_sizeof"))
+        return;
+    LIBGCCJIT_ABI = 27;
+};

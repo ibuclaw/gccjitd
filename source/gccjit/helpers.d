@@ -128,7 +128,7 @@ unittest
 }
 
 // Print message to stderr then abort runtime.
-private void abort(string msg)() @nogc nothrow
+void abort(string msg)() @nogc nothrow
 {
     import core.stdc.stdio : fputs, stderr;
     import core.stdc.stdlib : abort;
