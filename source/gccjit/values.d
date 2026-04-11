@@ -318,7 +318,7 @@ struct LValue
         return this;
     }
 
-    /// Get the alignment of a variable
+    /// Get the alignment of a variable.
     uint get_alignment() nothrow @nogc
     { return gcc_jit_lvalue_get_alignment(m_lvalue); }
 
@@ -327,6 +327,13 @@ struct LValue
     {
         value.toCStringThen!((v)
             => gcc_jit_lvalue_add_string_attribute(m_lvalue, attribute, v.ptr));
+        return this;
+    }
+
+    /// Set the global variable as read-only.
+    LValue set_readonly() return nothrow @nogc
+    {
+        gcc_jit_global_set_readonly(m_lvalue);
         return this;
     }
 }

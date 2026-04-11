@@ -234,6 +234,9 @@ enum : gcc_jit_str_option
        messages to stderr.  If NULL, or default, "libgccjit.so" is used.  */
     GCC_JIT_STR_OPTION_PROGNAME,
 
+    /** Special characters to allow in function names.  */
+    GCC_JIT_STR_OPTION_SPECIAL_CHARS_IN_FUNC_NAMES,
+
     GCC_JIT_NUM_STR_OPTIONS,
 }
 
@@ -543,6 +546,8 @@ enum : gcc_jit_types
     GCC_JIT_TYPE_INT32_T,
     GCC_JIT_TYPE_INT64_T,
     GCC_JIT_TYPE_INT128_T,
+
+    GCC_JIT_TYPE_BFLOAT16,
 }
 
 gcc_jit_type *gcc_jit_context_get_type(gcc_jit_context *ctxt,
@@ -1893,6 +1898,78 @@ alias gcc_jit_context_new_sizeof = c_gcc_jit_context_new_sizeof;
 gcc_jit_rvalue *function(gcc_jit_context *ctxt,
                          gcc_jit_type *type) c_gcc_jit_context_new_sizeof;
 
+/** Generates an rvalue that is equal to the alignment of type.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_28
+*/
+alias gcc_jit_context_new_alignof = c_gcc_jit_context_new_alignof;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_type *type) c_gcc_jit_context_new_alignof;
+
+/**
+   This API entrypoint was added in LIBGCCJIT_ABI_29
+*/
+alias gcc_jit_global_set_readonly = c_gcc_jit_global_set_readonly;
+void function(gcc_jit_lvalue *global) c_gcc_jit_global_set_readonly;
+
+/** Given a vector rvalue, cast it to the type ``type``, doing an element-wise
+   conversion.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_30
+ */
+alias gcc_jit_context_convert_vector = c_gcc_jit_context_convert_vector;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_location *loc,
+                         gcc_jit_rvalue *vector,
+                         gcc_jit_type *type) c_gcc_jit_context_convert_vector;
+
+/** Build a permutation vector rvalue from an 3 arrays of elements.
+
+   "vec_type" should be a vector type, created using gcc_jit_type_get_vector.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_31
+*/
+alias gcc_jit_context_new_rvalue_vector_perm = c_gcc_jit_context_new_rvalue_vector_perm;
+gcc_jit_rvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_location *loc,
+                         gcc_jit_rvalue *elements1,
+                         gcc_jit_rvalue *elements2,
+                         gcc_jit_rvalue *mask) c_gcc_jit_context_new_rvalue_vector_perm;
+
+/** Get the element at INDEX in VECTOR.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_31
+*/
+alias gcc_jit_context_new_vector_access = c_gcc_jit_context_new_vector_access;
+gcc_jit_lvalue *function(gcc_jit_context *ctxt,
+                         gcc_jit_location *loc,
+                         gcc_jit_rvalue *vector,
+                         gcc_jit_rvalue *index) c_gcc_jit_context_new_vector_access;
+
+/** Create a reference to a machine-specific builtin function (sometimes called
+   intrinsic functions).
+
+   This API entrypoint was added in LIBGCCJIT_ABI_32
+*/
+alias gcc_jit_context_get_target_builtin_function = c_gcc_jit_context_get_target_builtin_function;
+gcc_jit_function *function(gcc_jit_context *ctxt,
+                           scope const char *name) c_gcc_jit_context_get_target_builtin_function;
+
+/**
+   This API entrypoint was added in LIBGCCJIT_ABI_33
+*/
+alias gcc_jit_function_new_temp = c_gcc_jit_function_new_temp;
+gcc_jit_lvalue *function(gcc_jit_function *func,
+                         gcc_jit_location *loc,
+                         gcc_jit_type *type) c_gcc_jit_function_new_temp;
+
+/**
+   This API entrypoint was added in LIBGCCJIT_ABI_34
+*/
+alias gcc_jit_context_set_output_ident = c_gcc_jit_context_set_output_ident;
+void function(gcc_jit_context *ctxt,
+              scope const char* output_ident) c_gcc_jit_context_set_output_ident;
+
 } /* __gshared  */
 
 extern(D):
@@ -2110,7 +2187,6 @@ q{
         return;
     LIBGCCJIT_ABI = 19;
 
-
     /* LIBGCCJIT_ABI_20  */
     if (!link(cast(void**)&gcc_jit_compatible_types, "gcc_jit_compatible_types")
         || !link(cast(void**)&gcc_jit_type_get_size, "gcc_jit_type_get_size"))
@@ -2160,4 +2236,43 @@ q{
     if (!link(cast(void**)&gcc_jit_context_new_sizeof, "gcc_jit_context_new_sizeof"))
         return;
     LIBGCCJIT_ABI = 27;
+
+    /* LIBGCCJIT_ABI_28  */
+    if (!link(cast(void**)&gcc_jit_context_new_alignof, "gcc_jit_context_new_alignof"))
+        return;
+    LIBGCCJIT_ABI = 28;
+
+    /* LIBGCCJIT_ABI_29  */
+    if (!link(cast(void**)&gcc_jit_global_set_readonly, "gcc_jit_global_set_readonly"))
+        return;
+    LIBGCCJIT_ABI = 29;
+
+    /* LIBGCCJIT_ABI_30  */
+    if (!link(cast(void**)&gcc_jit_context_convert_vector, "gcc_jit_context_convert_vector"))
+        return;
+    LIBGCCJIT_ABI = 30;
+
+    /* LIBGCCJIT_ABI_31  */
+    if (!link(cast(void**)&gcc_jit_context_new_vector_access,
+              "gcc_jit_context_new_vector_access")
+        || !link(cast(void**)&gcc_jit_context_new_rvalue_vector_perm,
+                 "gcc_jit_context_new_rvalue_vector_perm"))
+        return;
+    LIBGCCJIT_ABI = 31;
+
+    /* LIBGCCJIT_ABI_32  */
+    if (!link(cast(void**)&gcc_jit_context_get_target_builtin_function,
+              "gcc_jit_context_get_target_builtin_function"))
+        return;
+    LIBGCCJIT_ABI = 32;
+
+    /* LIBGCCJIT_ABI_33  */
+    if (!link(cast(void**)&gcc_jit_function_new_temp, "gcc_jit_function_new_temp"))
+        return;
+    LIBGCCJIT_ABI = 33;
+
+    /* LIBGCCJIT_ABI_34  */
+    if (!link(cast(void**)&gcc_jit_context_set_output_ident, "gcc_jit_context_set_output_ident"))
+        return;
+    LIBGCCJIT_ABI = 34;
 };

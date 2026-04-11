@@ -152,6 +152,9 @@ enum CType : gcc_jit_types
 
     /// C's uint128_t type.
     UInt128t = GCC_JIT_TYPE_UINT128_T,
+
+    /// C's __bfloat16
+    BFloat16 = GCC_JIT_TYPE_BFLOAT16,
 }
 
 /// Kinds of unary ops.
@@ -244,6 +247,7 @@ deprecated
 enum StrOption : gcc_jit_str_option
 {
     ProgName = GCC_JIT_STR_OPTION_PROGNAME,
+    SpecialCharsInFuncNames = GCC_JIT_STR_OPTION_SPECIAL_CHARS_IN_FUNC_NAMES,
 }
 
 // Integer options

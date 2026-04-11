@@ -287,6 +287,17 @@ struct Context
         return this;
     }
 
+    /// Control additional ASCII characters that are valid throughout function
+    /// names. Alphabetic and numeric ASCII characters are always valid.
+    Context set_special_chars_in_func_names(string name) return nothrow @nogc @property
+    {
+        name.toCStringThen!((n)
+            => gcc_jit_context_set_str_option(m_context,
+                                              GCC_JIT_STR_OPTION_SPECIAL_CHARS_IN_FUNC_NAMES,
+                                              n.ptr));
+        return this;
+    }
+
     /// Associate a gcc_jit_timer instance with a context.
     Context timer(Timer t) return nothrow @nogc @property
     {
@@ -1165,6 +1176,68 @@ struct Context
     {
         auto result = gcc_jit_context_new_sizeof(m_context, type.get_type());
         return RValue(result);
+    }
+
+    /// Create a reference to a machine-specific builtin function.
+    Function get_target_builtin_function(string name) nothrow @nogc
+    {
+        auto result = name.toCStringThen!((n)
+            => gcc_jit_context_get_target_builtin_function(m_context, n.ptr));
+        return Function(result);
+    }
+
+    /// Generate a JIT.RValue that is equal to the alignment of JIT.Type.
+    RValue new_alignof(Type type) nothrow @nogc
+    {
+        auto result = gcc_jit_context_new_alignof(m_context, type.get_type());
+        return RValue(result);
+    }
+
+    /// Cast the vector JIT.RValue to the type JIT.Type, doing an element-wise conversion.
+    RValue convert_vector(Location loc, RValue vector, Type type) nothrow @nogc
+    {
+        auto result = gcc_jit_context_convert_vector(m_context, loc.get_location(),
+                                                     vector.get_rvalue(), type.get_type());
+        return RValue(result);
+    }
+
+    /// Ditto
+    RValue convert_vector(RValue vector, Type type) nothrow @nogc
+    { return convert_vector(Location(), vector, type); }
+
+    /// Build a permutation vector JIT.RValue from three arrays of elements.
+    RValue new_rvalue_vector_perm(Location loc, RValue elements1, RValue elements2,
+                                  RValue mask) nothrow @nogc
+    {
+        auto result = gcc_jit_context_new_rvalue_vector_perm(m_context, loc.get_location(),
+                                                             elements1.get_rvalue(),
+                                                             elements2.get_rvalue(),
+                                                             mask.get_rvalue());
+        return RValue(result);
+    }
+
+    /// Ditto
+    RValue new_rvalue_vector_perm(RValue elements1, RValue elements2, RValue mask) nothrow @nogc
+    { return new_rvalue_vector_perm(Location(), elements1, elements2, mask); }
+
+    /// Accessing an element of a vector through an index.
+    LValue new_vector_access(Location loc, RValue vector, RValue index) nothrow @nogc
+    {
+        auto result = gcc_jit_context_new_vector_access(m_context, loc.get_location(),
+                                                        vector.get_rvalue(), index.get_rvalue());
+        return LValue(result);
+    }
+
+    /// Ditto
+    RValue new_vector_access(RValue vector, RValue index) nothrow @nogc
+    { return new_vector_access(Location(), vector, index); }
+
+    /// Set the identifier to write in the .comment section of the output file.
+    Context set_output_ident(string output_ident) return nothrow @nogc @property
+    {
+        output_ident.toCStringThen!((o)
+            => gcc_jit_context_set_output_ident(m_context, o.ptr));
+        return this;
     }
 
 private:

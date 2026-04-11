@@ -194,6 +194,17 @@ struct Function
     Function add_attribute(FnAttribute attribute, scope int[] values...) return nothrow @nogc
     { return add_attribute(attribute, values); }
 
+    /// Create a new compiler-generated variable.
+    LValue new_temp(Location loc, Type type) nothrow @nogc
+    {
+        auto result = gcc_jit_function_new_temp(m_function, loc.get_location(), type.get_type());
+        return LValue(result);
+    }
+
+    /// Ditto
+    LValue new_temp(Type type) nothrow @nogc
+    { return new_temp(Location(), type); }
+
     /// A series of overloaded call operators with various numbers of arguments
     /// for a very terse way of creating a call to this function.  The call
     /// is created within the same context as the function itself, which may
