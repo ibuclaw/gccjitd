@@ -201,7 +201,11 @@ struct Block
         return this;
     }
 
-    ///
+    /// Terminate a block by adding evaluation of a JIT.RValue, then
+    /// performing a multiway branch.
+    /// This is roughly equivalent to "switch (expr) { ... }".
+    /// This API endpoint was added in LIBGCCJIT_ABI_3; you can test for
+    /// its presence using `if (JIT.Have_Switch_Statements)`.
     Block end_with_switch(Location loc, RValue expr, Block default_block,
                           scope Case[] cases) return nothrow @nogc
     {
@@ -231,7 +235,10 @@ struct Block
                           scope Case[] cases...) return nothrow @nogc
     { return end_with_switch(Location(), expr, default_block, cases); }
 
-    ///
+    /// Create a JIT.ExtendedAsm for an extended asm statement with no control
+    /// flow (i.e. without the goto qualifier).
+    /// This API endpoint was added in LIBGCCJIT_ABI_15; you can test for
+    /// its presence using `if (JIT.Have_Asm_Statements)`.
     ExtendedAsm add_extended_asm(Location loc, string asm_template) nothrow @nogc
     {
         auto result = asm_template.toCStringThen!((a)
@@ -243,7 +250,10 @@ struct Block
     ExtendedAsm add_extended_asm(string asm_template) nothrow @nogc
     { return add_extended_asm(Location(), asm_template); }
 
-    ///
+    /// Create a JIT.ExtendedAsm for an extended asm statement that may perform
+    /// jumps, and use it to terminate the given block.
+    /// This API endpoint was added in LIBGCCJIT_ABI_15; you can test for
+    /// its presence using `if (JIT.Have_Asm_Statements)`.
     ExtendedAsm end_with_extended_asm_goto(Location loc, string asm_template, scope Block[] goto_blocks,
                                            Block fallthrough_block = Block()) nothrow @nogc
     {
@@ -292,6 +302,8 @@ struct Case
     }
 
     /// Upcast to the parent JIT.Object.
+    /// This API endpoint was added in LIBGCCJIT_ABI_3; you can test for
+    /// its presence using `if (JIT.Have_Switch_Statements)`.
     auto ref T opCast(T)() const nothrow @nogc
     if (is(T == JitObject))
     {
@@ -301,6 +313,8 @@ struct Case
 }
 
 /// Struct wrapper for gcc_jit_extended_asm
+/// This API endpoint was added in LIBGCCJIT_ABI_15; you can test for
+/// its presence using `if (JIT.Have_Asm_Statements)`.
 struct ExtendedAsm
 {
     union

@@ -129,6 +129,8 @@ struct RValue
 
     /// Given a JIT.RValue for a call created through JIT.Context.new_call,
     /// mark/clear the call as needing tail-call optimization.
+    /// This API endpoint was added in LIBGCCJIT_ABI_6; you can test for
+    /// its presence using `if (JIT.Have_RValue_set_require_tail_call)`.
     RValue set_require_tail_call(bool require_tail_call) return nothrow @nogc @property
     {
         gcc_jit_rvalue_set_bool_require_tail_call(m_rvalue, require_tail_call);
@@ -275,6 +277,8 @@ struct LValue
     }
 
     /// Set an initial value for a global.
+    /// This API endpoint was added in LIBGCCJIT_ABI_14; you can test for
+    /// its presence using `if (JIT.Have_LValue_set_initializer)`.
     LValue set_initializer(scope const void* blob, size_t num_bytes) return nothrow @nogc
     {
         gcc_jit_global_set_initializer(m_lvalue, blob, num_bytes);
@@ -282,6 +286,8 @@ struct LValue
     }
 
     /// Ditto
+    /// This API endpoint was added in LIBGCCJIT_ABI_19; you can test for
+    /// its presence using `if (JIT.Have_Ctors)`.
     LValue set_initializer(RValue init_value) nothrow @nogc
     {
         auto result = gcc_jit_global_set_initializer_rvalue(m_lvalue, init_value.get_rvalue());
@@ -289,6 +295,8 @@ struct LValue
     }
 
     /// Set the TLS model of a global variable.
+    /// This API endpoint was added in LIBGCCJIT_ABI_17; you can test for
+    /// its presence using `if (JIT.Have_LValue_set_tls_model)`.
     LValue set_tls_model(TlsModel model) return nothrow @nogc
     {
         gcc_jit_lvalue_set_tls_model(m_lvalue, model);
@@ -296,6 +304,8 @@ struct LValue
     }
 
     /// Set the link section name of a global variable.
+    /// This API endpoint was added in LIBGCCJIT_ABI_18; you can test for
+    /// its presence using `if (JIT.Have_LValue_set_link_section)`.
     LValue set_link_section(string section_name) return nothrow @nogc
     {
         section_name.toCStringThen!((s)
@@ -304,6 +314,8 @@ struct LValue
     }
 
     /// Set register name of a local variable.
+    /// This API endpoint was added in LIBGCCJIT_ABI_22; you can test for
+    /// its presence using `if (JIT.Have_LValue_set_register_name)`.
     LValue set_register_name(string reg_name) return nothrow @nogc
     {
         reg_name.toCStringThen!((r)
@@ -312,6 +324,8 @@ struct LValue
     }
 
     /// Set the alignment of a variable.
+    /// This API endpoint was added in LIBGCCJIT_ABI_24; you can test for
+    /// its presence using `if (JIT.Have_Alignment)`.
     LValue set_alignment(uint bytes) return nothrow @nogc @property
     {
         gcc_jit_lvalue_set_alignment(m_lvalue, bytes);
@@ -319,6 +333,8 @@ struct LValue
     }
 
     /// Get the alignment of a variable.
+    /// This API endpoint was added in LIBGCCJIT_ABI_24; you can test for
+    /// its presence using `if (JIT.Have_Alignment)`.
     uint get_alignment() nothrow @nogc
     { return gcc_jit_lvalue_get_alignment(m_lvalue); }
 
@@ -331,6 +347,8 @@ struct LValue
     }
 
     /// Set the global variable as read-only.
+    /// This API endpoint was added in LIBGCCJIT_ABI_29; you can test for
+    /// its presence using `if (JIT.Have_LValue_set_readonly)`.
     LValue set_readonly() return nothrow @nogc
     {
         gcc_jit_global_set_readonly(m_lvalue);

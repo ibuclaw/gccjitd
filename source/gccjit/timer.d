@@ -27,6 +27,8 @@ import gccjit.helpers;
 import core.stdc.stdio : FILE;
 
 /// Struct wrapper for gcc_jit_timer
+/// This API endpoint was added in LIBGCCJIT_ABI_4; you can test for
+/// its presence using `if (JIT.Have_Timing_API)`.
 struct Timer
 {
     ///

@@ -80,6 +80,146 @@ struct JIT
     import gccjit.version_;
     ///
     alias Version = gccjit.version_.Version;
+
+    /// Feature flags to indicate the presense of libgccjit
+    /// functions or API linked into this library.
+    pure nothrow @nogc:
+
+    ///
+    static bool Have_Context_add_command_line_option()
+    { return LIBGCCJIT_ABI >= 1; }
+
+    ///
+    static bool Have_Context_set_allow_unreachable_blocks()
+    { return LIBGCCJIT_ABI >= 2; }
+
+    ///
+    static bool Have_Switch_Statements()
+    { return LIBGCCJIT_ABI >= 3; }
+
+    ///
+    static bool Have_Timing_API()
+    { return LIBGCCJIT_ABI >= 4; }
+
+    ///
+    static bool Have_Context_set_use_external_driver()
+    { return LIBGCCJIT_ABI >= 5; }
+
+    ///
+    static bool Have_RValue_set_require_tail_call()
+    { return LIBGCCJIT_ABI >= 6; }
+
+    ///
+    static bool Have_Type_get_aligned()
+    { return LIBGCCJIT_ABI >= 7; }
+
+    ///
+    static bool Have_Type_get_vector()
+    { return LIBGCCJIT_ABI >= 8; }
+
+    ///
+    static bool Have_Function_get_address()
+    { return LIBGCCJIT_ABI >= 9; }
+
+    ///
+    static bool Have_Context_new_rvalue_from_vector()
+    { return LIBGCCJIT_ABI >= 10; }
+
+    ///
+    static bool Have_Context_add_driver_option()
+    { return LIBGCCJIT_ABI >= 11; }
+
+    ///
+    static bool Have_Context_new_bitfield()
+    { return LIBGCCJIT_ABI >= 12; }
+
+    ///
+    static bool Have_Version()
+    { return LIBGCCJIT_ABI >= 13; }
+
+    ///
+    static bool Have_LValue_set_initiailizer()
+    { return LIBGCCJIT_ABI >= 14; }
+
+    ///
+    static bool Have_Asm_Statements()
+    { return LIBGCCJIT_ABI >= 15; }
+
+    ///
+    static bool Have_Reflection()
+    { return LIBGCCJIT_ABI >= 16; }
+
+    ///
+    static bool Have_LValue_set_tls_model()
+    { return LIBGCCJIT_ABI >= 17; }
+
+    ///
+    static bool Have_LValue_set_link_section()
+    { return LIBGCCJIT_ABI >= 18; }
+
+    ///
+    static bool Have_Ctors()
+    { return LIBGCCJIT_ABI >= 19; }
+
+    ///
+    static bool Have_Sized_Integers()
+    { return LIBGCCJIT_ABI >= 20; }
+
+    ///
+    static bool Have_Context_new_bitcast()
+    { return LIBGCCJIT_ABI >= 21; }
+
+    ///
+    static bool Have_LValue_set_register_name()
+    { return LIBGCCJIT_ABI >= 22; }
+
+    ///
+    static bool Have_Context_set_print_errors_to_stderr()
+    { return LIBGCCJIT_ABI >= 23; }
+
+    ///
+    static bool Have_Alignment()
+    { return LIBGCCJIT_ABI >= 24; }
+
+    ///
+    static bool Have_Type_get_restrict()
+    { return LIBGCCJIT_ABI >= 25; }
+
+    ///
+    static bool Have_Attributes()
+    { return LIBGCCJIT_ABI >= 26; }
+
+    ///
+    static bool Have_Context_new_sizeof()
+    { return LIBGCCJIT_ABI >= 27; }
+
+    ///
+    static bool Have_Context_new_alignof()
+    { return LIBGCCJIT_ABI >= 28; }
+
+    ///
+    static bool Have_LValue_set_readonly()
+    { return LIBGCCJIT_ABI >= 29; }
+
+    ///
+    static bool Have_Context_convert_vector()
+    { return LIBGCCJIT_ABI >= 30; }
+
+    ///
+    static bool Have_Vector_Operations()
+    { return LIBGCCJIT_ABI >= 31; }
+
+    ///
+    static bool Have_Context_get_target_builtin_function()
+    { return LIBGCCJIT_ABI >= 32; }
+
+    ///
+    static bool Have_Function_new_temp()
+    { return LIBGCCJIT_ABI >= 33; }
+
+    ///
+    static bool Have_Context_set_output_ident()
+    { return LIBGCCJIT_ABI >= 34; }
 }
 
 public import gccjit.flags;

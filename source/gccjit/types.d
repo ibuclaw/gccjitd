@@ -67,6 +67,8 @@ struct Type
     }
 
     /// Downcast to the child JIT.FunctionPtrType.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     auto ref T opCast(T)() const nothrow @nogc
     if (is(T == FunctionPtrType))
     {
@@ -75,6 +77,8 @@ struct Type
     }
 
     /// Downcast to the child JIT.VectorType.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     auto ref T opCast(T)() const nothrow @nogc
     if (is(T == VectorType))
     {
@@ -104,6 +108,8 @@ struct Type
     }
 
     /// Given type T, get type T __attribute__((aligned(alignment_in_bytes))).
+    /// This API endpoint was added in LIBGCCJIT_ABI_7; you can test for
+    /// its presence using `if (JIT.Have_Type_get_aligned)`.
     Type get_aligned(size_t alignment_in_bytes) nothrow @nogc
     {
         auto result = gcc_jit_type_get_aligned(m_type, alignment_in_bytes);
@@ -111,6 +117,8 @@ struct Type
     }
 
     /// Given type T, get type T __attribute__((vector_size(sizeof(T) * num_units))).
+    /// This API endpoint was added in LIBGCCJIT_ABI_8; you can test for
+    /// its presence using `if (JIT.Have_Type_get_vector)`.
     Type get_vector(size_t num_units) nothrow @nogc
     {
         auto result = gcc_jit_type_get_vector(m_type, num_units);
@@ -118,6 +126,8 @@ struct Type
     }
 
     /// Given type T, get type restrict T.
+    /// This API endpoint was added in LIBGCCJIT_ABI_25; you can test for
+    /// its presence using `if (JIT.Have_Type_get_restrict)`.
     Type get_restrict() nothrow @nogc
     {
         auto result = gcc_jit_type_get_restrict(m_type);
@@ -125,18 +135,24 @@ struct Type
     }
 
     /// Returns true if the given JIT.Type is compatible with this JIT.Type.
+    /// This API endpoint was added in LIBGCCJIT_ABI_20; you can test for
+    /// its presence using `if (JIT.Have_Sized_Integers)`.
     bool is_compatible_with(Type type) nothrow @nogc
     {
         return !!gcc_jit_compatible_types(m_type, type.get_type());
     }
 
     /// Returns the size of this JIT.Type.
+    /// This API endpoint was added in LIBGCCJIT_ABI_20; you can test for
+    /// its presence using `if (JIT.Have_Sized_Integers)`.
     size_t get_size() nothrow @nogc
     {
         return gcc_jit_type_get_size(m_type);
     }
 
     /// Return the element type of an array or null if it's not an array.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     Type dyncast_array() nothrow @nogc
     {
         auto result = gcc_jit_type_dyncast_array(m_type);
@@ -144,12 +160,16 @@ struct Type
     }
 
     /// Returns true if the type is a bool.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     bool is_bool() nothrow @nogc
     {
         return !!gcc_jit_type_is_bool(m_type);
     }
 
     /// Return the JIT.FunctionPtrType if it is one or null.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     FunctionPtrType dyncast_function_ptr_type() nothrow @nogc
     {
         auto result = gcc_jit_type_dyncast_function_ptr_type(m_type);
@@ -157,12 +177,16 @@ struct Type
     }
 
     /// Returns true if the type is integral.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     bool is_integral() nothrow @nogc
     {
         return !!gcc_jit_type_is_integral(m_type);
     }
 
     /// Returns the type pointer by the pointer type or null if it's not a pointer.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     Type get_pointee() nothrow @nogc
     {
         auto result = gcc_jit_type_is_pointer(m_type);
@@ -170,6 +194,8 @@ struct Type
     }
 
     /// Return the JIT.VectorType if it is one or null.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     VectorType dyncast_vector() nothrow @nogc
     {
         auto result = gcc_jit_type_dyncast_vector(m_type);
@@ -177,6 +203,8 @@ struct Type
     }
 
     /// Return the JIT.Struct if it is one or null.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     Struct is_struct() nothrow @nogc
     {
         auto result = gcc_jit_type_is_struct(m_type);
@@ -185,6 +213,8 @@ struct Type
 
     /// Return the unqualified type of this JIT.Type, removing `const`, `volatile`,
     /// and alignment qualifiers.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     Type unqualified() nothrow @nogc
     {
         auto result = gcc_jit_type_unqualified(m_type);
@@ -267,6 +297,8 @@ struct Struct
     { return set_fields(Location(), fields); }
 
     /// Get a field by index.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     Field get_field(size_t index) nothrow @nogc
     {
         auto result = gcc_jit_struct_get_field(m_struct, index);
@@ -274,6 +306,8 @@ struct Struct
     }
 
     /// Get the number of fields.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     size_t get_field_count() nothrow @nogc
     {
         return gcc_jit_struct_get_field_count(m_struct);
@@ -326,6 +360,8 @@ struct FunctionPtrType
     }
 
     /// Get function return type.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     Type get_return_type() nothrow @nogc
     {
         auto result = gcc_jit_function_type_get_return_type(m_function_type);
@@ -333,12 +369,16 @@ struct FunctionPtrType
     }
 
     /// Get the number of parameters of the function type.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     size_t get_param_count() nothrow @nogc
     {
         return gcc_jit_function_type_get_param_count(m_function_type);
     }
 
     /// Get a parameter type by index.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     Type get_param_type(size_t index) nothrow @nogc
     {
         auto result = gcc_jit_function_type_get_param_type(m_function_type, index);
@@ -348,6 +388,8 @@ struct FunctionPtrType
 
 /// Vector Types can be created using JIT.Type.get_vector().
 /// To get an instance of VectorType use JIT.Type.dyncast_vector().
+/// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+/// its presence using `if (JIT.Have_Reflection)`.
 struct VectorType
 {
     union

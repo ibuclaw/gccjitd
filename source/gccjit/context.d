@@ -250,6 +250,8 @@ struct Context
 
     /// Controls whether libgccjit will issue an error about unreachable blocks
     /// within a function.
+    /// This API endpoint was added in LIBGCCJIT_ABI_2; you can test for
+    /// its presence using `if (JIT.Have_Context_set_allow_unreachable_blocks)`.
     Context set_allow_unreachable_blocks(bool value) return nothrow @nogc @property
     {
         gcc_jit_context_set_bool_allow_unreachable_blocks(m_context, value);
@@ -257,6 +259,8 @@ struct Context
     }
 
     /// Controls whether libgccjit will print errors to stderr.
+    /// This API endpoint was added in LIBGCCJIT_ABI_23; you can test for
+    /// its presence using `if (JIT.Have_Context_set_print_errors_to_stderr)`.
     Context set_print_errors_to_stderr(bool value) return nothrow @nogc @property
     {
         gcc_jit_context_set_bool_print_errors_to_stderr(m_context, value);
@@ -265,6 +269,8 @@ struct Context
 
     /// Controls whether libgccjit will use an external executable for
     /// converting its generated assembler into other formats.
+    /// This API endpoint was added in LIBGCCJIT_ABI_5; you can test for
+    /// its presence using `if (JIT.Have_Context_set_use_external_driver)`.
     Context set_use_external_driver(bool value) return nothrow @nogc @property
     {
         gcc_jit_context_set_bool_use_external_driver(m_context, value);
@@ -272,6 +278,8 @@ struct Context
     }
 
     /// Add an arbitrary gcc command-line option to the context.
+    /// This API endpoint was added in LIBGCCJIT_ABI_1; you can test for
+    /// its presence using `if (JIT.Have_Context_add_command_line_option)`.
     Context add_command_line_option(string optname) return nothrow @nogc
     {
         optname.toCStringThen!((opt)
@@ -280,6 +288,8 @@ struct Context
     }
 
     /// Add an arbitrary gcc driver option to the context.
+    /// This API endpoint was added in LIBGCCJIT_ABI_11; you can test for
+    /// its presence using `if (JIT.Have_Context_add_driver_option)`.
     Context add_driver_option(string optname) return nothrow @nogc
     {
         optname.toCStringThen!((opt)
@@ -299,6 +309,8 @@ struct Context
     }
 
     /// Associate a gcc_jit_timer instance with a context.
+    /// This API endpoint was added in LIBGCCJIT_ABI_4; you can test for
+    /// its presence using `if (JIT.Have_Timing_API)`.
     Context timer(Timer t) return nothrow @nogc @property
     {
         gcc_jit_context_set_timer(m_context, t.get_timer());
@@ -306,6 +318,8 @@ struct Context
     }
 
     /// Get the timer associated with a context (if any).
+    /// This API endpoint was added in LIBGCCJIT_ABI_4; you can test for
+    /// its presence using `if (JIT.Have_Timing_API)`.
     Timer timer() nothrow @nogc
     {
         auto result = gcc_jit_context_get_timer(m_context);
@@ -398,6 +412,8 @@ struct Context
     { return new_field(Location(), get_type(kind), name); }
 
     /// Create a bit-field, for use within a struct or union.
+    /// This API endpoint was added in LIBGCCJIT_ABI_12; you can test for
+    /// its presence using `if (JIT.Have_Context_new_bitfield)`.
     Field new_bitfield(Location loc, Type type, int width, string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
@@ -628,19 +644,28 @@ struct Context
     { return new_global(Location(), global_kind, get_type(kind), name); }
 
     /// Given a JIT.Type, which must be a numeric type, get an integer constant
-    /// as a JIT.RValue of that type.
-    RValue new_rvalue(Type type, int value) nothrow @nogc
+    /// as a JIT.RValue of that type from the given int value.
+    RValue new_rvalue_from_int(Type type, int value) nothrow @nogc
     {
         auto result = gcc_jit_context_new_rvalue_from_int(m_context, type.get_type(), value);
         return RValue(result);
     }
 
     /// Ditto
-    RValue new_rvalue(CType kind, int value) nothrow @nogc
-    { return new_rvalue(get_type(kind), value); }
+    RValue new_rvalue_from_int(CType kind, int value) nothrow @nogc
+    { return new_rvalue_from_int(get_type(kind), value); }
 
     /// Ditto
-    RValue new_rvalue(Type type, long value) nothrow @nogc
+    RValue new_rvalue(Type type, int value) nothrow @nogc
+    { return new_rvalue_from_int(type, value); }
+
+    /// Ditto
+    RValue new_rvalue(CType kind, int value) nothrow @nogc
+    { return new_rvalue_from_int(get_type(kind), value); }
+
+    /// Given a JIT.Type, which must be a numeric type, get an integer constant
+    /// as a JIT.RValue of that type from the given long value.
+    RValue new_rvalue_from_long(Type type, long value) nothrow @nogc
     {
         auto result = gcc_jit_context_new_rvalue_from_long(m_context, type.get_type(),
                                                            cast(c_long)value);
@@ -648,46 +673,77 @@ struct Context
     }
 
     /// Ditto
+    RValue new_rvalue_from_long(CType kind, long value) nothrow @nogc
+    { return new_rvalue_from_long(get_type(kind), value); }
+
+    /// Ditto
+    RValue new_rvalue(Type type, long value) nothrow @nogc
+    { return new_rvalue_from_long(type, value); }
+
+    /// Ditto
     RValue new_rvalue(CType kind, long value) nothrow @nogc
-    { return new_rvalue(get_type(kind), value); }
+    { return new_rvalue_from_long(get_type(kind), value); }
 
     /// Given a JIT.Type, which must be a floating point type, get a floating
-    /// point constant as a JIT.RValue of that type.
-    RValue new_rvalue(Type type, double value) nothrow @nogc
+    /// point constant as a JIT.RValue of that type from the given double value.
+    RValue new_rvalue_from_double(Type type, double value) nothrow @nogc
     {
         auto result = gcc_jit_context_new_rvalue_from_double(m_context, type.get_type(), value);
         return RValue(result);
     }
 
     /// Ditto
+    RValue new_rvalue_from_double(CType kind, double value) nothrow @nogc
+    { return new_rvalue_from_double(get_type(kind), value); }
+
+    /// Ditto
+    RValue new_rvalue(Type type, double value) nothrow @nogc
+    { return new_rvalue_from_double(type, value); }
+
+    /// Ditto
     RValue new_rvalue(CType kind, double value) nothrow @nogc
-    { return new_rvalue(get_type(kind), value); }
+    { return new_rvalue_from_double(get_type(kind), value); }
 
     /// Given a JIT.Type, which must be a pointer type, and an address, get a
-    /// JIT.RValue representing that address as a pointer of that type.
-    RValue new_rvalue(Type type, void* value) nothrow @nogc
+    /// JIT.RValue representing that address as a pointer of that type from
+    /// the given raw pointer.
+    RValue new_rvalue_from_ptr(Type type, void* value) nothrow @nogc
     {
         auto result = gcc_jit_context_new_rvalue_from_ptr(m_context, type.get_type(), value);
         return RValue(result);
     }
 
     /// Ditto
+    RValue new_rvalue_from_ptr(CType kind, void* value) nothrow @nogc
+    { return new_rvalue_from_ptr(get_type(kind), value); }
+
+    /// Ditto
+    RValue new_rvalue(Type type, void* value) nothrow @nogc
+    { return new_rvalue_from_ptr(type, value); }
+
+    /// Ditto
     RValue new_rvalue(CType kind, void* value) nothrow @nogc
-    { return new_rvalue(get_type(kind), value); }
+    { return new_rvalue_from_ptr(get_type(kind), value); }
 
     /// Make a JIT.RValue for the given string literal value.
     /// Params:
     ///     value = The string literal.
-    RValue new_rvalue(string value) nothrow @nogc
+    RValue new_string_literal(string value) nothrow @nogc
     {
         auto result = value.toCStringThen!((v)
             => gcc_jit_context_new_string_literal(m_context, v.ptr));
         return RValue(result);
     }
 
+    /// Ditto
+    RValue new_rvalue(string value) nothrow @nogc
+    { return new_string_literal(value); }
+
     /// Given a JIT.Type, which must be a vector type, build a vector rvalue
     /// from an array of JIT.RValue elements.
-    RValue new_rvalue(Type vector_type, scope RValue[] elements) nothrow @nogc
+    /// This API endpoint was added in LIBGCCJIT_ABI_10; you can test for
+    /// its presence using `if (JIT.Have_Context_new_rvalue_from_vector)`.
+    RValue new_rvalue_from_vector(Type vector_type, scope RValue[] elements) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
         // the wrapper type being such a pointer internally.
@@ -699,8 +755,16 @@ struct Context
     }
 
     /// Ditto
+    RValue new_rvalue_from_vector(Type vector_type, scope RValue[] elements...) nothrow @nogc
+    { return new_rvalue_from_vector(vector_type, elements); }
+
+    /// Ditto
+    RValue new_rvalue(Type vector_type, scope RValue[] elements) nothrow @nogc
+    { return new_rvalue_from_vector(vector_type, elements); }
+
+    /// Ditto
     RValue new_rvalue(Type vector_type, scope RValue[] elements...) nothrow @nogc
-    { return new_rvalue(vector_type, elements); }
+    { return new_rvalue_from_vector(vector_type, elements); }
 
     /// Given a JIT.Type, which must be a numeric type, get the constant 0 as a
     /// JIT.RValue of that type.
@@ -1085,6 +1149,8 @@ struct Context
     { return new_array_access(Location(), ptr, index); }
 
     /// Make a JIT.Case representing a case for use in a switch statement.
+    /// This API endpoint was added in LIBGCCJIT_ABI_3; you can test for
+    /// its presence using `if (JIT.Have_Switch_Statements)`.
     Case new_case(RValue min_value, RValue max_value, Block dest_block) nothrow @nogc
     {
         auto result = gcc_jit_context_new_case(m_context, min_value.get_rvalue(),
@@ -1093,6 +1159,8 @@ struct Context
     }
 
     /// Add top-level asm statement to the context.
+    /// This API endpoint was added in LIBGCCJIT_ABI_15; you can test for
+    /// its presence using `if (JIT.Have_Asm_Statements)`.
     Context add_top_level_asm(Location loc, string asm_stmts) return nothrow @nogc
     {
         asm_stmts.toCStringThen!((s)
@@ -1105,6 +1173,8 @@ struct Context
     { return add_top_level_asm(Location(), asm_stmts); }
 
     /// Reinterpret the JIT.RValue as another JIT.Type.
+    /// This API endpoint was added in LIBGCCJIT_ABI_21; you can test for
+    /// its presence using `if (JIT.Have_Context_new_bitcast)`.
     RValue new_bitcast(Location loc, RValue rvalue, Type type) nothrow @nogc
     {
         auto result = gcc_jit_context_new_bitcast(m_context, loc.get_location,
@@ -1117,6 +1187,8 @@ struct Context
     { return new_bitcast(Location(), rvalue, type); }
 
     /// Create a constructor for a struct as a JIT.RValue.
+    /// This API endpoint was added in LIBGCCJIT_ABI_19; you can test for
+    /// its presence using `if (JIT.Have_Ctors)`.
     RValue new_struct_constructor(Location loc, Type type, scope Field[] fields,
                                   scope RValue[] values) nothrow @nogc
     {
@@ -1135,6 +1207,8 @@ struct Context
     { return new_struct_constructor(Location(), type, fields, values); }
 
     /// Create a constructor for an union as a JIT.RValue.
+    /// This API endpoint was added in LIBGCCJIT_ABI_19; you can test for
+    /// its presence using `if (JIT.Have_Ctors)`.
     RValue new_union_constructor(Location loc, Type type, Field field, RValue value) nothrow @nogc
     {
         auto result = gcc_jit_context_new_union_constructor(m_context, loc.get_location(),
@@ -1148,6 +1222,8 @@ struct Context
     { return new_union_constructor(Location(), type, field, value); }
 
     /// Create a constructor for an array as a JIT.RValue.
+    /// This API endpoint was added in LIBGCCJIT_ABI_19; you can test for
+    /// its presence using `if (JIT.Have_Ctors)`.
     RValue new_array_constructor(Location loc, Type type, scope RValue[] values) nothrow @nogc
     {
         // Treat the array as being of the underlying pointers, relying on
@@ -1172,6 +1248,8 @@ struct Context
     { return new_array_constructor(Location(), type, values); }
 
     /// Generate a JIT.RValue that is equal to the size of JIT.Type.
+    /// This API endpoint was added in LIBGCCJIT_ABI_27; you can test for
+    /// its presence using `if (JIT.Have_Context_new_sizeof)`.
     RValue new_sizeof(Type type) nothrow @nogc
     {
         auto result = gcc_jit_context_new_sizeof(m_context, type.get_type());
@@ -1179,6 +1257,8 @@ struct Context
     }
 
     /// Create a reference to a machine-specific builtin function.
+    /// This API endpoint was added in LIBGCCJIT_ABI_32; you can test for
+    /// its presence using `if (JIT.Have_Context_get_target_builtin_function)`.
     Function get_target_builtin_function(string name) nothrow @nogc
     {
         auto result = name.toCStringThen!((n)
@@ -1187,6 +1267,8 @@ struct Context
     }
 
     /// Generate a JIT.RValue that is equal to the alignment of JIT.Type.
+    /// This API endpoint was added in LIBGCCJIT_ABI_28; you can test for
+    /// its presence using `if (JIT.Have_Context_new_alignof)`.
     RValue new_alignof(Type type) nothrow @nogc
     {
         auto result = gcc_jit_context_new_alignof(m_context, type.get_type());
@@ -1194,6 +1276,8 @@ struct Context
     }
 
     /// Cast the vector JIT.RValue to the type JIT.Type, doing an element-wise conversion.
+    /// This API endpoint was added in LIBGCCJIT_ABI_30; you can test for
+    /// its presence using `if (JIT.Have_Context_convert_vector)`.
     RValue convert_vector(Location loc, RValue vector, Type type) nothrow @nogc
     {
         auto result = gcc_jit_context_convert_vector(m_context, loc.get_location(),
@@ -1206,6 +1290,8 @@ struct Context
     { return convert_vector(Location(), vector, type); }
 
     /// Build a permutation vector JIT.RValue from three arrays of elements.
+    /// This API endpoint was added in LIBGCCJIT_ABI_31; you can test for
+    /// its presence using `if (JIT.Have_Vector_Operations)`.
     RValue new_rvalue_vector_perm(Location loc, RValue elements1, RValue elements2,
                                   RValue mask) nothrow @nogc
     {
@@ -1221,6 +1307,8 @@ struct Context
     { return new_rvalue_vector_perm(Location(), elements1, elements2, mask); }
 
     /// Accessing an element of a vector through an index.
+    /// This API endpoint was added in LIBGCCJIT_ABI_31; you can test for
+    /// its presence using `if (JIT.Have_Vector_Operations)`.
     LValue new_vector_access(Location loc, RValue vector, RValue index) nothrow @nogc
     {
         auto result = gcc_jit_context_new_vector_access(m_context, loc.get_location(),
@@ -1233,6 +1321,8 @@ struct Context
     { return new_vector_access(Location(), vector, index); }
 
     /// Set the identifier to write in the .comment section of the output file.
+    /// This API endpoint was added in LIBGCCJIT_ABI_34; you can test for
+    /// its presence using `if (JIT.Have_Context_set_output_ident)`.
     Context set_output_ident(string output_ident) return nothrow @nogc @property
     {
         output_ident.toCStringThen!((o)

@@ -23,6 +23,8 @@ package(gccjit):
 import gccjit.bindings;
 
 /// Struct wrapper for gcc_jit_version API
+/// This API endpoint was added in LIBGCCJIT_ABI_13; you can test for
+/// its presence using `if (JIT.Have_Version)`.
 struct Version
 {
     ///

@@ -148,6 +148,8 @@ struct Function
     { return new_local(Location(), type, name); }
 
     /// Return the address of the function.
+    /// This API endpoint was added in LIBGCCJIT_ABI_8; you can test for
+    /// its presence using `if (JIT.Have_Function_get_address)`.
     RValue get_address(Location loc = Location()) nothrow @nogc
     {
         auto result = gcc_jit_function_get_address(m_function, loc.get_location());
@@ -155,6 +157,8 @@ struct Function
     }
 
     /// Get the return type of the function.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     Type get_return_type() nothrow @nogc
     {
         auto result = gcc_jit_function_get_return_type(m_function);
@@ -162,12 +166,16 @@ struct Function
     }
 
     /// Get the number of parameters of the function.
+    /// This API endpoint was added in LIBGCCJIT_ABI_16; you can test for
+    /// its presence using `if (JIT.Have_Reflection)`.
     size_t get_param_count() nothrow @nogc
     {
         return gcc_jit_function_get_param_count(m_function);
     }
 
     /// Add an attribute to a JIT.Function.
+    /// This API endpoint was added in LIBGCCJIT_ABI_26; you can test for
+    /// its presence using `if (JIT.Have_Attributes)`.
     Function add_attribute(FnAttribute attribute) return nothrow @nogc
     {
         gcc_jit_function_add_attribute(m_function, attribute);
@@ -195,6 +203,8 @@ struct Function
     { return add_attribute(attribute, values); }
 
     /// Create a new compiler-generated variable.
+    /// This API endpoint was added in LIBGCCJIT_ABI_33; you can test for
+    /// its presence using `if (JIT.Have_Function_new_temp)`.
     LValue new_temp(Location loc, Type type) nothrow @nogc
     {
         auto result = gcc_jit_function_new_temp(m_function, loc.get_location(), type.get_type());
