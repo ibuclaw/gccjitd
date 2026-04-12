@@ -8,7 +8,8 @@ check: check-gccjitd \
 	check-square \
 	check-sum-squares \
 	check-toy \
-	check-unittests
+	check-unittests \
+	check-lint
 
 check-gccjitd:
 	dub test
@@ -22,6 +23,10 @@ check-capi:
 
 check-dapi:
 	dub test :dapi
+
+check-lint:
+	dub run dscanner -- --syntaxCheck source/gccjit
+	dub run dscanner -- --styleCheck source/gccjit
 
 check-square:
 	dub test :square

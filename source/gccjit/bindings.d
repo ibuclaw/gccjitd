@@ -1208,7 +1208,7 @@ enum : gcc_jit_fn_attribute
 
     /** Maximum value of this enum, should always be last. */
     GCC_JIT_FN_ATTRIBUTE_MAX,
-};
+}
 
 /** Variable attributes.  */
 alias gcc_jit_variable_attribute = uint;
@@ -1218,7 +1218,7 @@ enum : gcc_jit_variable_attribute
 
     /** Maximum value of this enum, should always be last. */
     GCC_JIT_VARIABLE_ATTRIBUTE_MAX,
-};
+}
 
 __gshared {
 

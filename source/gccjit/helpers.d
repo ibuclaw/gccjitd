@@ -82,7 +82,7 @@ nothrow:
     alias extent this;
 }
 
-unittest
+@system unittest
 {
     char[230] buf = void;
     auto a = SmallBuffer(10, buf);
@@ -120,7 +120,7 @@ auto toCStringThen(alias dg)(const(char)[] src) nothrow
     return dg(ptr);
 }
 
-unittest
+@system unittest
 {
     assert("Hello world".toCStringThen!((v) => v == "Hello world\0"));
     assert("Hello world\0".toCStringThen!((v) => v == "Hello world\0\0"));

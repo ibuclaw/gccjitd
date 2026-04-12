@@ -23,19 +23,19 @@ public import gccjit.bindings;
 /// D API
 struct JIT
 {
-    import gccjit.object;
+    static import gccjit.object;
     ///
-    alias Object = JitObject;
+    alias Object = gccjit.object.JitObject;
 
-    import gccjit.location;
+    static import gccjit.location;
     ///
     alias Location = gccjit.location.Location;
 
-    import gccjit.context;
+    static import gccjit.context;
     ///
     alias Context = gccjit.context.Context;
 
-    import gccjit.decls;
+    static import gccjit.decls;
     ///
     alias Field = gccjit.decls.Field;
     ///
@@ -43,7 +43,7 @@ struct JIT
     ///
     alias Parameter = gccjit.decls.Parameter;
 
-    import gccjit.types;
+    static import gccjit.types;
     ///
     alias Type = gccjit.types.Type;
     ///
@@ -53,7 +53,7 @@ struct JIT
     ///
     alias VectorType = gccjit.types.VectorType;
 
-    import gccjit.block;
+    static import gccjit.block;
     ///
     alias Block = gccjit.block.Block;
     ///
@@ -61,23 +61,23 @@ struct JIT
     ///
     alias ExtendedAsm = gccjit.block.ExtendedAsm;
 
-    import gccjit.values;
+    static import gccjit.values;
     ///
     alias RValue = gccjit.values.RValue;
     ///
     alias LValue = gccjit.values.LValue;
 
-    import gccjit.compile;
+    static import gccjit.compile;
     ///
     alias CompileResult = gccjit.compile.CompileResult;
 
-    import gccjit.timer;
+    static import gccjit.timer;
     ///
     alias Timer = gccjit.timer.Timer;
     ///
     alias AutoTime = gccjit.timer.AutoTime;
 
-    import gccjit.version_;
+    static import gccjit.version_;
     ///
     alias Version = gccjit.version_.Version;
 

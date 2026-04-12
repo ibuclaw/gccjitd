@@ -53,9 +53,9 @@ struct JitObject
     }
 
     /// Get a human-readable description of this object.
-    string toString() nothrow @nogc
+    string toString() const nothrow @nogc
     {
-        return gcc_jit_object_get_debug_string(m_object).toDString();
+        return gcc_jit_object_get_debug_string(cast(gcc_jit_object*)m_object).toDString();
     }
 
     /// Returns true if this JitObject has a value.
