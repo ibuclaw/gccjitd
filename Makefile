@@ -1,5 +1,12 @@
+COMPILER := gdc
+DUB := dub
+BUILD := debug
+DUB_BUILD := $(DUB) build --build=$(BUILD) --compiler=$(COMPILER)
+DUB_TEST := $(DUB) test --compiler=$(COMPILER)
+DUB_RUN := $(DUB) run
+
 all:
-	dub build
+	$(DUB_BUILD)
 
 check: check-gccjitd \
 	check-brainf \
@@ -12,34 +19,34 @@ check: check-gccjitd \
 	check-lint
 
 check-gccjitd:
-	dub test
-	dub test --config=betterC
+	$(DUB_TEST)
+	$(DUB_TEST) --config=betterC
 
 check-brainf:
-	dub test :brainf -- test/brainf/mandelbrot.bf
+	$(DUB_TEST) :brainf -- test/brainf/mandelbrot.bf
 
 check-capi:
-	dub test :capi
+	$(DUB_TEST) :capi
 
 check-dapi:
-	dub test :dapi
+	$(DUB_TEST) :dapi
 
 check-lint:
-	dub run dscanner -- --syntaxCheck source/gccjit
-	dub run dscanner -- --styleCheck source/gccjit
+	$(DUB_RUN) dscanner -- --syntaxCheck source/gccjit
+	$(DUB_RUN) dscanner -- --styleCheck source/gccjit
 
 check-square:
-	dub test :square
+	$(DUB_TEST) :square
 
 check-sum-squares:
-	dub test :sum-squares
+	$(DUB_TEST) :sum-squares
 
 check-toy:
-	dub test :toy -- test/toy/fact.toy
+	$(DUB_TEST) :toy -- test/toy/fact.toy
 
 check-unittests:
-	dub test :unittests
-	dub test :unittests --config=betterC
+	$(DUB_TEST) :unittests
+	$(DUB_TEST) :unittests --config=betterC
 
 # Build objects
 DUB_ARTEFACTS = \
@@ -58,3 +65,5 @@ DUB_ARTEFACTS = \
 clean:
 	rm -vf $(DUB_ARTEFACTS)
 	dub clean
+
+.NOTPARALLEL:
