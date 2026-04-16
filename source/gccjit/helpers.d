@@ -136,3 +136,132 @@ void abort(string msg)() @nogc nothrow
     fputs("\n", stderr);
     abort();
 }
+
+// Get the lvalue sequence of function parameters from the
+// signature in string `args`. For example, given the value
+//      "const char* str, int val"
+// Firstly, split the args string by comma:
+//      ["const char* str", "int val"]
+// Secondly, find the last occurrence of a space character in each index,
+// then append the slice to the end of string to the returned array.
+//      ["str", "val"]
+// This relies on any `*` being next to the type, and not the arg name.
+private template parameters(string args)
+{
+    enum parameters = () {
+        string[] parts;
+        {
+            size_t i = 0;
+            while (i < args.length)
+            {
+                while (i < args.length && args[i] == ',')
+                    ++i;
+                if (i >= args.length)
+                    break;
+                size_t j = i;
+                while (j < args.length && args[j] != ',')
+                    ++j;
+                parts ~= args[i .. j];
+                i = j;
+            }
+        }
+        string names;
+        foreach (part; parts)
+        {
+            size_t i = part.length;
+            while (i > 0)
+            {
+                if (part[i - 1] == ' ')
+                    break;
+                i--;
+            }
+            if (names.length)
+                names ~= ", ";
+            names ~= part[i .. $];
+        }
+        return names;
+    }();
+}
+
+// Get the handle of the main executable.
+void* getHandle() nothrow @nogc
+{
+    version (Windows)
+    {
+        import core.sys.windows.winbase : GetModuleHandleA;
+        return GetModuleHandleA(null);
+    }
+    else
+    {
+        import core.sys.posix.dlfcn : dlopen, RTLD_LAZY;
+        return dlopen(null, RTLD_LAZY);
+    }
+}
+
+// Lookup a symbol in the `handle` and assign it to `ptr`
+void* getSymbol(void* handle, scope const char* name, void** ptr) nothrow @nogc
+{
+    version (Windows)
+    {
+        import core.sys.windows.winbase : GetProcAddress;
+        alias dlsym = GetProcAddress;
+    }
+    else
+    {
+        import core.sys.posix.dlfcn : dlsym;
+    }
+    if (auto symbol = dlsym(handle, name))
+    {
+        *ptr = symbol;
+        return symbol;
+    }
+    return null;
+}
+
+// Generate ifunc code for initialising all function pointers in gccjit.bindings.
+template ifunc(string type, string name, string args)
+{
+    enum ifunc =
+    type ~ ` function(` ~ args ~ `) c_` ~ name ~ ` = (` ~ args ~ `)
+{
+    import gccjit.helpers : abort, getHandle, getSymbol;
+    c_` ~ name ~ ` = null;
+    if (auto handle = getHandle()) {
+        if (getSymbol(handle, "` ~ name ~ `", cast(void**)&c_` ~ name ~ `))
+            return c_` ~ name ~ `(` ~ parameters!args ~ `);
+    }
+    abort!"Attempt to execute an unresolved gccjit function: ` ~ name ~ `";
+    assert(0);
+};
+alias ` ~ name ~ ` = c_` ~ name ~ `;`;
+}
+
+// Generate Have_* code for check whether gccjit has the feature in the linked
+// libgccjit library. Assigns found symbols to the function pointers in
+// gccjit.bindings as we are looking up the symbol.
+template Have(string[] names)
+{
+    enum Have = () {
+        string code = `
+        // cache lookup in a tristate: no=-1, yes=1, dunno=0
+        enum : byte { Dunno = 0, No = -1, Yes = 1 }
+        __gshared byte have = Dunno;
+        if (have != Dunno)
+            return have == Yes;
+        have = No;
+        import gccjit.helpers : getHandle, getSymbol;
+        if (auto handle = getHandle()) {`;
+        foreach (name; names)
+        {
+            code ~= `
+            if (!getSymbol(handle, "` ~ name ~ `", cast(void**)&c_` ~ name ~ `))
+                return false;`;
+        }
+        code ~= `
+        } else
+            return false;
+        have = Yes;
+        return true;`;
+        return code;
+    }();
+}

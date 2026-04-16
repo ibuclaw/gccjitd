@@ -19,6 +19,7 @@
 module gccjit;
 
 public import gccjit.bindings;
+public import gccjit.flags;
 
 /// D API
 struct JIT
@@ -81,145 +82,187 @@ struct JIT
     ///
     alias Version = gccjit.version_.Version;
 
+    nothrow @nogc:
+    import gccjit.helpers : Have;
+
     /// Feature flags to indicate the presense of libgccjit
     /// functions or API linked into this library.
-    pure nothrow @nogc:
-
     ///
     static bool Have_Context_add_command_line_option()
-    { return LIBGCCJIT_ABI >= 1; }
+    { mixin(Have!(["gcc_jit_context_add_command_line_option"])); }
 
     ///
     static bool Have_Context_set_allow_unreachable_blocks()
-    { return LIBGCCJIT_ABI >= 2; }
+    { mixin(Have!(["gcc_jit_context_set_bool_allow_unreachable_blocks"])); }
 
     ///
     static bool Have_Switch_Statements()
-    { return LIBGCCJIT_ABI >= 3; }
+    { mixin(Have!(["gcc_jit_block_end_with_switch",
+                   "gcc_jit_case_as_object",
+                   "gcc_jit_context_new_case"])); }
 
     ///
     static bool Have_Timing_API()
-    { return LIBGCCJIT_ABI >= 4; }
+    { mixin(Have!(["gcc_jit_context_get_timer",
+                   "gcc_jit_context_set_timer",
+                   "gcc_jit_timer_new",
+                   "gcc_jit_timer_release",
+                   "gcc_jit_timer_push",
+                   "gcc_jit_timer_pop",
+                   "gcc_jit_timer_print"])); }
 
     ///
     static bool Have_Context_set_use_external_driver()
-    { return LIBGCCJIT_ABI >= 5; }
+    { mixin(Have!(["gcc_jit_context_set_bool_use_external_driver"])); }
 
     ///
     static bool Have_RValue_set_require_tail_call()
-    { return LIBGCCJIT_ABI >= 6; }
+    { mixin(Have!(["gcc_jit_rvalue_set_bool_require_tail_call"])); }
 
     ///
     static bool Have_Type_get_aligned()
-    { return LIBGCCJIT_ABI >= 7; }
+    { mixin(Have!(["gcc_jit_type_get_aligned"])); }
 
     ///
     static bool Have_Type_get_vector()
-    { return LIBGCCJIT_ABI >= 8; }
+    { mixin(Have!(["gcc_jit_type_get_vector"])); }
 
     ///
     static bool Have_Function_get_address()
-    { return LIBGCCJIT_ABI >= 9; }
+    { mixin(Have!(["gcc_jit_function_get_address"])); }
 
     ///
     static bool Have_Context_new_rvalue_from_vector()
-    { return LIBGCCJIT_ABI >= 10; }
+    { mixin(Have!(["gcc_jit_context_new_rvalue_from_vector"])); }
 
     ///
     static bool Have_Context_add_driver_option()
-    { return LIBGCCJIT_ABI >= 11; }
+    { mixin(Have!(["gcc_jit_context_add_driver_option"])); }
 
     ///
     static bool Have_Context_new_bitfield()
-    { return LIBGCCJIT_ABI >= 12; }
+    { mixin(Have!(["gcc_jit_context_new_bitfield"])); }
 
     ///
     static bool Have_Version()
-    { return LIBGCCJIT_ABI >= 13; }
+    { mixin(Have!(["gcc_jit_version_major",
+                   "gcc_jit_version_minor",
+                   "gcc_jit_version_patchlevel"])); }
 
     ///
     static bool Have_LValue_set_initiailizer()
-    { return LIBGCCJIT_ABI >= 14; }
+    { mixin(Have!(["gcc_jit_global_set_initializer"])); }
 
     ///
     static bool Have_Asm_Statements()
-    { return LIBGCCJIT_ABI >= 15; }
+    { mixin(Have!(["gcc_jit_block_add_extended_asm",
+                   "gcc_jit_block_end_with_extended_asm_goto",
+                   "gcc_jit_extended_asm_as_object",
+                   "gcc_jit_extended_asm_set_volatile_flag",
+                   "gcc_jit_extended_asm_set_inline_flag",
+                   "gcc_jit_extended_asm_add_output_operand",
+                   "gcc_jit_extended_asm_add_input_operand",
+                   "gcc_jit_extended_asm_add_clobber",
+                   "gcc_jit_context_add_top_level_asm"])); }
 
     ///
     static bool Have_Reflection()
-    { return LIBGCCJIT_ABI >= 16; }
+    { mixin(Have!(["gcc_jit_function_get_return_type",
+                   "gcc_jit_function_get_param_count",
+                   "gcc_jit_function_type_get_return_type",
+                   "gcc_jit_function_type_get_param_count",
+                   "gcc_jit_function_type_get_param_type",
+                   "gcc_jit_type_dyncast_function_ptr_type",
+                   "gcc_jit_vector_type_get_element_type",
+                   "gcc_jit_vector_type_get_num_units",
+                   "gcc_jit_type_unqualified",
+                   "gcc_jit_type_dyncast_array",
+                   "gcc_jit_type_is_bool",
+                   "gcc_jit_type_is_integral",
+                   "gcc_jit_type_is_pointer",
+                   "gcc_jit_type_dyncast_vector",
+                   "gcc_jit_struct_get_field",
+                   "gcc_jit_type_is_struct",
+                   "gcc_jit_struct_get_field_count"])); }
 
     ///
     static bool Have_LValue_set_tls_model()
-    { return LIBGCCJIT_ABI >= 17; }
+    { mixin(Have!(["gcc_jit_lvalue_set_tls_model"])); }
 
     ///
     static bool Have_LValue_set_link_section()
-    { return LIBGCCJIT_ABI >= 18; }
+    { mixin(Have!(["gcc_jit_lvalue_set_link_section"])); }
 
     ///
     static bool Have_Ctors()
-    { return LIBGCCJIT_ABI >= 19; }
+    { mixin(Have!(["gcc_jit_context_new_array_constructor",
+                   "gcc_jit_context_new_struct_constructor",
+                   "gcc_jit_context_new_union_constructor",
+                   "gcc_jit_global_set_initializer_rvalue"])); }
 
     ///
     static bool Have_Sized_Integers()
-    { return LIBGCCJIT_ABI >= 20; }
+    { mixin(Have!(["gcc_jit_compatible_types",
+                   "gcc_jit_type_get_size"])); }
 
     ///
     static bool Have_Context_new_bitcast()
-    { return LIBGCCJIT_ABI >= 21; }
+    { mixin(Have!(["gcc_jit_context_new_bitcast"])); }
 
     ///
     static bool Have_LValue_set_register_name()
-    { return LIBGCCJIT_ABI >= 22; }
+    { mixin(Have!(["gcc_jit_lvalue_set_register_name"])); }
 
     ///
     static bool Have_Context_set_print_errors_to_stderr()
-    { return LIBGCCJIT_ABI >= 23; }
+    { mixin(Have!(["gcc_jit_context_set_bool_print_errors_to_stderr"])); }
 
     ///
     static bool Have_Alignment()
-    { return LIBGCCJIT_ABI >= 24; }
+    { mixin(Have!(["gcc_jit_lvalue_set_alignment",
+                   "gcc_jit_lvalue_get_alignment"])); }
 
     ///
     static bool Have_Type_get_restrict()
-    { return LIBGCCJIT_ABI >= 25; }
+    { mixin(Have!(["gcc_jit_type_get_restrict"])); }
 
     ///
     static bool Have_Attributes()
-    { return LIBGCCJIT_ABI >= 26; }
+    { mixin(Have!(["gcc_jit_function_add_attribute",
+                   "gcc_jit_function_add_string_attribute",
+                   "gcc_jit_lvalue_add_string_attribute",
+                   "gcc_jit_function_add_integer_array_attribute"])); }
 
     ///
     static bool Have_Context_new_sizeof()
-    { return LIBGCCJIT_ABI >= 27; }
+    { mixin(Have!(["gcc_jit_context_new_sizeof"])); }
 
     ///
     static bool Have_Context_new_alignof()
-    { return LIBGCCJIT_ABI >= 28; }
+    { mixin(Have!(["gcc_jit_context_new_alignof"])); }
 
     ///
     static bool Have_LValue_set_readonly()
-    { return LIBGCCJIT_ABI >= 29; }
+    { mixin(Have!(["gcc_jit_global_set_readonly"])); }
 
     ///
     static bool Have_Context_convert_vector()
-    { return LIBGCCJIT_ABI >= 30; }
+    { mixin(Have!(["gcc_jit_context_convert_vector"])); }
 
     ///
     static bool Have_Vector_Operations()
-    { return LIBGCCJIT_ABI >= 31; }
+    { mixin(Have!(["gcc_jit_context_new_vector_access",
+                   "gcc_jit_context_new_rvalue_vector_perm"])); }
 
     ///
     static bool Have_Context_get_target_builtin_function()
-    { return LIBGCCJIT_ABI >= 32; }
+    { mixin(Have!(["gcc_jit_context_get_target_builtin_function"])); }
 
     ///
     static bool Have_Function_new_temp()
-    { return LIBGCCJIT_ABI >= 33; }
+    { mixin(Have!(["gcc_jit_function_new_temp"])); }
 
     ///
     static bool Have_Context_set_output_ident()
-    { return LIBGCCJIT_ABI >= 34; }
+    { mixin(Have!(["gcc_jit_context_set_output_ident"])); }
 }
-
-public import gccjit.flags;
