@@ -128,6 +128,7 @@ auto toCStringThen(alias dg)(const(char)[] src) nothrow
 }
 
 // Print message to stderr then abort runtime.
+pragma(inline, true)
 void abort(string msg)() @nogc nothrow
 {
     import core.stdc.stdio : fputs, stderr;
