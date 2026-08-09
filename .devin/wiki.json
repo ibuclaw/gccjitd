@@ -1,0 +1,280 @@
+{
+  "repo_notes": [
+    {
+      "content": "gccjitd is D language bindings for libgccjit.so, GCC's JIT compilation library. It has two DUB build configurations: 'library' (standard, default) and 'betterC' (adds -fno-exceptions for GDC, no D runtime). The public API is aggregated into a single struct JIT (source/gccjit/package.d) via static import + alias for every submodule (Context, Type, Field, Function, Block, RValue, LValue, CompileResult, Timer, Version, etc.), so JIT is a pure namespace facade. Because libgccjit avoids SONAME bumps and instead versions individual symbols, gccjitd exposes many library features behind per-symbol Have_* runtime feature flags (e.g. JIT.Have_Reflection, JIT.Have_Timing_API, JIT.Have_Version) rather than relying on link-time availability - always check for a Have_* guard before assuming a method is unconditionally available."
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview",
+      "purpose": "High-level introduction to gccjitd: what it is, its purpose as D bindings for libgccjit, the overall architecture, and how the major subsystems relate. Links to child pages for details.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Getting Started: Build, Configuration, and Installation",
+      "purpose": "Explains how to build gccjitd using DUB and Make, the two library configurations (standard and betterC), how to link against libgccjit, and how to run the test suite.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "dub.json defines two configurations: 'library' (default) and 'betterC' (adds -fno-exceptions for GDC). It also lists sub-packages (test/brainf, test/capi, test/dapi, test/square, test/sum-squares, test/toy, test/unittests) used for `dub test :name` invocations."
+        }
+      ]
+    },
+    {
+      "title": "Package Structure and Public API Surface",
+      "purpose": "Describes the gccjit package layout, the JIT struct as the central namespace aggregator, and how all sub-modules are exposed to consumers via package.d.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "package.d aggregates every sub-module as a static import + alias inside the JIT struct (e.g. alias Context = gccjit.context.Context), so JIT is purely a namespace facade with no logic of its own."
+        }
+      ]
+    },
+    {
+      "title": "C Bindings Layer (gccjit.bindings)",
+      "purpose": "Overview of the raw C-to-D binding layer that wraps libgccjit. Introduces the ABI versioning strategy and dynamic symbol loading. Links to child pages for deeper coverage.",
+      "page_notes": [
+        {
+          "content": "dscanner.ini explicitly excludes gccjit.bindings from the undocumented_declaration_check, since this module mirrors the C header closely and isn't expected to carry doc comments like the rest of the D API layer."
+        }
+      ]
+    },
+    {
+      "title": "libgccjit ABI Versioning and Dynamic Symbol Loading",
+      "purpose": "Details how gccjitd handles multiple versions of libgccjit.so at runtime using dlsym, the LoadLibGccjit mixin, and the fallback abort mechanism for missing symbols.",
+      "parent": "C Bindings Layer (gccjit.bindings)",
+      "page_notes": [
+        {
+          "content": "See the API-compatibility comment above the ifunc import in bindings.d: libgccjit avoids bumping its SONAME and instead tags each symbol via versioning, so gccjitd uses ifunc to test for symbol presence at runtime and aborts with a message if a missing symbol is called."
+        }
+      ]
+    },
+    {
+      "title": "C API Reference: Opaque Types and Function Declarations",
+      "purpose": "Documents the opaque C struct hierarchy (gcc_jit_context, gcc_jit_object, gcc_jit_rvalue, gcc_jit_lvalue, gcc_jit_block, etc.) and the extern(C) function declarations that map directly to libgccjit symbols.",
+      "parent": "C Bindings Layer (gccjit.bindings)",
+      "page_notes": [
+        {
+          "content": "The opaque type class hierarchy is documented directly in a comment above gcc_jit_object in bindings.d, mirroring the D-side JitObject hierarchy comment in object.d."
+        }
+      ]
+    },
+    {
+      "title": "gccjit.version_: libgccjit Version Querying",
+      "purpose": "Documents the Version struct in gccjit.version_, a static, non-instantiable wrapper around gcc_jit_version_major(), gcc_jit_version_minor(), and gcc_jit_version_patchlevel(), used to query the runtime ABI version of libgccjit (available since LIBGCCJIT_ABI_13, gated by JIT.Have_Version).",
+      "parent": "C Bindings Layer (gccjit.bindings)",
+      "page_notes": [
+        {
+          "content": "Version is exposed publicly as JIT.Version via the static import + alias pattern in package.d, the same aggregation idiom used for all other JIT.* entities."
+        }
+      ]
+    },
+    {
+      "title": "D API Layer: Core Architecture",
+      "purpose": "Overview of the D-idiomatic wrapper layer built on top of the C bindings. Explains the struct-based inheritance pattern (union + alias this), the JitObject base, and how all entities relate. Links to child pages for each subsystem.",
+      "page_notes": [
+        {
+          "content": "The struct hierarchy comment in object.d is the canonical listing of every D wrapper struct and its parent, useful as a generation reference."
+        }
+      ]
+    },
+    {
+      "title": "JitObject: The Base Wrapper",
+      "purpose": "Covers the JitObject struct, its role as the base for all JIT entities, the union/alias-this inheritance pattern, get_context(), toString(), opCast!bool, and the package-level visibility model.",
+      "parent": "D API Layer: Core Architecture",
+      "page_notes": [
+        {
+          "content": "JitObject itself has no union/alias this (it's the root), and its constructor/get_object() are package(gccjit)-scoped, hidden from public consumers."
+        }
+      ]
+    },
+    {
+      "title": "Flags and Enumerations",
+      "purpose": "Documents all configuration enums in gccjit.flags: FunctionType, GlobalKind, CType, UnaryOp, BinaryOp, ComparisonOp, OutputKind, OptimizationLevel, TlsModel, FnAttribute, VarAttribute, and how they map to GCC_JIT_* C constants.",
+      "parent": "D API Layer: Core Architecture",
+      "page_notes": [
+        {
+          "content": "Every enum in flags.d is typed directly as its underlying gcc_jit_* C enum (e.g. enum FunctionType : gcc_jit_function_kind), a 1:1 mechanical mapping rather than a hand-designed D enum."
+        }
+      ]
+    },
+    {
+      "title": "Compilation Context (gccjit.context)",
+      "purpose": "Overview of the Context struct as the central factory and lifecycle manager for all JIT entities. Links to child pages covering configuration, type/data creation, and function/control-flow building.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Context Lifecycle and Configuration",
+      "purpose": "Covers Context.acquire(), new_child_context(), release(), and all configuration properties: set_optimization_level, set_debug_info, set_program_name, add_command_line_option, set_logfile, get_first_error, and the dump/debug options.",
+      "parent": "Compilation Context (gccjit.context)",
+      "page_notes": [
+        {
+          "content": "Several Context config methods return this for chaining and are marked deprecated in favor of per-option entrypoints (e.g. generic set_option overloads deprecated in favor of set_program_name, set_optimization_level); many later options are individually Have_*-gated (e.g. Have_Context_set_allow_unreachable_blocks, Have_Context_add_driver_option)."
+        }
+      ]
+    },
+    {
+      "title": "Type and Data Factory Methods",
+      "purpose": "Documents Context methods for creating types (get_type, get_int_type, new_array_type, new_function_type, new_struct_type, new_union_type, new_opaque_struct) and global variables (new_global), including the D template get_int_type!T.",
+      "parent": "Compilation Context (gccjit.context)",
+      "page_notes": [
+        {
+          "content": "Context.timer() getter/setter actually lives among the general Context config methods in context.d, immediately adjacent to get_first_error and new_location, not in a types-specific section - worth noting for correct page placement."
+        }
+      ]
+    },
+    {
+      "title": "Function, Expression, and Operator Factory Methods",
+      "purpose": "Documents Context methods for creating functions (new_function, new_param), expressions (new_rvalue, new_call, new_cast, new_array_access), and operators (new_plus, new_minus, new_mult, new_comparison, new_logical_negate, etc.), plus vector operations.",
+      "parent": "Compilation Context (gccjit.context)",
+      "page_notes": [
+        {
+          "content": "Most new_rvalue_from_* and constructor methods (new_struct_constructor, new_union_constructor, new_array_constructor) come in Location-explicit and Location()-defaulted 'Ditto' pairs, and several are individually ABI-gated (Have_Ctors for LIBGCCJIT_ABI_19, Have_Context_new_sizeof for LIBGCCJIT_ABI_27)."
+        }
+      ]
+    },
+    {
+      "title": "Compilation Output: CompileResult",
+      "purpose": "Documents the CompileResult struct (gccjit.compile), a wrapper around gcc_jit_result returned by Context.compile() and Context.compile_to_file(). Covers get_code() and get_global() for retrieving compiled function/global pointers, and release() for unloading the built .so file.",
+      "parent": "Compilation Context (gccjit.context)",
+      "page_notes": [
+        {
+          "content": "This page was merged from a separate 'gccjit.compile: CompileResult Struct' page; keep scope strictly to CompileResult (get_code/get_global/release) and Context.compile() as its sole construction path. Do not re-split into a standalone gccjit.compile page."
+        }
+      ]
+    },
+    {
+      "title": "Type System (gccjit.types)",
+      "purpose": "Overview of the type hierarchy in gccjitd: Type, Struct, FunctionPtrType, VectorType. Explains type derivation, opaque structs, and dynamic casting. Links to child pages for each type category.",
+      "page_notes": [
+        {
+          "content": "Type uses opCast!T overloads for both upcasting to JitObject and downcasting to FunctionPtrType/VectorType, gated by JIT.Have_Reflection since these are dyncast_* C entrypoints added in LIBGCCJIT_ABI_16."
+        }
+      ]
+    },
+    {
+      "title": "Base Type and Derived Types",
+      "purpose": "Documents the Type struct: get_pointer, get_const, get_volatile, get_restrict, get_aligned, get_vector, is_compatible_with, unqualified, and the dyncast_* methods for safe downcasting.",
+      "parent": "Type System (gccjit.types)",
+      "page_notes": [
+        {
+          "content": "Several Type methods are individually feature-gated with their own Have_* flags rather than sharing one flag - e.g. get_aligned/get_vector require Have_Type_get_aligned/Have_Type_get_vector, while is_compatible_with/get_size require Have_Sized_Integers."
+        }
+      ]
+    },
+    {
+      "title": "Aggregate and Specialized Types: Struct, FunctionPtrType, VectorType",
+      "purpose": "Documents the Struct struct (set_fields, get_field, get_field_count, opaque struct pattern for self-referential types), FunctionPtrType (get_return_type, get_param_count, get_param_type), and VectorType (get_num_units, get_element_type).",
+      "parent": "Type System (gccjit.types)",
+      "page_notes": [
+        {
+          "content": "Struct.get_field/get_field_count are reflection-only APIs gated by Have_Reflection. FunctionPtrType upcasts to Type by reaching through m_super.get_type() rather than a dedicated C entrypoint - an inheritance-pattern quirk distinct from the other opCast implementations."
+        }
+      ]
+    },
+    {
+      "title": "Declarations: Functions, Parameters, and Fields (gccjit.decls)",
+      "purpose": "Documents the Field, Function, and Parameter structs. Covers the function definition workflow: creating blocks, locals, and parameters; function attributes; opCall overloads; and the dump_to_dot debugging method.",
+      "page_notes": [
+        {
+          "content": "Function.get_return_type/get_param_count are Have_Reflection-gated (LIBGCCJIT_ABI_16), separate from get_address which is gated by its own Have_Function_get_address flag (LIBGCCJIT_ABI_8)."
+        }
+      ]
+    },
+    {
+      "title": "Function and Parameter Structs",
+      "purpose": "Deep dive into the Function struct (new_block, new_local, get_param, get_address, add_attribute, dump_to_dot, opCall) and the Parameter struct (get_param, opCast to LValue/RValue).",
+      "parent": "Declarations: Functions, Parameters, and Fields (gccjit.decls)",
+      "page_notes": [
+        {
+          "content": "new_block/new_local are the core statement-building entrypoints, unconditionally available (no Have_* guard), unlike the reflection APIs on the same struct."
+        }
+      ]
+    },
+    {
+      "title": "Field Struct and Struct Layout",
+      "purpose": "Documents the Field struct (get_field, opCast to JitObject), how fields are used to define struct layouts via Context.new_struct_type and Struct.set_fields, and the opaque struct pattern for forward declarations.",
+      "parent": "Declarations: Functions, Parameters, and Fields (gccjit.decls)",
+      "page_notes": [
+        {
+          "content": "Field is one of the simplest wrappers in the API: no methods beyond get_field/opCast (unlike Struct/Type it carries no reflection or layout logic itself). Fields are created via Context.new_field/new_bitfield (not on Field itself) and consumed as arrays by Struct.set_fields/Context.new_struct_type/new_union_type, which cast the D array directly to gcc_jit_field** relying on Field's union layout matching the C pointer."
+        }
+      ]
+    },
+    {
+      "title": "Values: RValue and LValue (gccjit.values)",
+      "purpose": "Overview of the value system: RValue as the base expression type and LValue as an assignable storage location. Explains the alias-this inheritance, operator overloading, and how values interact with the context. Links to child pages.",
+      "page_notes": [
+        {
+          "content": "LValue upcasts to both RValue and JitObject via opCast!T, following the same union+alias-this + templated-opCast pattern as Type/Struct/Block - the same recurring idiom across the D API layer, useful for consistent doc phrasing."
+        }
+      ]
+    },
+    {
+      "title": "RValue: Expressions and Operator Overloading",
+      "purpose": "Documents RValue methods: get_rvalue, get_type, access_field, dereference_field, dereference, cast_to, set_require_tail_call, and D operator overloads (+, -, *, /, %, &, ^, |, <<, >>, unary -, ~, *).",
+      "parent": "Values: RValue and LValue (gccjit.values)",
+      "page_notes": [
+        {
+          "content": "RValue operator overloads (opBinary, opUnary, opIndex) are thin wrappers delegating to Context factory methods via get_context(), not direct C bindings - e.g. opBinary!\"+\" calls get_context().new_plus(...)."
+        }
+      ]
+    },
+    {
+      "title": "LValue: Storage Locations and Global Variable Configuration",
+      "purpose": "Documents LValue methods: get_lvalue, get_address, set_initializer, global_set_readonly, set_tls_model, set_link_section, set_alignment, add_attribute, and the opIndex array access operator.",
+      "parent": "Values: RValue and LValue (gccjit.values)",
+      "page_notes": [
+        {
+          "content": "set_initializer has two overloads gated by two different flags - the blob-based one by Have_LValue_set_initiailizer (LIBGCCJIT_ABI_14) and the rvalue-based one by Have_Ctors (LIBGCCJIT_ABI_19)."
+        }
+      ]
+    },
+    {
+      "title": "Basic Blocks and Control Flow (gccjit.block)",
+      "purpose": "Overview of the Block, Case, and ExtendedAsm structs. Explains how basic blocks form the control flow graph within a function and how inline assembly is integrated. Links to child pages.",
+      "page_notes": [
+        {
+          "content": "Block upcasts to JitObject via opCast!T, and add_call is a D-only convenience built on top of Context.new_call + add_eval, not a direct C binding."
+        }
+      ]
+    },
+    {
+      "title": "Block: Statement Emission and Termination",
+      "purpose": "Documents all Block methods: add_eval, add_assignment, add_assignment_op, add_call, add_comment, and the termination methods end_with_conditional, end_with_jump, end_with_return, end_with_switch, end_with_void_return.",
+      "parent": "Basic Blocks and Control Flow (gccjit.block)",
+      "page_notes": [
+        {
+          "content": "Every Block mutator method (e.g. add_eval, add_assignment) returns this to support chaining, and each has a Location-less 'Ditto' overload defaulting to Location() - a pattern repeated throughout the D API layer worth calling out once."
+        }
+      ]
+    },
+    {
+      "title": "ExtendedAsm and Case: Inline Assembly and Switch Statements",
+      "purpose": "Documents the ExtendedAsm struct (set_volatile_flag, set_inline_flag, add_output_operand, add_input_operand, add_clobber, add_top_level_asm) and the Case struct for switch statement branches.",
+      "parent": "Basic Blocks and Control Flow (gccjit.block)",
+      "page_notes": [
+        {
+          "content": "Case and ExtendedAsm are both gated behind their own Have_* flags (Have_Switch_Statements for Case, Have_Asm_Statements for ExtendedAsm) even though both live in the same block.d module as Block."
+        }
+      ]
+    },
+    {
+      "title": "Timer and Profiling (gccjit.timer)",
+      "purpose": "Documents the Timer struct, a wrapper around gcc_jit_timer for profiling JIT compilation phases (push/pop/print/release, lazy allocation via m_start), and the AutoTime RAII template that automatically pushes/pops a named timing item for a scope. Available since LIBGCCJIT_ABI_4, gated by JIT.Have_Timing_API. Associated with a Context via Context.timer.",
+      "page_notes": [
+        {
+          "content": "Timer has no direct reference to Context in its own source file; the connection is one-directional via Context.timer() getter/setter in context.d, which should be cross-referenced when documenting this page."
+        }
+      ]
+    }
+  ]
+}
