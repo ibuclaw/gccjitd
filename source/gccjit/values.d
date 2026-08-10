@@ -38,18 +38,6 @@ struct RValue
     }
     alias m_super this;
 
-    ///
-    this(gcc_jit_rvalue* rvalue) pure nothrow @nogc
-    {
-        m_rvalue = rvalue;
-    }
-
-    /// Returns the internal gcc_jit_rvalue object.
-    inout(gcc_jit_rvalue)* get_rvalue() inout pure nothrow @nogc
-    {
-        return m_rvalue;
-    }
-
     /// Returns true if this JIT.RValue has a value.
     bool opCast(T : bool)() const nothrow @nogc
     {
@@ -208,6 +196,18 @@ struct RValue
     /// Dereferencing
     LValue opUnary(string op : "*")() nothrow @nogc
     { return dereference(); }
+
+package(gccjit):
+    // Constructors and get_rvalue are hidden from public.
+    this(gcc_jit_rvalue* rvalue) pure nothrow @nogc
+    {
+        m_rvalue = rvalue;
+    }
+
+    inout(gcc_jit_rvalue)* get_rvalue() inout pure nothrow @nogc
+    {
+        return m_rvalue;
+    }
 }
 
 /// Struct wrapper for gcc_jit_lvalue
@@ -219,18 +219,6 @@ struct LValue
         RValue m_super;
     }
     alias m_super this;
-
-    ///
-    this(gcc_jit_lvalue* lvalue) pure nothrow @nogc
-    {
-        m_lvalue = lvalue;
-    }
-
-    /// Returns the internal gcc_jit_lvalue object.
-    inout(gcc_jit_lvalue)* get_lvalue() inout pure nothrow @nogc
-    {
-        return m_lvalue;
-    }
 
     /// Returns true if this JIT.LValue has a value.
     bool opCast(T : bool)() const nothrow @nogc
@@ -353,5 +341,17 @@ struct LValue
     {
         gcc_jit_global_set_readonly(m_lvalue);
         return this;
+    }
+
+package(gccjit):
+    // Constructors and get_lvalue are hidden from public.
+    this(gcc_jit_lvalue* lvalue) pure nothrow @nogc
+    {
+        m_lvalue = lvalue;
+    }
+
+    inout(gcc_jit_lvalue)* get_lvalue() inout pure nothrow @nogc
+    {
+        return m_lvalue;
     }
 }

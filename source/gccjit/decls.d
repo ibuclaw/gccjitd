@@ -38,18 +38,6 @@ struct Field
     }
     alias m_super this;
 
-    ///
-    this(gcc_jit_field* field) pure nothrow @nogc
-    {
-        m_field = field;
-    }
-
-    /// Returns the internal gcc_jit_field object.
-    inout(gcc_jit_field)* get_field() inout pure nothrow @nogc
-    {
-        return m_field;
-    }
-
     /// Returns true if this JIT.Field has a value.
     bool opCast(T : bool)() const nothrow @nogc
     {
@@ -63,6 +51,18 @@ struct Field
         auto result = gcc_jit_field_as_object(cast(gcc_jit_field*)m_field);
         return typeof(return)(result);
     }
+
+package(gccjit):
+    // Constructors and get_field are hidden from public.
+    this(gcc_jit_field* field) pure nothrow @nogc
+    {
+        m_field = field;
+    }
+
+    inout(gcc_jit_field)* get_field() inout pure nothrow @nogc
+    {
+        return m_field;
+    }
 }
 
 /// Struct wrapper for gcc_jit_function
@@ -74,18 +74,6 @@ struct Function
         JitObject m_super;
     }
     alias m_super this;
-
-    ///
-    this(gcc_jit_function* func) pure nothrow @nogc
-    {
-        m_function = func;
-    }
-
-    /// Returns the internal gcc_jit_function object.
-    gcc_jit_function* get_function() pure nothrow @nogc
-    {
-        return m_function;
-    }
 
     /// Returns true if this JIT.Function has a value.
     bool opCast(T : bool)() const nothrow @nogc
@@ -235,6 +223,18 @@ struct Function
     ///
     RValue opCall(RValue arg0, RValue arg1, RValue arg2, Location loc = Location()) nothrow @nogc
     { return get_context().new_call(loc, this, arg0, arg1, arg2); }
+
+package(gccjit):
+    // Constructors and get_function are hidden from public.
+    this(gcc_jit_function* func) pure nothrow @nogc
+    {
+        m_function = func;
+    }
+
+    inout(gcc_jit_function)* get_function() inout pure nothrow @nogc
+    {
+        return m_function;
+    }
 }
 
 /// Struct wrapper for gcc_jit_param
@@ -246,18 +246,6 @@ struct Parameter
         LValue m_super;
     }
     alias m_super this;
-
-    ///
-    this(gcc_jit_param* param) pure nothrow @nogc
-    {
-        m_parameter = param;
-    }
-
-    /// Returns the internal gcc_jit_param object.
-    gcc_jit_param* get_param() pure nothrow @nogc
-    {
-        return m_parameter;
-    }
 
     /// Returns true if this JIT.Parameter has a value.
     bool opCast(T : bool)() const nothrow @nogc
@@ -287,5 +275,17 @@ struct Parameter
     {
         auto result = gcc_jit_param_as_object(cast(gcc_jit_param*)m_parameter);
         return typeof(return)(result);
+    }
+
+package(gccjit):
+    // Constructors and get_param are hidden from public.
+    this(gcc_jit_param* param) pure nothrow @nogc
+    {
+        m_parameter = param;
+    }
+
+    inout(gcc_jit_param)* get_param() inout pure nothrow @nogc
+    {
+        return m_parameter;
     }
 }

@@ -38,20 +38,6 @@ struct Timer
             m_start(this);
     }
 
-    ///
-    this(gcc_jit_timer* timer) pure nothrow @nogc
-    {
-        m_timer = timer;
-        m_constructed = true;
-    }
-
-    /// Returns the internal gcc_jit_timer object.
-    gcc_jit_timer* get_timer() nothrow @nogc
-    {
-        m_start(this);
-        return m_timer;
-    }
-
     /// Push the given item onto the timing stack.
     void push(string item_name)() nothrow @nogc
     {
@@ -80,6 +66,20 @@ struct Timer
         m_start(this);
         gcc_jit_timer_release(m_timer);
         m_timer = null;
+    }
+
+package(gccjit):
+    // Construction using internal timer and get_timer are hidden from public.
+    this(gcc_jit_timer* timer) pure nothrow @nogc
+    {
+        m_timer = timer;
+        m_constructed = true;
+    }
+
+    gcc_jit_timer* get_timer() nothrow @nogc
+    {
+        m_start(this);
+        return m_timer;
     }
 
 private:

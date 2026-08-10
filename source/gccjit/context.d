@@ -46,12 +46,6 @@ import core.stdc.config : c_long;
 ///     When you can call JIT.Context.release to clean it up.
 struct Context
 {
-    ///
-    this(gcc_jit_context* context) pure nothrow @nogc
-    {
-        m_context = context;
-    }
-
     /// Acquire a JIT-compilation context.
     static Context acquire() nothrow @nogc
     {
@@ -68,12 +62,6 @@ struct Context
     {
         auto result = gcc_jit_context_new_child_context(m_context);
         return Context(result);
-    }
-
-    /// Returns the internal gcc_jit_context object.
-    gcc_jit_context* get_context() nothrow @nogc
-    {
-        return m_context;
     }
 
     /// Release the context.
@@ -1328,6 +1316,18 @@ struct Context
         output_ident.toCStringThen!((o)
             => gcc_jit_context_set_output_ident(m_context, o.ptr));
         return this;
+    }
+
+package(gccjit):
+    // Constructors and get_context are hidden from public.
+    this(gcc_jit_context* context) pure nothrow @nogc
+    {
+        m_context = context;
+    }
+
+    inout(gcc_jit_context)* get_context() inout pure nothrow @nogc
+    {
+        return m_context;
     }
 
 private:

@@ -38,18 +38,6 @@ struct Block
     }
     alias m_super this;
 
-    ///
-    this(gcc_jit_block* block) pure nothrow @nogc
-    {
-        m_block = block;
-    }
-
-    /// Returns the internal gcc_jit_block object.
-    inout(gcc_jit_block)* get_block() inout pure nothrow @nogc
-    {
-        return m_block;
-    }
-
     /// Returns true if this JIT.Block has a value.
     bool opCast(T : bool)() const nothrow @nogc
     {
@@ -271,6 +259,18 @@ struct Block
     ExtendedAsm end_with_extended_asm_goto(string asm_template, scope Block[] goto_blocks,
                                            Block fallthrough_block = Block()) nothrow @nogc
     { return end_with_extended_asm_goto(Location(), asm_template, goto_blocks, fallthrough_block); }
+
+package(gccjit):
+    // Constructors and get_block are hidden from public.
+    this(gcc_jit_block* block) pure nothrow @nogc
+    {
+        m_block = block;
+    }
+
+    inout(gcc_jit_block)* get_block() inout pure nothrow @nogc
+    {
+        return m_block;
+    }
 }
 
 /// Struct wrapper for gcc_jit_case
@@ -282,18 +282,6 @@ struct Case
         JitObject m_super;
     }
     alias m_super this;
-
-    ///
-    this(gcc_jit_case* case_) pure nothrow @nogc
-    {
-        m_case = case_;
-    }
-
-    /// Returns the internal gcc_jit_case object.
-    inout(gcc_jit_case)* get_case() inout pure nothrow @nogc
-    {
-        return m_case;
-    }
 
     /// Returns true if this JIT.Case has a value.
     bool opCast(T : bool)() const nothrow @nogc
@@ -310,6 +298,18 @@ struct Case
         auto result = gcc_jit_case_as_object(cast(gcc_jit_case*)m_case);
         return typeof(return)(result);
     }
+
+package(gccjit):
+    // Constructors and get_case are hidden from public.
+    this(gcc_jit_case* case_) pure nothrow @nogc
+    {
+        m_case = case_;
+    }
+
+    inout(gcc_jit_case)* get_case() inout pure nothrow @nogc
+    {
+        return m_case;
+    }
 }
 
 /// Struct wrapper for gcc_jit_extended_asm
@@ -323,18 +323,6 @@ struct ExtendedAsm
         JitObject m_super;
     }
     alias m_super this;
-
-    ///
-    this(gcc_jit_extended_asm* extended_asm) pure nothrow @nogc
-    {
-        m_extended_asm = extended_asm;
-    }
-
-    /// Returns the internal gcc_jit_extended_asm object.
-    inout(gcc_jit_extended_asm)* get_extended_asm() inout pure nothrow @nogc
-    {
-        return m_extended_asm;
-    }
 
     /// Returns true if this JIT.ExtendedAsm has a value.
     bool opCast(T : bool)() const nothrow @nogc
@@ -410,5 +398,17 @@ struct ExtendedAsm
         victim.toCStringThen!((v)
             => gcc_jit_extended_asm_add_clobber(m_extended_asm, v.ptr));
         return this;
+    }
+
+package(gccjit):
+    // Constructors and get_extended_asm are hidden from public.
+    this(gcc_jit_extended_asm* extended_asm) pure nothrow @nogc
+    {
+        m_extended_asm = extended_asm;
+    }
+
+    inout(gcc_jit_extended_asm)* get_extended_asm() inout pure nothrow @nogc
+    {
+        return m_extended_asm;
     }
 }

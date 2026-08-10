@@ -35,18 +35,6 @@ struct Location
     }
     alias m_super this;
 
-    ///
-    this(gcc_jit_location* loc) pure nothrow @nogc
-    {
-        m_location = loc;
-    }
-
-    /// Returns the internal gcc_jit_location object.
-    inout(gcc_jit_location)* get_location() inout pure nothrow @nogc
-    {
-        return m_location;
-    }
-
     /// Returns true if this JIT.Location has a value.
     bool opCast(T : bool)() const nothrow @nogc
     {
@@ -59,5 +47,17 @@ struct Location
     {
         auto result = gcc_jit_location_as_object(cast(gcc_jit_location*)m_location);
         return typeof(return)(result);
+    }
+
+package(gccjit):
+    // Constructors and get_location are hidden from public.
+    this(gcc_jit_location* loc) pure nothrow @nogc
+    {
+        m_location = loc;
+    }
+
+    inout(gcc_jit_location)* get_location() inout pure nothrow @nogc
+    {
+        return m_location;
     }
 }

@@ -26,18 +26,6 @@ import gccjit.helpers;
 /// Struct wrapper for gcc_jit_result
 struct CompileResult
 {
-    ///
-    this(gcc_jit_result* result) pure nothrow @nogc
-    {
-        m_result = result;
-    }
-
-    /// Returns the internal gcc_jit_result object.
-    gcc_jit_result* get_result() pure nothrow @nogc
-    {
-        return m_result;
-    }
-
     /// Locate a given function within the built machine code.
     /// This will need to be cast to a function pointer of the correct type
     /// before it can be called.
@@ -61,6 +49,18 @@ struct CompileResult
     void release() nothrow @nogc
     {
         gcc_jit_result_release(m_result);
+    }
+
+package(gccjit):
+    // Constructors and get_result are hidden from public.
+    this(gcc_jit_result* result) pure nothrow @nogc
+    {
+        m_result = result;
+    }
+
+    inout(gcc_jit_result)* get_result() inout pure nothrow @nogc
+    {
+        return m_result;
     }
 
 private:

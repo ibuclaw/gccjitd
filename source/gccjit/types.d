@@ -40,18 +40,6 @@ struct Type
     }
     alias m_super this;
 
-    ///
-    this(gcc_jit_type* type) pure nothrow @nogc
-    {
-        m_type = type;
-    }
-
-    /// Returns the internal gcc_jit_type object.
-    inout(gcc_jit_type)* get_type() inout pure nothrow @nogc
-    {
-        return m_type;
-    }
-
     /// Returns true if this JIT.Type has a value.
     bool opCast(T : bool)() const nothrow @nogc
     {
@@ -220,6 +208,18 @@ struct Type
         auto result = gcc_jit_type_unqualified(m_type);
         return Type(result);
     }
+
+package(gccjit):
+    // Constructors and get_type are hidden from public.
+    this(gcc_jit_type* type) pure nothrow @nogc
+    {
+        m_type = type;
+    }
+
+    inout(gcc_jit_type)* get_type() inout pure nothrow @nogc
+    {
+        return m_type;
+    }
 }
 
 /// You can model C struct types by creating JIT.Struct and JIT.Field
@@ -237,18 +237,6 @@ struct Struct
         Type m_super;
     }
     alias m_super this;
-
-    ///
-    this(gcc_jit_struct* agg) pure nothrow @nogc
-    {
-        m_struct = agg;
-    }
-
-    /// Returns the internal gcc_jit_struct object.
-    inout(gcc_jit_struct)* get_struct() inout pure nothrow @nogc
-    {
-        return m_struct;
-    }
 
     /// Returns true if this JIT.Struct has a value.
     bool opCast(T : bool)() const nothrow @nogc
@@ -312,6 +300,18 @@ struct Struct
     {
         return gcc_jit_struct_get_field_count(m_struct);
     }
+
+package(gccjit):
+    // Constructors and get_struct are hidden from public.
+    this(gcc_jit_struct* agg) pure nothrow @nogc
+    {
+        m_struct = agg;
+    }
+
+    inout(gcc_jit_struct)* get_struct() inout pure nothrow @nogc
+    {
+        return m_struct;
+    }
 }
 
 /// Function Types can be created using JIT.Context.new_function_type().
@@ -324,18 +324,6 @@ struct FunctionPtrType
         Type m_super;
     }
     alias m_super this;
-
-    ///
-    this(gcc_jit_function_type* function_type) pure nothrow @nogc
-    {
-        m_function_type = function_type;
-    }
-
-    /// Returns the internal gcc_jit_function_type object.
-    inout(gcc_jit_function_type)* get_function_type() inout pure nothrow @nogc
-    {
-        return m_function_type;
-    }
 
     /// Returns true if this JIT.FunctionPtrType has a value.
     bool opCast(T : bool)() const nothrow @nogc
@@ -384,6 +372,18 @@ struct FunctionPtrType
         auto result = gcc_jit_function_type_get_param_type(m_function_type, index);
         return Type(result);
     }
+
+package(gccjit):
+    // Constructors and get_function_type are hidden from public.
+    this(gcc_jit_function_type* function_type) pure nothrow @nogc
+    {
+        m_function_type = function_type;
+    }
+
+    inout(gcc_jit_function_type)* get_function_type() inout pure nothrow @nogc
+    {
+        return m_function_type;
+    }
 }
 
 /// Vector Types can be created using JIT.Type.get_vector().
@@ -398,18 +398,6 @@ struct VectorType
         Type m_super;
     }
     alias m_super this;
-
-    ///
-    this(gcc_jit_vector_type* vector_type) pure nothrow @nogc
-    {
-        m_vector_type = vector_type;
-    }
-
-    /// Returns the internal gcc_jit_vector_type object.
-    inout(gcc_jit_vector_type)* get_vector_type() inout pure nothrow @nogc
-    {
-        return m_vector_type;
-    }
 
     /// Returns true if this JIT.VectorType has a value.
     bool opCast(T : bool)() const nothrow @nogc
@@ -444,5 +432,17 @@ struct VectorType
     {
         auto result = gcc_jit_vector_type_get_element_type(m_vector_type);
         return Type(result);
+    }
+
+package(gccjit):
+    // Constructors and get_vector_type are hidden from public.
+    this(gcc_jit_vector_type* vector_type) pure nothrow @nogc
+    {
+        m_vector_type = vector_type;
+    }
+
+    inout(gcc_jit_vector_type)* get_vector_type() inout pure nothrow @nogc
+    {
+        return m_vector_type;
     }
 }
