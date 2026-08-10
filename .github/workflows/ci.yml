@@ -1,0 +1,50 @@
+name: gccjitd build & unittest
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  gccjitd-test:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            version: "9"
+          - runner: ubuntu-24.04
+            version: "10"
+          - runner: ubuntu-26.04
+            version: "11"
+          - runner: ubuntu-26.04
+            version: "12"
+          - runner: ubuntu-26.04
+            version: "13"
+          - runner: ubuntu-26.04
+            version: "14"
+          - runner: ubuntu-26.04
+            version: "15"
+          - runner: ubuntu-26.04
+            version: "16"
+
+    name: gdc-${{ matrix.version }} (${{ matrix.runner }})
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prerequesites
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y dub make \
+            "gdc-${{ matrix.version }}" \
+            "libgccjit-${{ matrix.version }}-dev"
+          ${{ matrix.version }} --version || true
+          dub --version || true
+
+      - name: Build
+        run: make COMPILER=gdc-${{ matrix.version }}
+
+      - name: Test
+        run: make check COMPILER=gdc-${{ matrix.version }}
