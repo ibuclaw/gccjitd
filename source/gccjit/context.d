@@ -52,6 +52,12 @@ struct Context
         return Context(gcc_jit_context_acquire());
     }
 
+    /// Returns true if this JIT.Context has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_context !is null;
+    }
+
     /// Create a new child context of the given JIT.Context, inheriting a copy
     /// of all option settings from the parent.
     /// The returned JIT.Context can reference objects created within the

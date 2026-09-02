@@ -26,6 +26,12 @@ import gccjit.helpers;
 /// Struct wrapper for gcc_jit_result
 struct CompileResult
 {
+    /// Returns true if this JIT.CompileResult has a value.
+    bool opCast(T : bool)() const nothrow @nogc
+    {
+        return m_result !is null;
+    }
+
     /// Locate a given function within the built machine code.
     /// If the function does not exist in the CompileResult, this function will
     /// return a "null" pointer.
