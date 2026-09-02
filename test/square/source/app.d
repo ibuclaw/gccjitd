@@ -49,10 +49,7 @@ int square(int i)
 
     // Look up a specific machine code routine within the JIT.CompileResult,
     // in this case, the function we created above.
-    void *void_ptr = result.get_code("square");
-
-    // Now turn it into something we can call from D.
-    auto code = cast(int function(int))(void_ptr);
+    auto code = result.get_code!(int function(int))("square");
 
     // Now try running the code
     return code(i);

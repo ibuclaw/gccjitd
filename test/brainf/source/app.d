@@ -149,7 +149,7 @@ void main(string[] args)
     JIT.CompileResult result = ctx.compile();
     ctx.release();
 
-    auto mainfn = cast(int function()) result.get_code("bfmain");
+    auto mainfn = result.get_code!(int function())("bfmain");
     mainfn();
 
     result.release();

@@ -27,21 +27,31 @@ import gccjit.helpers;
 struct CompileResult
 {
     /// Locate a given function within the built machine code.
-    /// This will need to be cast to a function pointer of the correct type
-    /// before it can be called.
-    void* get_code(string name) nothrow @nogc
+    /// If the function does not exist in the CompileResult, this function will
+    /// return a "null" pointer.
+    /// It is the responsibility of the caller to check the pointer is not
+    /// "null", and ensure that it is not used past the lifetime of the
+    /// CompileResult object.
+    T get_code(T)(string name) nothrow @nogc
+        if (is(T U : U*) && is(U == function))
     {
-        return name.toCStringThen!((n)
+        auto result = name.toCStringThen!((n)
             => gcc_jit_result_get_code(m_result, n.ptr));
+        return cast(T)result;
     }
 
     /// Locate a given global within the built machine code.
     /// It must have been created using GlobalKind.EXPORTED.
     /// This returns is a pointer to the global.
-    void* get_global(string name) nothrow @nogc
+    /// It is the responsibility of the caller to check the pointer is not
+    /// "null", and ensure that it is not used past the lifetime of the
+    /// CompileResult object.
+    T* get_global(T)(string name) nothrow @nogc
+        if (is(T))
     {
-        return name.toCStringThen!((n)
+        auto result = name.toCStringThen!((n)
             => gcc_jit_result_get_global(m_result, n.ptr));
+        return cast(T*)result;
     }
 
     /// Once we're done with the code, this unloads the built .so file.

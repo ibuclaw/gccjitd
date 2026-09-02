@@ -81,7 +81,7 @@ JIT.CompileResult create_fn()
 int loop_test(int n)
 {
     JIT.CompileResult result = create_fn();
-    auto code = cast(int function(int))(result.get_code("loop_test"));
+    auto code = result.get_code!(int function(int))("loop_test");
     return code(n);
 }
 

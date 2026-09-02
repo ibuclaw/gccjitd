@@ -68,7 +68,7 @@ class Backend
         JIT.CompileResult result = this.context.compile();
         this.context.release();
 
-        auto toymain = cast(void function()) result.get_code("toymain");
+        auto toymain = result.get_code!(void function())("toymain");
         toymain();
 
         result.release();

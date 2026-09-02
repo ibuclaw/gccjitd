@@ -40,7 +40,7 @@ void main()
     // from the result object (pointing to the machine code), and
     // cast it to the appropriate type for the function:
     alias hello_fn_type = void function(in char *);
-    auto hello_fn = cast(hello_fn_type) result.get_code("hello_fn");
+    auto hello_fn = result.get_code!hello_fn_type("hello_fn");
 
     // We can now call the machine code:
     hello_fn("world");
