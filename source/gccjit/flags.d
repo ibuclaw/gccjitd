@@ -153,8 +153,20 @@ enum CType : gcc_jit_types
     /// C's uint128_t type.
     UInt128t = GCC_JIT_TYPE_UINT128_T,
 
-    /// C's __bfloat16
+    /// C's __bfloat16/__bf16 type.
     BFloat16 = GCC_JIT_TYPE_BFLOAT16,
+
+    /// C's _Float16 type.
+    Float16 = GCC_JIT_TYPE_FLOAT16,
+
+    /// Single precision floating point type.
+    Float32 = GCC_JIT_TYPE_FLOAT32,
+
+    /// Double precision floating point type.
+    Float64 = GCC_JIT_TYPE_FLOAT64,
+
+    /// Quad precision floating point type.
+    Float128 = GCC_JIT_TYPE_FLOAT128,
 }
 
 /// Kinds of unary ops.
@@ -316,6 +328,36 @@ enum FnAttribute
     Const = GCC_JIT_FN_ATTRIBUTE_CONST,
     Weak = GCC_JIT_FN_ATTRIBUTE_WEAK,
     NonNull = GCC_JIT_FN_ATTRIBUTE_NONNULL,
+
+    /// ARM attributes.
+    ARM_CMSE_Nonsecure_Call = GCC_JIT_FN_ATTRIBUTE_ARM_CMSE_NONSECURE_CALL,
+    ARM_CMSE_Nonsecure_Entry = GCC_JIT_FN_ATTRIBUTE_ARM_CMSE_NONSECURE_ENTRY,
+    ARM_PCS = GCC_JIT_FN_ATTRIBUTE_ARM_PCS,
+
+    /// AVR attributes.
+    AVR_Interrupt = GCC_JIT_FN_ATTRIBUTE_AVR_INTERRUPT,
+    AVR_NoBlock = GCC_JIT_FN_ATTRIBUTE_AVR_NOBLOCK,
+    AVR_Signal = GCC_JIT_FN_ATTRIBUTE_AVR_SIGNAL,
+
+    /// AMD GCN attributes.
+    GCN_AMDGPU_HSA_Kernel = GCC_JIT_FN_ATTRIBUTE_GCN_AMDGPU_HSA_KERNEL,
+
+    /// MSP430 attributes.
+    MSP430_Interrupt = GCC_JIT_FN_ATTRIBUTE_MSP430_INTERRUPT,
+
+    /// Nvidia PTX attributes.
+    NVPTX_Kernel = GCC_JIT_FN_ATTRIBUTE_NVPTX_KERNEL,
+
+    /// RISC-V attributes.
+    RISCV_Interrupt = GCC_JIT_FN_ATTRIBUTE_RISCV_INTERRUPT,
+
+    /// x86 attributes.
+    X86_Fast_Call = GCC_JIT_FN_ATTRIBUTE_X86_FAST_CALL,
+    X86_Interrupt = GCC_JIT_FN_ATTRIBUTE_X86_INTERRUPT,
+    X86_MS_ABI = GCC_JIT_FN_ATTRIBUTE_X86_MS_ABI,
+    X86_Stdcall = GCC_JIT_FN_ATTRIBUTE_X86_STDCALL,
+    X86_SysV_ABI = GCC_JIT_FN_ATTRIBUTE_X86_SYSV_ABI,
+    X86_This_Call = GCC_JIT_FN_ATTRIBUTE_X86_THIS_CALL,
 }
 
 /// Variable attributes

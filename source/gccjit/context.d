@@ -27,6 +27,7 @@ import gccjit.decls;
 import gccjit.flags;
 import gccjit.helpers;
 import gccjit.location;
+import gccjit.target;
 import gccjit.timer;
 import gccjit.types;
 import gccjit.values;
@@ -1323,6 +1324,46 @@ struct Context
             => gcc_jit_context_set_output_ident(m_context, o.ptr));
         return this;
     }
+
+    /// Create a JIT.TargetInfo instance.
+    /// This API endpoint was added in LIBGCCJIT_ABI_35; you can test for its
+    /// presence using `if (JIT.Have_TargetInfo_API)`.
+    TargetInfo get_target_info()
+    {
+        auto result = gcc_jit_context_get_target_info(m_context);
+        return TargetInfo(result);
+    }
+
+    /// Controls whether libgccjit will abort if it is given an unsupported type.
+    /// This API endpoint was added in LIBGCCJIT_ABI_36; you can test for its
+    /// presence using `if (JIT.Have_Context_set_abort_on_unsupported_target_builtin)`.
+    Context set_abort_on_unsupported_target_builtin()
+    {
+        gcc_jit_context_set_abort_on_unsupported_target_builtin(m_context);
+        return this;
+    }
+
+    /// Given type "T", build a new array type of "T[N]".
+    /// This API endpoint was added in LIBGCCJIT_ABI_37; you can test for its
+    /// presence using `if (JIT.Have_Context_new_array_type_u64)`.
+    Type new_array_type_u64(Location loc, Type type, ulong dims) nothrow @nogc
+    {
+        auto result = gcc_jit_context_new_array_type_u64(m_context, loc.get_location(),
+                                                         type.get_type(), dims);
+        return Type(result);
+    }
+
+    /// Ditto
+    Type new_array_type_u64(Type type, ulong dims) nothrow @nogc
+    { return new_array_type_u64(Location(), type, dims); }
+
+    /// Ditto
+    Type new_array_type_u64(Location loc, CType kind, ulong dims) nothrow @nogc
+    { return new_array_type_u64(loc, get_type(kind), dims); }
+
+    /// Ditto
+    Type new_array_type_u64(CType kind, ulong dims) nothrow @nogc
+    { return new_array_type_u64(Location(), get_type(kind), dims); }
 
 package(gccjit):
     // Constructors and get_context are hidden from public.

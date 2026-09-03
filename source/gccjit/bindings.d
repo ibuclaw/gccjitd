@@ -55,6 +55,9 @@ struct gcc_jit_context;
 /** A gcc_jit_result encapsulates the result of an in-memory compilation.  */
 struct gcc_jit_result;
 
+/** A gcc_jit_target_info encapsulates the target info.  */
+struct gcc_jit_target_info;
+
 /** An object created within a context.  Such objects are automatically
    cleaned up when the context is released.
 
@@ -488,6 +491,10 @@ enum : gcc_jit_types
     GCC_JIT_TYPE_INT128_T,
 
     GCC_JIT_TYPE_BFLOAT16,
+    GCC_JIT_TYPE_FLOAT16,
+    GCC_JIT_TYPE_FLOAT32,
+    GCC_JIT_TYPE_FLOAT64,
+    GCC_JIT_TYPE_FLOAT128,
 }
 
 gcc_jit_type *gcc_jit_context_get_type(gcc_jit_context *ctxt,
@@ -1141,6 +1148,36 @@ enum : gcc_jit_fn_attribute
     GCC_JIT_FN_ATTRIBUTE_CONST,
     GCC_JIT_FN_ATTRIBUTE_WEAK,
     GCC_JIT_FN_ATTRIBUTE_NONNULL,
+
+    /// ARM attributes.
+    GCC_JIT_FN_ATTRIBUTE_ARM_CMSE_NONSECURE_CALL,
+    GCC_JIT_FN_ATTRIBUTE_ARM_CMSE_NONSECURE_ENTRY,
+    GCC_JIT_FN_ATTRIBUTE_ARM_PCS,
+
+    /// AVR attributes.
+    GCC_JIT_FN_ATTRIBUTE_AVR_INTERRUPT,
+    GCC_JIT_FN_ATTRIBUTE_AVR_NOBLOCK,
+    GCC_JIT_FN_ATTRIBUTE_AVR_SIGNAL,
+
+    /// AMD GCN attributes.
+    GCC_JIT_FN_ATTRIBUTE_GCN_AMDGPU_HSA_KERNEL,
+
+    /// MSP430 attributes.
+    GCC_JIT_FN_ATTRIBUTE_MSP430_INTERRUPT,
+
+    /// Nvidia PTX attributes.
+    GCC_JIT_FN_ATTRIBUTE_NVPTX_KERNEL,
+
+    /// RISC-V attributes.
+    GCC_JIT_FN_ATTRIBUTE_RISCV_INTERRUPT,
+
+    /// x86 attributes.
+    GCC_JIT_FN_ATTRIBUTE_X86_FAST_CALL,
+    GCC_JIT_FN_ATTRIBUTE_X86_INTERRUPT,
+    GCC_JIT_FN_ATTRIBUTE_X86_MS_ABI,
+    GCC_JIT_FN_ATTRIBUTE_X86_STDCALL,
+    GCC_JIT_FN_ATTRIBUTE_X86_SYSV_ABI,
+    GCC_JIT_FN_ATTRIBUTE_X86_THIS_CALL,
 
     /** Maximum value of this enum, should always be last. */
     GCC_JIT_FN_ATTRIBUTE_MAX,
@@ -1876,5 +1913,59 @@ mixin(ifunc!(q{gcc_jit_lvalue*}, q{gcc_jit_function_new_temp},
 */
 mixin(ifunc!(q{void}, q{gcc_jit_context_set_output_ident},
              q{gcc_jit_context* ctxt, scope const char* output_ident}));
+
+/** Create a gcc_jit_target_info instance.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_35
+*/
+mixin(ifunc!(q{gcc_jit_target_info*}, q{gcc_jit_context_get_target_info},
+             q{gcc_jit_context* ctxt}));
+
+/** Release a gcc_jit_target_info instance.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_35
+*/
+mixin(ifunc!(q{void}, q{gcc_jit_target_info_release},
+             q{gcc_jit_target_info* info}));
+
+/** Returns non-zero if FEATURE is supported by the specified target.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_35
+*/
+mixin(ifunc!(q{int}, q{gcc_jit_target_info_cpu_supports},
+             q{gcc_jit_target_info* info, scope const char* feature}));
+
+/** Returns the ARCH of the currently running CPU.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_35
+*/
+mixin(ifunc!(q{const(char)*}, q{gcc_jit_target_info_arch},
+             q{gcc_jit_target_info* info}));
+
+/** Returns non-zero if the target natively supports the target-dependent type
+   TYPE.
+
+   This API entrypoint was added in LIBGCCJIT_ABI_35; you can test for its
+   presence using
+     #ifdef LIBGCCJIT_HAVE_TARGET_INFO_API
+*/
+mixin(ifunc!(q{int}, q{gcc_jit_target_info_supports_target_dependent_type},
+             q{gcc_jit_target_info* info, gcc_jit_types type}));
+
+/**
+   This API entrypoint was added in LIBGCCJIT_ABI_36
+*/
+mixin(ifunc!(q{void}, q{gcc_jit_context_set_abort_on_unsupported_target_builtin},
+             q{gcc_jit_context* ctxt}));
+
+/** Given type "T", get type "T[N]" (for a constant N).
+
+   This API entrypoint was added in LIBGCCJIT_ABI_37
+*/
+mixin(ifunc!(q{gcc_jit_type*}, q{gcc_jit_context_new_array_type_u64},
+             q{gcc_jit_context* ctxt,
+               gcc_jit_location* loc,
+               gcc_jit_type* element_type,
+               ulong num_elements}));
 
 } /* __gshared  */

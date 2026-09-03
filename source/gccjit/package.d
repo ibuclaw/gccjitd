@@ -82,6 +82,10 @@ struct JIT
     ///
     alias Version = gccjit.version_.Version;
 
+    static import gccjit.target;
+    ///
+    alias TargetInfo = gccjit.target.TargetInfo;
+
     nothrow @nogc:
     import gccjit.helpers : Have;
 
@@ -265,4 +269,20 @@ struct JIT
     ///
     static bool Have_Context_set_output_ident()
     { mixin(Have!(["gcc_jit_context_set_output_ident"])); }
+
+    ///
+    static bool Have_TargetInfo_API()
+    { mixin(Have!(["gcc_jit_context_get_target_info",
+                   "gcc_jit_target_info_release",
+                   "gcc_jit_target_info_cpu_supports",
+                   "gcc_jit_target_info_arch",
+                   "gcc_jit_target_info_supports_target_dependent_type"])); }
+
+    ///
+    static bool Have_Context_set_abort_on_unsupported_target_builtin()
+    { mixin(Have!(["gcc_jit_context_set_abort_on_unsupported_target_builtin"])); }
+
+    ///
+    static bool Have_Context_new_array_type_u64()
+    { mixin(Have!(["gcc_jit_context_new_array_type_u64"])); }
 }
