@@ -65,6 +65,7 @@ struct CompileResult
     void release() nothrow @nogc
     {
         gcc_jit_result_release(m_result);
+        m_result = null;
     }
 
 package(gccjit):
