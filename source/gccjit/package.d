@@ -154,7 +154,7 @@ struct JIT
                    "gcc_jit_version_patchlevel"])); }
 
     ///
-    static bool Have_LValue_set_initiailizer()
+    static bool Have_LValue_set_initializer()
     { mixin(Have!(["gcc_jit_global_set_initializer"])); }
 
     ///

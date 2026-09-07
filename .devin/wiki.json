@@ -275,7 +275,7 @@
       "parent": "Values: RValue and LValue (gccjit.values)",
       "page_notes": [
         {
-          "content": "set_initializer has two overloads gated by two different flags - the blob-based one by Have_LValue_set_initiailizer and the rvalue-based one by Have_Ctors (note the misspelling of 'initiailizer' in the flag name is in the source, keep it verbatim)."
+          "content": "set_initializer has two overloads gated by two different flags - the blob-based one by Have_LValue_set_initializer and the rvalue-based one by Have_Ctors."
         }
       ]
     },
