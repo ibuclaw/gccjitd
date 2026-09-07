@@ -1,7 +1,19 @@
 {
   "repo_notes": [
     {
-      "content": "gccjitd is D language bindings for libgccjit.so, GCC's JIT compilation library. It has two DUB build configurations: 'library' (standard, default) and 'betterC' (adds -fno-exceptions for GDC, no D runtime). The public API is aggregated into a single struct JIT (source/gccjit/package.d) via static import + alias for every submodule (Context, Type, Field, Function, Block, RValue, LValue, CompileResult, Timer, Version, etc.), so JIT is a pure namespace facade. Because libgccjit avoids SONAME bumps and instead versions individual symbols, gccjitd exposes many library features behind per-symbol Have_* runtime feature flags (e.g. JIT.Have_Reflection, JIT.Have_Timing_API, JIT.Have_Version) rather than relying on link-time availability - always check for a Have_* guard before assuming a method is unconditionally available."
+      "content": "gccjitd is D language bindings for libgccjit.so, GCC's JIT compilation library. It has two DUB build configurations: 'library' (standard, default) and 'betterC' (adds -fno-exceptions for GDC, no D runtime). The public API is aggregated into a single struct JIT (source/gccjit/package.d) via static import + alias for every submodule (Location, Context, Type, Struct, FunctionPtrType, VectorType, Field, Function, Parameter, Block, Case, ExtendedAsm, RValue, LValue, CompileResult, Timer, AutoTime, Version, TargetInfo), so JIT is a pure namespace facade. Because libgccjit avoids SONAME bumps and instead versions individual symbols, gccjitd exposes many library features behind per-symbol Have_* runtime feature flags (e.g. JIT.Have_Reflection, JIT.Have_Timing_API, JIT.Have_Version, JIT.Have_TargetInfo_API) rather than relying on link-time availability - always check for a Have_* guard before assuming a method is unconditionally available."
+    },
+    {
+      "content": "SCOPE DIRECTIVE: document ONLY the library sources under source/gccjit/ (bindings.d, block.d, compile.d, context.d, decls.d, flags.d, helpers.d, location.d, object.d, package.d, target.d, timer.d, types.d, values.d, version_.d) plus the top-level build files (dub.json, Makefile, dscanner.ini, README.md). Ignore everything under test/ - test/brainf, test/capi, test/dapi, test/square, test/sum-squares, test/toy and test/unittests are throwaway demo programs, not part of the API. Do NOT create any 'Examples', 'Tutorials', 'Sample Programs' or 'Examples and Test Programs' page, do not derive API descriptions from files in test/, and do not use test sources as citations. The only permitted mention of test/ is the list of DUB sub-packages on the build/getting-started page."
+    },
+    {
+      "content": "ACCURACY DIRECTIVE: every symbol, type, variable, table or mechanism described in this wiki MUST exist verbatim in source/gccjit/*.d - cite the file and line it comes from, and if it cannot be cited, omit it. Known hallucinations to never reproduce: (1) there is NO 'LIBGCCJIT_ABI' variable, constant, enum or 'Version Tracker'/'ABI version table' anywhere in this codebase - the 'LIBGCCJIT_ABI_N' strings are prose inside doc comments copied from the upstream C libgccjit.h header (e.g. bindings.d near lines 1129, 1217, 1233, 1241) recording which C library version introduced each entrypoint; (2) there is NO 'LoadLibGccjit' mixin, no library loader struct, and no dlopen of 'libgccjit.so' by name; (3) there are no exceptions, no classes and no GC allocation in this library - failures either return null, are reported via Context.get_first_error, or abort the process."
+    },
+    {
+      "content": "MECHANISM REFERENCE (use this wording rather than inventing one): symbol resolution lives in source/gccjit/helpers.d. getHandle() returns the handle of the main executable (dlopen(null, RTLD_LAZY) on POSIX, GetModuleHandleA(null) on Windows) and getSymbol() wraps dlsym/GetProcAddress. The `ifunc` string-mixin template generates, for each versioned entrypoint in bindings.d, a module-level function pointer `c_<name>` initialised to a lazy self-patching stub: on first call the stub resolves the symbol, rewrites the pointer and forwards the call, or calls helpers.abort with 'Attempt to execute an unresolved gccjit function: <name>'. `alias <name> = c_<name>;` is what makes the resolved pointer usable as a plain function. The `Have` string-mixin template generates the JIT.Have_* feature-flag methods in package.d; each caches a tristate __gshared byte and returns true only when every listed C symbol resolves. Note this is a D template named `ifunc`, NOT the GCC ifunc/STT_GNU_IFUNC attribute."
+    },
+    {
+      "content": "Every public wrapper struct except Timer, AutoTime and Version defines `bool opCast(T : bool)() const nothrow @nogc`, returning whether the underlying C handle is non-null, so `if (obj)` / `cast(bool) obj` is the idiomatic null-check across the API: JitObject (object.d), Location (location.d), Context (context.d), Field/Function/Parameter (decls.d), Type/Struct/FunctionPtrType/VectorType (types.d), RValue/LValue (values.d), Block/Case/ExtendedAsm (block.d), CompileResult (compile.d) and TargetInfo (target.d). This is separate from the other opCast!T overloads, which perform up/down-casting between wrapper structs. Timer and AutoTime have no bool cast, and Version is a static, non-instantiable struct with no instance state at all."
     }
   ],
   "pages": [
@@ -10,7 +22,7 @@
       "purpose": "High-level introduction to gccjitd: what it is, its purpose as D bindings for libgccjit, the overall architecture, and how the major subsystems relate. Links to child pages for details.",
       "page_notes": [
         {
-          "content": ""
+          "content": "Scope this page to source/gccjit/ - the library is the whole product. Do not present the programs under test/ as part of the architecture or as usage examples; any code sample here must come from a doc comment or unittest inside source/gccjit/. Mention that the API is @nogc/nothrow and exception-free, that all entities are structs (no classes), that `if (entity)` works as a null-check via opCast(T : bool), and that optional libgccjit features are probed at runtime through JIT.Have_*."
         }
       ]
     },
@@ -45,11 +57,14 @@
     },
     {
       "title": "libgccjit ABI Versioning and Dynamic Symbol Loading",
-      "purpose": "Details how gccjitd handles multiple versions of libgccjit.so at runtime using dlsym, the LoadLibGccjit mixin, and the fallback abort mechanism for missing symbols.",
+      "purpose": "Details how gccjitd copes with libgccjit.so versions that export different symbol sets: the `ifunc` and `Have` string-mixin templates in gccjit.helpers, lazy symbol resolution via getHandle/getSymbol (dlsym/GetProcAddress), the JIT.Have_* feature flags generated in package.d, and the abort fallback when an unresolved entrypoint is called.",
       "parent": "C Bindings Layer (gccjit.bindings)",
       "page_notes": [
         {
-          "content": "See the API-compatibility comment above the ifunc import in bindings.d: libgccjit avoids bumping its SONAME and instead tags each symbol via versioning, so gccjitd uses ifunc to test for symbol presence at runtime and aborts with a message if a missing symbol is called."
+          "content": "IMPORTANT: there is no 'LIBGCCJIT_ABI' variable and no 'Version Tracker' table in this D codebase, and no 'LoadLibGccjit' mixin. The LIBGCCJIT_ABI_N strings in bindings.d (e.g. near lines 1129, 1217, 1233, 1241) are doc-comment prose copied from the upstream C libgccjit.h header, documenting which C library version introduced each declaration - they are not D symbols or exposed API. Describe only what exists: the `ifunc` template (helpers.d) generating self-patching c_<name> function pointers, the `Have` template generating the JIT.Have_* methods in package.d, and getHandle/getSymbol doing the lookup."
+        },
+        {
+          "content": "See the API-compatibility comment above the `import gccjit.helpers : ifunc;` line in bindings.d (near line 1203): libgccjit avoids bumping its SONAME and instead versions individual symbols, so gccjitd resolves each entrypoint at first use and aborts with 'Attempt to execute an unresolved gccjit function: <name>' if the symbol is absent. Unversioned entrypoints are plain extern(C) declarations; only the versioned ones go through the mixin."
         }
       ]
     },
@@ -65,11 +80,11 @@
     },
     {
       "title": "gccjit.version_: libgccjit Version Querying",
-      "purpose": "Documents the Version struct in gccjit.version_, a static, non-instantiable wrapper around gcc_jit_version_major(), gcc_jit_version_minor(), and gcc_jit_version_patchlevel(), used to query the runtime ABI version of libgccjit (available since LIBGCCJIT_ABI_13, gated by JIT.Have_Version).",
+      "purpose": "Documents the Version struct in gccjit.version_, a static, non-instantiable wrapper around gcc_jit_version_major(), gcc_jit_version_minor(), and gcc_jit_version_patchlevel(), used to query the version of the libgccjit library actually loaded at runtime; gated by JIT.Have_Version.",
       "parent": "C Bindings Layer (gccjit.bindings)",
       "page_notes": [
         {
-          "content": "Version is exposed publicly as JIT.Version via the static import + alias pattern in package.d, the same aggregation idiom used for all other JIT.* entities."
+          "content": "Version is exposed publicly as JIT.Version via the static import + alias pattern in package.d, the same aggregation idiom used for all other JIT.* entities. It is the one wrapper with no instance state: this/copying are @disabled, major/minor/patchlevel are static @property methods, and there is no opCast(T : bool) to document."
         }
       ]
     },
@@ -88,7 +103,17 @@
       "parent": "D API Layer: Core Architecture",
       "page_notes": [
         {
-          "content": "JitObject itself has no union/alias this (it's the root), and its constructor/get_object() are package(gccjit)-scoped, hidden from public consumers."
+          "content": "JitObject itself has no union/alias this (it's the root), and its constructor/get_object() are package(gccjit)-scoped, hidden from public consumers. Its opCast(T : bool) (object.d line 62) is inherited through `alias m_super this` by every derived wrapper, but each derived struct also declares its own opCast(T : bool) checking its own handle - document the bool cast as the standard null-check idiom shared by all wrapper structs except Timer, AutoTime and Version."
+        }
+      ]
+    },
+    {
+      "title": "Source Locations (gccjit.location)",
+      "purpose": "Documents the Location struct in gccjit.location, the wrapper around gcc_jit_location used to attach source positions to JIT-generated statements and expressions: construction via Context.new_location, the default Location() 'no location' value accepted by every Ditto overload, opCast!JitObject upcasting, opCast!bool null-checking, and its interaction with Context.set_debug_info.",
+      "parent": "D API Layer: Core Architecture",
+      "page_notes": [
+        {
+          "content": "Location has no methods of its own beyond the two opCast overloads; it is created only by Context.new_location and consumed by the Location-taking overloads throughout context.d, decls.d, values.d and block.d, each of which has a 'Ditto' partner defaulting to Location(). A default-constructed Location holds a null gcc_jit_location*, so `cast(bool) loc` is false and libgccjit treats it as 'unknown location'."
         }
       ]
     },
@@ -104,10 +129,10 @@
     },
     {
       "title": "Compilation Context (gccjit.context)",
-      "purpose": "Overview of the Context struct as the central factory and lifecycle manager for all JIT entities. Links to child pages covering configuration, type/data creation, and function/control-flow building.",
+      "purpose": "Overview of the Context struct as the central factory and lifecycle manager for all JIT entities. Links to child pages covering configuration, type/data creation, function/control-flow building, compilation output, and target information queries.",
       "page_notes": [
         {
-          "content": ""
+          "content": "Context is the only entity that owns memory: everything else is a non-owning handle valid until Context.release(). Context defines opCast(T : bool) (context.d line 57) so `if (ctxt)` checks that acquire() succeeded or that the context has not been released. Newer entrypoints worth listing as feature-gated additions rather than inventing others: get_target_info (Have_TargetInfo_API), get_target_builtin_function, set_output_ident, set_abort_on_unsupported_target_builtin, new_array_type with a ulong element count, and the vector-permute rvalue constructor."
         }
       ]
     },
@@ -137,7 +162,7 @@
       "parent": "Compilation Context (gccjit.context)",
       "page_notes": [
         {
-          "content": "Most new_rvalue_from_* and constructor methods (new_struct_constructor, new_union_constructor, new_array_constructor) come in Location-explicit and Location()-defaulted 'Ditto' pairs, and several are individually ABI-gated (Have_Ctors for LIBGCCJIT_ABI_19, Have_Context_new_sizeof for LIBGCCJIT_ABI_27)."
+          "content": "Most new_rvalue_from_* and constructor methods (new_struct_constructor, new_union_constructor, new_array_constructor) come in Location-explicit and Location()-defaulted 'Ditto' pairs, and several are individually feature-gated (Have_Ctors, Have_Context_new_sizeof). Where a doc comment records the libgccjit version that introduced an entrypoint, quote it as prose from that comment - do not present it as a D constant or build a version table."
         }
       ]
     },
@@ -148,6 +173,22 @@
       "page_notes": [
         {
           "content": "This page was merged from a separate 'gccjit.compile: CompileResult Struct' page; keep scope strictly to CompileResult (get_code/get_global/release) and Context.compile() as its sole construction path. Do not re-split into a standalone gccjit.compile page."
+        },
+        {
+          "content": "get_code/get_global are templates taking the D function/variable type to cast the returned pointer to. release() calls gcc_jit_result_release and nulls m_compile, after which `cast(bool) result` is false - opCast(T : bool) (compile.d line 30) is the supported way to check both a failed compile and an already-released result."
+        }
+      ]
+    },
+    {
+      "title": "Target Information Queries (gccjit.target)",
+      "purpose": "Documents the TargetInfo struct in gccjit.target, obtained from Context.get_target_info(), which provides target-specific capability queries: cpu_supports(string feature) for CPU feature detection, arch() for the target architecture name, and supports_type(CType type) for checking native support of target-dependent CTypes such as BFloat16/Float16/Float128/Int128t. Added in libgccjit ABI 35 and guarded by JIT.Have_TargetInfo_API.",
+      "parent": "Compilation Context (gccjit.context)",
+      "page_notes": [
+        {
+          "content": "TargetInfo also exposes opCast(T : bool) for null-checks and release() to free the gcc_jit_target_info handle (nulling it, so the bool cast becomes false), mirroring the lifecycle pattern of CompileResult. Its constructor and get_target_info() are package(gccjit)-scoped, so Context.get_target_info() in context.d (near line 1331) is the only public way to obtain one; JIT.Have_TargetInfo_API in package.d resolves the five gcc_jit_target_info_* / gcc_jit_context_get_target_info symbols together."
+        },
+        {
+          "content": "Do not invent methods here: gccjit.target contains exactly one struct with the members opCast, release, cpu_supports, arch and supports_type. Note that TargetInfo has no opCast to JitObject - gcc_jit_target_info is not part of the gcc_jit_object hierarchy."
         }
       ]
     },
@@ -156,7 +197,7 @@
       "purpose": "Overview of the type hierarchy in gccjitd: Type, Struct, FunctionPtrType, VectorType. Explains type derivation, opaque structs, and dynamic casting. Links to child pages for each type category.",
       "page_notes": [
         {
-          "content": "Type uses opCast!T overloads for both upcasting to JitObject and downcasting to FunctionPtrType/VectorType, gated by JIT.Have_Reflection since these are dyncast_* C entrypoints added in LIBGCCJIT_ABI_16."
+          "content": "Type uses opCast!T overloads for both upcasting to JitObject and downcasting to FunctionPtrType/VectorType, gated by JIT.Have_Reflection since these are dyncast_* C entrypoints. Distinguish these from the separate opCast(T : bool) that every type struct declares (types.d lines 44, 242, 329, 403): the bool cast is an unconditional null-check on the underlying handle, and a failed dyncast yields a wrapper that converts to false rather than an error."
         }
       ]
     },
@@ -185,7 +226,7 @@
       "purpose": "Documents the Field, Function, and Parameter structs. Covers the function definition workflow: creating blocks, locals, and parameters; function attributes; opCall overloads; and the dump_to_dot debugging method.",
       "page_notes": [
         {
-          "content": "Function.get_return_type/get_param_count are Have_Reflection-gated (LIBGCCJIT_ABI_16), separate from get_address which is gated by its own Have_Function_get_address flag (LIBGCCJIT_ABI_8)."
+          "content": "Function.get_return_type/get_param_count are Have_Reflection-gated, separate from get_address which is gated by its own Have_Function_get_address flag; cite the doc comments in decls.d rather than describing an ABI table. Field, Function and Parameter each declare opCast(T : bool) (decls.d lines 42, 79, 251) alongside their JitObject/LValue/RValue opCast overloads."
         }
       ]
     },
@@ -214,7 +255,7 @@
       "purpose": "Overview of the value system: RValue as the base expression type and LValue as an assignable storage location. Explains the alias-this inheritance, operator overloading, and how values interact with the context. Links to child pages.",
       "page_notes": [
         {
-          "content": "LValue upcasts to both RValue and JitObject via opCast!T, following the same union+alias-this + templated-opCast pattern as Type/Struct/Block - the same recurring idiom across the D API layer, useful for consistent doc phrasing."
+          "content": "LValue upcasts to both RValue and JitObject via opCast!T, following the same union+alias-this + templated-opCast pattern as Type/Struct/Block - the same recurring idiom across the D API layer, useful for consistent doc phrasing. Both RValue (values.d line 42) and LValue (values.d line 224) additionally provide opCast(T : bool) for null-checking the underlying gcc_jit_rvalue*/gcc_jit_lvalue*."
         }
       ]
     },
@@ -234,7 +275,7 @@
       "parent": "Values: RValue and LValue (gccjit.values)",
       "page_notes": [
         {
-          "content": "set_initializer has two overloads gated by two different flags - the blob-based one by Have_LValue_set_initiailizer (LIBGCCJIT_ABI_14) and the rvalue-based one by Have_Ctors (LIBGCCJIT_ABI_19)."
+          "content": "set_initializer has two overloads gated by two different flags - the blob-based one by Have_LValue_set_initiailizer and the rvalue-based one by Have_Ctors (note the misspelling of 'initiailizer' in the flag name is in the source, keep it verbatim)."
         }
       ]
     },
@@ -243,7 +284,7 @@
       "purpose": "Overview of the Block, Case, and ExtendedAsm structs. Explains how basic blocks form the control flow graph within a function and how inline assembly is integrated. Links to child pages.",
       "page_notes": [
         {
-          "content": "Block upcasts to JitObject via opCast!T, and add_call is a D-only convenience built on top of Context.new_call + add_eval, not a direct C binding."
+          "content": "Block upcasts to JitObject via opCast!T, and add_call is a D-only convenience built on top of Context.new_call + add_eval, not a direct C binding. Block, Case and ExtendedAsm each also declare opCast(T : bool) (block.d lines 42, 287, 328), so `if (blk)` / `if (asm_)` is the way to check that a feature-gated factory actually returned a handle."
         }
       ]
     },
@@ -269,7 +310,7 @@
     },
     {
       "title": "Timer and Profiling (gccjit.timer)",
-      "purpose": "Documents the Timer struct, a wrapper around gcc_jit_timer for profiling JIT compilation phases (push/pop/print/release, lazy allocation via m_start), and the AutoTime RAII template that automatically pushes/pops a named timing item for a scope. Available since LIBGCCJIT_ABI_4, gated by JIT.Have_Timing_API. Associated with a Context via Context.timer.",
+      "purpose": "Documents the Timer struct, a wrapper around gcc_jit_timer for profiling JIT compilation phases (push/pop/print/release, lazy allocation via m_start), and the AutoTime RAII template that automatically pushes/pops a named timing item for a scope. Gated by JIT.Have_Timing_API. Associated with a Context via Context.timer.",
       "page_notes": [
         {
           "content": "Timer has no direct reference to Context in its own source file; the connection is one-directional via Context.timer() getter/setter in context.d, which should be cross-referenced when documenting this page."
