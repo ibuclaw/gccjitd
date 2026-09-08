@@ -42,10 +42,10 @@ nothrow @nogc unittest
     auto int_type = ctxt.get_type(CType.Int);
 
     if (JIT.Have_Context_new_sizeof)
-        assert(ctxt.new_sizeof(int_type).toString() == "(int)4");
+        assert(ctxt.new_sizeof(int_type).toString() == "sizeof (int)");
 
     if (JIT.Have_Context_new_alignof)
-        assert(ctxt.new_alignof(int_type).toString() == "(int)4");
+        assert(ctxt.new_alignof(int_type).toString() == "_Alignof (int)");
 }
 
 nothrow @nogc unittest
