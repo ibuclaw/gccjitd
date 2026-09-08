@@ -17,3 +17,26 @@ nothrow @nogc unittest
     // Disallow cast to unrelated object
     assert(!__traits(compiles, cast(JIT.Type)JIT.Parameter()));
 }
+
+nothrow @nogc unittest
+{
+    // Parameters are usable as both lvalues and rvalues.
+    auto ctxt = JIT.Context.acquire();
+    scope(exit) ctxt.release();
+
+    auto param = ctxt.new_param(CType.Int, "i");
+    assert(param);
+    assert(param.toString() == "i");
+    assert(param.get_context() is ctxt);
+
+    JIT.LValue lvalue = param;
+    JIT.RValue rvalue = param;
+    JIT.Object obj = param;
+
+    assert(lvalue.toString() == param.toString());
+    assert(rvalue.toString() == param.toString());
+    assert(obj.toString() == param.toString());
+
+    assert(rvalue.get_type().toString() == "int");
+    assert(lvalue.get_address().get_type().toString() == "int *");
+}

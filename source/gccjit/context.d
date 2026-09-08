@@ -315,9 +315,9 @@ struct Context
     /// Get the timer associated with a context (if any).
     /// This API endpoint was added in LIBGCCJIT_ABI_4; you can test for
     /// its presence using `if (JIT.Have_Timing_API)`.
-    Timer timer() nothrow @nogc
+    Timer timer() const nothrow @nogc @property
     {
-        auto result = gcc_jit_context_get_timer(m_context);
+        auto result = gcc_jit_context_get_timer(cast(gcc_jit_context*)m_context);
         return Timer(result);
     }
 
@@ -1328,7 +1328,7 @@ struct Context
     /// Create a JIT.TargetInfo instance.
     /// This API endpoint was added in LIBGCCJIT_ABI_35; you can test for its
     /// presence using `if (JIT.Have_TargetInfo_API)`.
-    TargetInfo get_target_info()
+    TargetInfo get_target_info() nothrow @nogc
     {
         auto result = gcc_jit_context_get_target_info(m_context);
         return TargetInfo(result);
@@ -1337,7 +1337,7 @@ struct Context
     /// Controls whether libgccjit will abort if it is given an unsupported type.
     /// This API endpoint was added in LIBGCCJIT_ABI_36; you can test for its
     /// presence using `if (JIT.Have_Context_set_abort_on_unsupported_target_builtin)`.
-    Context set_abort_on_unsupported_target_builtin()
+    Context set_abort_on_unsupported_target_builtin() return nothrow @nogc
     {
         gcc_jit_context_set_abort_on_unsupported_target_builtin(m_context);
         return this;

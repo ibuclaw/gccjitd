@@ -28,19 +28,19 @@ import gccjit.bindings;
 struct Version
 {
     ///
-    static int major() @property
+    static int major() nothrow @nogc @property
     {
         return gcc_jit_version_major();
     }
 
     ///
-    static int minor() @property
+    static int minor() nothrow @nogc @property
     {
         return gcc_jit_version_minor();
     }
 
     ///
-    static int patchlevel() @property
+    static int patchlevel() nothrow @nogc @property
     {
         return gcc_jit_version_patchlevel();
     }

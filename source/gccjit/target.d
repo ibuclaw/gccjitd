@@ -36,27 +36,27 @@ struct TargetInfo
     }
 
     /// Release a JIT.TargetInfo instance.
-    void release()
+    void release() nothrow @nogc
     {
         gcc_jit_target_info_release(m_target_info);
         m_target_info = null;
     }
 
     /// Returns true if `feature` is supported by the specified target.
-    bool cpu_supports(string feature)
+    bool cpu_supports(string feature) nothrow @nogc
     {
         auto result = feature.toCStringThen!((p)
             => gcc_jit_target_info_cpu_supports(m_target_info, p.ptr));
         return !!result;
     }
 
-    string arch()
+    string arch() nothrow @nogc
     {
         return gcc_jit_target_info_arch(m_target_info).toDString();
     }
 
     /// Returns true if the target natively supports the target-dependent `type`.
-    bool supports_type(CType type)
+    bool supports_type(CType type) nothrow @nogc
     {
         auto result = gcc_jit_target_info_supports_target_dependent_type(m_target_info,
                                                                          type);
