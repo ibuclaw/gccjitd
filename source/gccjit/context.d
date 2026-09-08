@@ -315,7 +315,7 @@ struct Context
     /// Get the timer associated with a context (if any).
     /// This API endpoint was added in LIBGCCJIT_ABI_4; you can test for
     /// its presence using `if (JIT.Have_Timing_API)`.
-    Timer timer() nothrow @nogc
+    Timer timer() nothrow @nogc @property
     {
         auto result = gcc_jit_context_get_timer(m_context);
         return Timer(result);
