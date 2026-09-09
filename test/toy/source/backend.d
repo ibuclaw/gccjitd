@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// Written by Iain  Buclaw <ibuclaw@gdcproject.org>
+// Written by Iain Buclaw <ibuclaw@gdcproject.org>
 
 module toy.backend;
 
@@ -58,7 +58,7 @@ class Backend
                                               CType.Void, "toymain", false);
         this.block = this.func.new_block();
         this.context.set_program_name = "toy";
-        debug this.context.set_dump_initial_gimple = true;
+        version (none) this.context.set_dump_initial_gimple = true;
     }
 
     void run()

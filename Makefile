@@ -23,13 +23,16 @@ check-gccjitd:
 	$(DUB_TEST) --config=betterC
 
 check-brainf:
-	$(DUB_TEST) :brainf -- test/brainf/mandelbrot.bf
+	$(DUB_BUILD) :brainf
+	test/brainf/gccjitd_brainf test/brainf/mandelbrot.bf | diff -u test/brainf/mandelbrot.out -
 
 check-capi:
-	$(DUB_TEST) :capi
+	$(DUB_BUILD) :capi
+	test/capi/gccjitd_capi | diff -u test/capi/test.out -
 
 check-dapi:
-	$(DUB_TEST) :dapi
+	$(DUB_BUILD) :dapi
+	test/dapi/gccjitd_dapi | diff -u test/dapi/test.out -
 
 check-lint:
 	$(DUB_RUN) dscanner -- --syntaxCheck source/gccjit
@@ -42,7 +45,8 @@ check-sum-squares:
 	$(DUB_TEST) :sum-squares
 
 check-toy:
-	$(DUB_TEST) :toy -- test/toy/fact.toy
+	$(DUB_BUILD) :toy
+	test/toy/gccjitd_toy test/toy/fact.toy | diff -u test/toy/fact.out -
 
 check-unittests:
 	$(DUB_TEST) :unittests
