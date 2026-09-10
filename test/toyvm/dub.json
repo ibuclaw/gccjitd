@@ -1,0 +1,12 @@
+{
+    "name": "toyvm",
+    "description": "Stack-based virtual machine, part of the testsuite",
+    "targetType": "executable",
+    "configurations": [{
+	"name": "unittest",
+	"mainSourceFile": "source/main.d",
+    	"dependencies": {
+    	    "gccjitd": {"path": "../../"}
+    	}
+    }]
+}

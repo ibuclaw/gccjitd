@@ -1,5 +1,5 @@
 {
-    "name": "toy",
+    "name": "toylang",
     "description": "Example program, part of the testsuite",
     "targetType": "executable",
     "configurations": [{

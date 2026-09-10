@@ -14,7 +14,8 @@ check: check-gccjitd \
 	check-dapi \
 	check-square \
 	check-sum-squares \
-	check-toy \
+	check-toylang \
+	check-toyvm \
 	check-unittests \
 	check-lint
 
@@ -44,9 +45,13 @@ check-square:
 check-sum-squares:
 	$(DUB_TEST) :sum-squares
 
-check-toy:
-	$(DUB_BUILD) :toy
-	test/toy/gccjitd_toy test/toy/fact.toy | diff -u test/toy/fact.out -
+check-toylang:
+	$(DUB_BUILD) :toylang
+	test/toylang/gccjitd_toylang test/toylang/fact.toy | diff -u test/toylang/fact.out -
+
+check-toyvm:
+	$(DUB_TEST) :toyvm -- test/toyvm/factorial.toy 10
+	$(DUB_TEST) :toyvm -- test/toyvm/fibonacci.toy 10
 
 check-unittests:
 	$(DUB_TEST) :unittests
@@ -62,7 +67,8 @@ DUB_ARTEFACTS = \
 	    test/dapi/gccjitd_dapi \
 	    test/square/gccjitd_square \
 	    test/sum-squares/gccjitd_sum-squares \
-	    test/toy/gccjitd_toy \
+	    test/toylang/gccjitd_toylang \
+	    test/toyvm/gccjitd_toyvm \
 	    test/unittests/gccjitd-unittests-test-betterC \
 	    test/unittests/gccjitd-unittests-test-library
 

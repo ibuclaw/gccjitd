@@ -18,7 +18,8 @@
 	"./test/dapi",
 	"./test/square",
 	"./test/sum-squares",
-	"./test/toy",
+	"./test/toylang",
+	"./test/toyvm",
 	"./test/unittests"
     ]
 }

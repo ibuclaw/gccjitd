@@ -16,11 +16,11 @@
 
 // Written by Iain Buclaw <ibuclaw@gdcproject.org>
 
-module toy.combinator;
+module toylang.combinator;
 
-import toy.lex;
-import toy.ast;
-import toy.diag;
+import toylang.lex;
+import toylang.ast;
+import toylang.diag;
 
 import std.algorithm;
 

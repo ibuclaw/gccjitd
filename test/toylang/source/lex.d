@@ -16,7 +16,7 @@
 
 // Written by Iain Buclaw <ibuclaw@gdcproject.org>
 
-module toy.lex;
+module toylang.lex;
 
 import std.array;
 import std.regex;

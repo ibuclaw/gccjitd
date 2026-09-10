@@ -1,4 +1,4 @@
-//  Toy interpreter error handling.
+//  Toy interpreter.
 //
 // Copyright (C) 2014-2015 Iain Buclaw.
 // This program is free software; you can redistribute it and/or modify
@@ -16,32 +16,29 @@
 
 // Written by Iain Buclaw <ibuclaw@gdcproject.org>
 
-module toy.diag;
+module toylang.main;
 
-/// Recoverable errors in input logic.
-class ParseError : Exception
+import toylang.lex;
+import toylang.ast;
+import toylang.parse;
+import toylang.backend;
+
+import std.file;
+
+/// Main ///
+
+void main(string[] args)
 {
-    @safe pure nothrow this(string msg, Throwable next = null)
-    {
-        super(msg, next);
-    }
+    if (args.length != 2)
+        return;
 
-    @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
-    {
-        super(msg, file, line, next);
-    }
-}
+    string input = cast(string) read(args[1]);
 
-/// ICE in program logic.
-class InternalError : Error
-{
-    @safe pure nothrow this(string msg, Throwable next = null)
-    {
-        super("ICE: " ~ msg, next);
-    }
+    auto tokens = lex(input);
+    auto expr = parse(tokens);
 
-    @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
-    {
-        super("ICE: " ~ msg, file, line, next);
-    }
+    Backend backend = new Backend;
+    expr.compile(backend);
+    backend.run();
+    return;
 }

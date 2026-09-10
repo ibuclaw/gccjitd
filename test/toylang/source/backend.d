@@ -16,9 +16,9 @@
 
 // Written by Iain Buclaw <ibuclaw@gdcproject.org>
 
-module toy.backend;
+module toylang.backend;
 
-import toy.ast;
+import toylang.ast;
 
 import gccjit;
 

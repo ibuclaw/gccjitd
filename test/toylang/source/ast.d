@@ -16,10 +16,10 @@
 
 // Written by Iain Buclaw <ibuclaw@gdcproject.org>
 
-module toy.ast;
+module toylang.ast;
 
-import toy.backend;
-import toy.diag;
+import toylang.backend;
+import toylang.diag;
 
 import std.conv;
 

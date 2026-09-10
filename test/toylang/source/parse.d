@@ -16,12 +16,12 @@
 
 // Written by Iain Buclaw <ibuclaw@gdcproject.org>
 
-module toy.parse;
+module toylang.parse;
 
-import toy.ast;
-import toy.combinator;
-import toy.lex;
-import toy.diag;
+import toylang.ast;
+import toylang.combinator;
+import toylang.lex;
+import toylang.diag;
 
 ///// Parser /////
 
