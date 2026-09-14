@@ -27,6 +27,32 @@ string toDString (inout(char)* s) pure nothrow @nogc
     return s ? cast(string)s[0 .. strlen(s)] : null;
 }
 
+@system unittest
+{
+    assert(toDString(null) is null);
+
+    char[1] empty = ['\0'];
+    auto result = toDString(empty.ptr);
+    assert(result.length == 0);
+    assert(result.ptr == empty.ptr);
+
+    char[6] hello = "hello";
+    result = toDString(hello.ptr);
+    assert(result == "hello");
+    assert(result.length == 5);
+    assert(result.ptr == hello.ptr);
+
+    char[8] embedded = ['a', 'b', '\0', 'c', 'd', '\0', '\0', '\0'];
+    result = toDString(embedded.ptr);
+    assert(result == "ab");
+    assert(result.length == 2);
+
+    char[4] mutable = ['a', 'b', 'c', '\0'];
+    const s = toDString(mutable.ptr);
+    mutable[1] = 'X';
+    assert(s == "aXc");
+}
+
 // Defines a temporary array of `char`s using a fixed-length buffer as back
 // store. If the length of the buffer suffices, it is readily used. Otherwise,
 // `malloc` is used to allocate memory for the array and `free` is used for
@@ -91,6 +117,34 @@ nothrow:
     assert(b[] !is buf[]);
 }
 
+@system unittest
+{
+    char[16] buf = void;
+
+    auto zero = SmallBuffer(0, buf);
+    assert(zero.length == 0);
+    assert(zero[] is buf[0 .. 0]);
+
+    auto exact = SmallBuffer(buf.length, buf);
+    assert(exact[] is buf[]);
+
+    auto beyond = SmallBuffer(buf.length + 1, buf);
+    assert(beyond.length == buf.length + 1);
+    assert(beyond[] !is buf[]);
+}
+
+@system unittest
+{
+    char[4] buf = void;
+    auto sb = SmallBuffer(1000, buf);
+
+    foreach (i, ref c; sb)
+        c = cast(char)(i % 127);
+
+    foreach (i, c; sb)
+        assert(c == cast(char)(i % 127));
+}
+
 // Copy the content of `src` into a C-string ('\0' terminated) then call `dg`
 // The intent of this function is to provide an allocation-less
 // way to call a C function using a D slice.
@@ -125,6 +179,62 @@ auto toCStringThen(alias dg)(const(char)[] src) nothrow
     assert("Hello world".toCStringThen!((v) => v == "Hello world\0"));
     assert("Hello world\0".toCStringThen!((v) => v == "Hello world\0\0"));
     assert(null.toCStringThen!((v) => v == "\0"));
+    assert("abc".toCStringThen!((v) => v.length == 4));
+    assert("abc".toCStringThen!((v) => false) == false);
+    assert("abc".toCStringThen!((v) => 123) == 123);
+}
+
+@system unittest
+{
+    char[511] src;
+    src[] = 'x';
+
+    auto called = false;
+    src[].toCStringThen!((v) {
+        called = true;
+        assert(v.length == 512);
+        assert(v[0 .. 511] == src[]);
+        assert(v[511] == '\0');
+        return true;
+    });
+
+    assert(called);
+}
+
+@system unittest
+{
+    char[512] src;
+    src[] = 'x';
+
+    assert(src[].toCStringThen!((v) {
+        assert(v.length == 513);
+        assert(v[0 .. 512] == src[]);
+        assert(v[512] == '\0');
+        return true;
+    }));
+}
+
+@system unittest
+{
+    char[5] src = "hello";
+
+    assert(src[].toCStringThen!((v) {
+        v[0] = 'X';
+        assert(src[] == "hello");
+        assert(v == "Xello\0");
+        return true;
+    }));
+}
+
+@system unittest
+{
+    const(char)[] src = "ab\0cd";
+
+    assert(src.toCStringThen!((v) {
+        assert(v.length == 6);
+        assert(v == "ab\0cd\0");
+        return true;
+    }));
 }
 
 // Print message to stderr then abort runtime.
@@ -184,6 +294,21 @@ private template parameters(string args)
     }();
 }
 
+@system unittest
+{
+    assert(parameters!"const char* str, int val" == "str, val");
+    assert(parameters!"int a" == "a");
+    assert(parameters!"int a, int b, int c" == "a, b, c");
+    assert(parameters!"" == "");
+
+    assert(parameters!",int a" == "a");
+    assert(parameters!"int a," == "a");
+    assert(parameters!"int a,,int b" == "a, b");
+    assert(parameters!",,int a,,int b,," == "a, b");
+
+    assert(parameters!"const char* str, void* data, int count" == "str, data, count");
+}
+
 // Get the handle of the main executable.
 void* getHandle() nothrow @nogc
 {
@@ -197,6 +322,12 @@ void* getHandle() nothrow @nogc
         import core.sys.posix.dlfcn : dlopen, RTLD_LAZY;
         return dlopen(null, RTLD_LAZY);
     }
+}
+
+@system unittest
+{
+    const handle = getHandle();
+    assert(handle !is null);
 }
 
 // Lookup a symbol in the `handle` and assign it to `ptr`
@@ -219,6 +350,20 @@ void* getSymbol(void* handle, scope const char* name, void** ptr) nothrow @nogc
     return null;
 }
 
+@system unittest
+{
+    void* ptr = cast(void*)0x1234;
+    auto handle = getHandle();
+
+    auto result = getSymbol(handle, "__definitely_not_a_real_symbol__", &ptr);
+    assert(result is null);
+    assert(ptr == cast(void*)0x1234);
+
+    result = getSymbol(handle, "gcc_jit_context_acquire", &ptr);
+    assert(result !is null);
+    assert(ptr == result);
+}
+
 // Generate ifunc code for initialising all function pointers in gccjit.bindings.
 template ifunc(string type, string name, string args)
 {
@@ -235,6 +380,23 @@ template ifunc(string type, string name, string args)
     assert(0);
 };
 alias ` ~ name ~ ` = c_` ~ name ~ `;`;
+}
+
+@system unittest
+{
+    assert(ifunc!("int", "foo", "int x") ==
+`int function(int x) c_foo = (int x)
+{
+    import gccjit.helpers : abort, getHandle, getSymbol;
+    c_foo = null;
+    if (auto handle = getHandle()) {
+        if (getSymbol(handle, "foo", cast(void**)&c_foo))
+            return c_foo(x);
+    }
+    abort!"Attempt to execute an unresolved gccjit function: foo";
+    assert(0);
+};
+alias foo = c_foo;`);
 }
 
 // Generate Have_* code for check whether gccjit has the feature in the linked
@@ -265,4 +427,19 @@ template Have(string[] names)
         return true;`;
         return code;
     }();
+}
+
+@system unittest
+{
+    const void function() c_gcc_jit_context_acquire;
+    bool haveKnownSymbol() { mixin(Have!(["gcc_jit_context_acquire"])); }
+
+    const void function() c___definitely_missing_symbol__;
+    bool haveMissingSymbol() { mixin(Have!(["__definitely_missing_symbol__"])); }
+
+    assert(haveKnownSymbol());
+    assert(haveKnownSymbol());
+
+    assert(!haveMissingSymbol());
+    assert(!haveMissingSymbol());
 }
