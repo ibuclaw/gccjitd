@@ -13,16 +13,19 @@ The wrapper design relies on a few key patterns to bridge C semantics with D idi
 ```mermaid
 classDiagram
     class JIT.Object {
+        <<struct>>
         +Context get_context()
         +string toString()
         +bool opCast(T : bool)()
         -gcc_jit_object* m_object
     }
     class JIT.Location {
-        -gcc_jit_location* m_location
-        +JIT.Object m_super
+        <<struct>>
         +bool opCast(T : bool)()
         +T opCast(T : JIT.Object)()
+        «union»
+        -gcc_jit_location* m_location
+        +JIT.Object m_super
     }
     JIT.Object *-- JIT.Location : alias m_super this
 ```
