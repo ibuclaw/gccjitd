@@ -1,16 +1,57 @@
 # Overview
 
-gccjitd provides comprehensive D language bindings and an idiomatic object-oriented wrapper API for `libgccjit.so`, the GNU Compiler Collection's Just-In-Time compilation library.
-It enables D applications to generate native machine code at runtime, construct complex control flow graphs, define data types, and compile functions dynamically without invoking external compiler binaries or parsing source files.
+**gccjitd** provides D bindings for `libgccjit`, GCC's library for compiling code at runtime.
 
-## Architectural Layers
+With gccjitd, a D program can create types, variables, functions, and control flow, then ask GCC to compile that code into native machine code. This is useful when the code you want to run is only known at runtime, or when you want GCC's optimizer to generate the machine code for you.
 
-The library is structured into distinct vertical layers that bridge raw low-level C entrypoints with high-level D idioms:
+You work with the JIT through a `Context`, which owns the objects created during compilation.
 
-1. **C Bindings Layer** (`gccjit.bindings`): Provides raw `extern(C)` declarations, function prototypes, and opaque type definitions (`gcc_jit_context`, `gcc_jit_object`, `gcc_jit_rvalue`, etc.) corresponding directly to the upstream C header
-2. **Symbol Resolution & Versioning** (`gccjit.helpers`): Manages dynamic symbol loading via runtime resolution using ifunc and Have string-mixin templates, allowing graceful feature detection across various versions of libgccjit.so.
-3. **D Wrapper Structs** (`gccjit.object`, `gccjit.context`, `gccjit.types`, `gccjit.values`, `gccjit.block`, etc.): Implements zero-overhead value semantics using union-based inheritance, alias this typing, and idiomatic `opCast!bool` null checks.
-4. **Namespace Facade** (`gccjit`): Aggregates all public submodules into a single central JIT struct using static imports and aliases
+## What the API provides
+
+The main parts of the API are:
+
+- **`Context`** — The starting point for JIT compilation. It creates and manages types, functions, variables, and other JIT objects, and is used to compile the resulting code.
+- **Types** — Built-in types as well as structures and vector types. You can use these to describe the data your generated code works with.
+- **Values** — Expressions and values used when building code. `RValue` represents values that can be read, while `LValue` represents locations that can also be assigned to.
+- **Functions** — Define the functions that your generated code will contain, including their parameters and return types.
+- **Blocks** — Build the body of a function from blocks of statements. Blocks can contain assignments, calls, conditional branches, returns, and other operations.
+- **Control flow** — Construct branches, loops, switches, and jumps without having to generate source code and invoke a compiler yourself.
+- **Version and feature information** — Check which libgccjit features are available at runtime and query the version of the installed library.
+
+The `gccjit` package brings these API types together, so typical code can use the library without having to know which module each type is defined in.
+
+## A typical workflow
+
+A JIT compilation generally looks like this:
+
+1. Create a `Context`.
+2. Define or obtain the types you need.
+3. Declare the functions you want to generate.
+4. Add blocks and statements to those functions.
+5. Add the required control flow.
+6. Compile the context.
+7. Use the resulting native code.
+
+The details of each step are covered in the API documentation.
+
+## GCC and libgccjit versions
+
+gccjitd works with the version of `libgccjit` installed on the system. Not every version of libgccjit provides the same API, so gccjitd exposes feature checks for functionality that may not be available everywhere.
+
+For example, code can check whether a particular feature or version is supported before using it. This is useful when an application needs to work with multiple GCC versions.
+
+The library also provides access to the underlying GCC JIT version through `gccjit.version_`.
+
+## Build configurations
+
+gccjitd can be used in both regular D programs and `betterC` programs.
+
+- **Regular D** — The normal configuration, with the D runtime available.
+- **`betterC`** — A configuration for programs that don't use the D runtime, such as programs that avoid the garbage collector and exceptions.
+
+The project uses **DUB** for building. You will also need `libgccjit` installed and available to the linker at runtime.
+
+See [Getting Started: Build, Configuration, and Installation](1.1-getting-started.md) for setup and build instructions.
 
 ## Subsystem Architecture
 
@@ -23,9 +64,7 @@ graph TD
     E --> F["libgccjit.so"]
 ```
 
-## Child Pages
+## Where to go next
 
-For deeper technical details on building, configuring, and structuring applications with gccjitd, refer to the child pages:
-
-- [Getting Started: Build, Configuration, and Installation](1.1-getting-started.md) — Covers DUB configurations (library and betterC), Makefile targets, linking against libgccjit, and DUB sub-packages.
-- [Package Structure and Public API Surface](1.2-package-structure.md-package-structure.md) — Explores the module layout and the role of the JIT struct as a namespace aggregator.
+- [Getting Started: Build, Configuration, and Installation](1.1-getting-started.md) — Set up gccjitd, configure DUB, and link against libgccjit.
+- [Package Structure and Public API Surface](1.2-package-structure.md-package-structure.md) — Overview of the available modules and the `gccjit` API namespace.
